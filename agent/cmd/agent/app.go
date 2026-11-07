@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"remotto/agent/internal/config"
+	"remotto/agent/internal/control"
 	"remotto/agent/internal/logging"
 	"remotto/agent/internal/pairing"
 	"remotto/agent/internal/server"
@@ -176,7 +177,7 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "remotto-agent: gagal membuka %s: %v\n", addr, err)
 		return 1
 	}
-	if err := serveAgent(ctx, ln, logger, path, cfg, status); err != nil {
+	if err := serveAgent(ctx, ln, logger, path, cfg, status, ctrl.Media); err != nil {
 		logger.Error("server failed", slog.String("error", err.Error()))
 		fmt.Fprintf(stderr, "remotto-agent: server berhenti dengan error: %v\n", err)
 		return 1
@@ -186,10 +187,11 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 
 // serveAgent serves the API on ln until ctx is done. The token comes from the
 // config file at cfgPath, so a token reset takes effect without a restart
-// (BR-10). It returns nil on a normal stop.
-func serveAgent(ctx context.Context, ln net.Listener, logger *slog.Logger, cfgPath string, cfg config.Config, status server.StatusDeps) error {
+// (BR-10). media is the media port behind /media/*. It returns nil on a normal
+// stop.
+func serveAgent(ctx context.Context, ln net.Listener, logger *slog.Logger, cfgPath string, cfg config.Config, status server.StatusDeps, media control.MediaController) error {
 	tokens := server.NewConfigTokenSource(cfgPath, cfg.Token, logger)
-	handler := server.NewAPIHandler(logger, tokens, status)
+	handler := server.NewAPIHandler(logger, tokens, status, server.WithMedia(media))
 	srv := server.NewHTTPServer(ln.Addr().String(), handler)
 	return server.Serve(ctx, srv, ln, logger)
 }

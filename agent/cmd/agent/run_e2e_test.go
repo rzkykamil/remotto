@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -90,8 +92,15 @@ func errorCode(t *testing.T, body map[string]any) string {
 }
 
 // startAgent serves the API on a loopback listener with the given config and
-// status deps. It returns the base URL and a stop func that waits for exit.
+// status deps, and a fake media port. It returns the base URL and a stop func
+// that waits for exit.
 func startAgent(t *testing.T, cfgPath string, cfg config.Config, status server.StatusDeps) (string, func()) {
+	t.Helper()
+	return startAgentWith(t, cfgPath, cfg, status, &fake.Media{})
+}
+
+// startAgentWith is startAgent with the media port supplied by the test.
+func startAgentWith(t *testing.T, cfgPath string, cfg config.Config, status server.StatusDeps, media control.MediaController) (string, func()) {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -101,7 +110,7 @@ func startAgent(t *testing.T, cfgPath string, cfg config.Config, status server.S
 	ctx, cancel := context.WithCancel(context.Background())
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- serveAgent(ctx, ln, logger, cfgPath, cfg, status)
+		errCh <- serveAgent(ctx, ln, logger, cfgPath, cfg, status, media)
 	}()
 	stop := func() {
 		cancel()
@@ -338,6 +347,107 @@ func TestRunStartsFromConfigAndStopsOnCancel(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("run did not return within 10s after cancel")
 	}
+}
+
+// postMedia calls POST /api/v1/media/<route> with the given bearer token. An
+// empty token sends no Authorization header. It returns the HTTP status and the
+// decoded JSON body.
+func postMedia(t *testing.T, base, route, token string) (int, map[string]any) {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, base+"/api/v1/media/"+route, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("POST media/%s: %v", route, err)
+	}
+	defer resp.Body.Close()
+	var body map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatalf("body is not JSON: %v", err)
+	}
+	return resp.StatusCode, body
+}
+
+// TestServeAgentMediaWithFakeOS covers POST /media/* end to end over a real
+// loopback socket, with the fake media port held by the test.
+func TestServeAgentMediaWithFakeOS(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, 8765, e2eToken)
+	cfg, _, err := loadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfigFile: %v", err)
+	}
+	media := &fake.Media{}
+	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: fake.NewAudio(0, false)}
+	base, stop := startAgentWith(t, cfgPath, cfg, status, media)
+	defer stop()
+
+	t.Run("three routes with token run in order", func(t *testing.T) {
+		for _, route := range []string{"play-pause", "next", "prev"} {
+			code, body := postMedia(t, base, route, e2eToken)
+			if code != http.StatusOK {
+				t.Fatalf("%s status = %d, want 200", route, code)
+			}
+			data, ok := body["data"].(map[string]any)
+			if !ok || data["action"] != route {
+				t.Errorf("%s body data = %v, want action %q", route, body["data"], route)
+			}
+		}
+		want := []control.MediaAction{control.MediaPlayPause, control.MediaNext, control.MediaPrev}
+		if got := media.Calls(); !slices.Equal(got, want) {
+			t.Errorf("calls = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("no token is 401 and sends nothing", func(t *testing.T) {
+		before := len(media.Calls())
+		code, body := postMedia(t, base, "play-pause", "")
+		if code != http.StatusUnauthorized {
+			t.Fatalf("status = %d, want 401", code)
+		}
+		if got := errorCode(t, body); got != server.CodeInvalidToken {
+			t.Errorf("error code = %q, want %q", got, server.CodeInvalidToken)
+		}
+		if after := len(media.Calls()); after != before {
+			t.Errorf("calls went from %d to %d, want no change", before, after)
+		}
+	})
+
+	t.Run("media failure is 500 media_failed without detail", func(t *testing.T) {
+		media.SetErr(errors.New("secret detail"))
+		defer media.SetErr(nil)
+		code, body := postMedia(t, base, "next", e2eToken)
+		if code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", code)
+		}
+		if got := errorCode(t, body); got != server.CodeMediaFailed {
+			t.Errorf("error code = %q, want %q", got, server.CodeMediaFailed)
+		}
+		if strings.Contains(stringify(body), "secret detail") {
+			t.Errorf("response leaks the cause: %s", stringify(body))
+		}
+	})
+
+	t.Run("old token is rejected after reset without restart (BR-10)", func(t *testing.T) {
+		const newToken = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+		writeRunConfig(t, cfgPath, 8765, newToken)
+		before := len(media.Calls())
+		if code, _ := postMedia(t, base, "play-pause", e2eToken); code != http.StatusUnauthorized {
+			t.Errorf("old token status = %d, want 401", code)
+		}
+		if after := len(media.Calls()); after != before {
+			t.Errorf("calls went from %d to %d after rejected token, want no change", before, after)
+		}
+		if code, _ := postMedia(t, base, "play-pause", newToken); code != http.StatusOK {
+			t.Errorf("new token status = %d, want 200", code)
+		}
+	})
 }
 
 // tryStatus is getStatus without t.Fatal, for polling while the agent starts.

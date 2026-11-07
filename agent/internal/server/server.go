@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"remotto/agent/internal/control"
 )
 
 // shutdownTimeout is how long in-flight requests get after the context is
@@ -24,13 +26,36 @@ func NewHandler(router http.Handler, logger *slog.Logger) http.Handler {
 // APIPrefix is the base path of every API route (docs/api-spec.md).
 const APIPrefix = "/api/v1"
 
+// APIOption sets an optional dependency of NewAPIHandler.
+type APIOption func(*apiOptions)
+
+type apiOptions struct {
+	media control.MediaController
+}
+
+// WithMedia sets the controller behind the /media routes. Without it the routes
+// still exist and answer 500 media_failed (fail-closed).
+func WithMedia(c control.MediaController) APIOption {
+	return func(o *apiOptions) { o.media = c }
+}
+
 // NewAPIHandler returns the complete agent handler: the API routes wrapped in
 // the global middleware. The order is Recover, Logging, NetworkFilter, then
 // the rate limit slot (M6), then Auth, so a request from outside the LAN gets
 // 403 before any token check and unknown routes still need a valid token.
-func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps) http.Handler {
+// Options are optional; callers that pass none get the routes without the
+// hardware controllers.
+func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps, opts ...APIOption) http.Handler {
+	var o apiOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	router := NewRouter()
 	router.Handle(http.MethodGet, APIPrefix+"/status", newStatusHandler(status))
+	media := control.NewMediaService(o.media)
+	router.Handle(http.MethodPost, APIPrefix+"/media/play-pause", newMediaHandler(control.MediaPlayPause, media, logger))
+	router.Handle(http.MethodPost, APIPrefix+"/media/next", newMediaHandler(control.MediaNext, media, logger))
+	router.Handle(http.MethodPost, APIPrefix+"/media/prev", newMediaHandler(control.MediaPrev, media, logger))
 	// Rate limit (M6) goes here, between NetworkFilter and Auth.
 	return Chain(router,
 		Recover(logger),
