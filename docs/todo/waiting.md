@@ -86,6 +86,61 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: cabut izin kamera Remotto, lalu buka layar scan.
   Harusnya: muncul pilihan "Buka pengaturan HP" dan "Isi manual".
 
+- [ ] M1: QR asli terbaca dari kamera, dengan senter dan getar.
+  Buka: app Remotto di HP, layar Scan QR, dan QR yang tampil di layar laptop.
+  Lakukan: arahkan kamera ke QR asli, lalu nyalakan senter. Coba juga dengan QR gambar lain.
+  Harusnya: QR asli langsung terbaca dan lanjut ke tes. QR lain memunculkan banner "QR tidak valid" selama sekitar 3 detik. Senter menyala dan HP bergetar saat QR terbaca.
+
+- [ ] M1: Izin kamera ditolak sekali, lalu ditolak permanen.
+  Buka: app Remotto di HP (layar Izinkan kamera), dan pengaturan izin kamera HP.
+  Lakukan: tolak izin sekali, lalu coba lagi. Lalu tolak permanen (di Android, centang "jangan tanya lagi" bila ada), buka app lagi.
+  Harusnya: setelah ditolak sekali tetap di layar Izinkan kamera. Setelah permanen muncul "Buka pengaturan HP". Setelah izin diberikan dan app dibuka lagi, langsung masuk ke scan.
+
+- [ ] M1: Tampilan layar pairing dan Remote sesuai artboard, terang dan gelap.
+  Buka: app Remotto di HP, dan file di `design/export/artboards/` di laptop sebagai pembanding.
+  Lakukan: jalani alur pairing dari awal sampai layar sukses, lihat juga layar gagal dan Remote saat putus. Ulangi dengan tema gelap. Selama backend belum ada, app masih memakai data tiruan: alamat `10.0.0.1` menampilkan layar gagal (timeout), dan token berisi 64 angka nol menampilkan layar token ditolak.
+  Harusnya: warna, teks, dan susunan tiap layar mirip artboard. Tidak ada tombol yang terlihat palsu di layar Remote.
+
+- [ ] M1: Mengetik alamat dan menempel token di HP.
+  Buka: layar Isi manual di app.
+  Lakukan: ketik alamat, tempel token 64 karakter dari papan klip, lalu coba token yang kurang satu karakter.
+  Harusnya: keyboard alamat menampilkan angka dan titik. Token bisa ditempel. Token salah menampilkan pesan "Tokennya 64 karakter, huruf a–f dan angka". Tombol "Sambungkan" aktif hanya saat kedua kolom terisi.
+
+- [ ] M1: Pembaca layar membacakan layar pairing dengan urutan masuk akal.
+  Buka: TalkBack di HP Android atau VoiceOver di iPhone, lalu app Remotto.
+  Lakukan: jelajahi judul, langkah, banner QR tidak valid, tombol mata token, dan toast "Laptop nyambung lagi".
+  Harusnya: judul terbaca sebagai judul, tombol mata terbaca "Tampilkan token" atau "Sembunyikan token", pesan error dibacakan, dan toast tidak mengganggu.
+
+- [ ] M1: Tombol back HP di layar pairing.
+  Buka: app Remotto di HP, layar Scan QR atau Isi manual.
+  Lakukan: tekan tombol back HP dari Scan, dari Isi manual, dan dari layar pertama pairing.
+  Harusnya: dari Scan atau Isi manual kembali ke layar pertama. Dari layar pertama app keluar.
+
+- [ ] M1: Layar pairing dan Remote muat di HP kecil dengan teks besar.
+  Buka: HP ukuran kecil (lebar sekitar 360 dp), dan pengaturan ukuran font HP sekitar 130%.
+  Lakukan: buka layar pertama pairing, layar Isi manual, layar tes, dan layar Remote.
+  Harusnya: tidak ada teks terpotong, tombol utama tetap terlihat dan bisa digulir, dan tidak ada yang tumpang tindih.
+
+- [ ] M1: Pill status di HP kecil dengan teks besar tetap rapi.
+  Buka: HP ukuran kecil dengan font 130%, layar Remote.
+  Lakukan: lihat pill saat laptop "Nyambung" dan saat "Nggak kejangkau".
+  Harusnya: pill tetap di dalam layar. Kalau teks terlalu panjang, ujungnya berakhir dengan "…" dan tidak keluar dari layar.
+
+- [ ] M1: Alamat IP publik di input manual.
+  Buka: layar Isi manual di app.
+  Lakukan: ketik alamat `8.8.8.8`, lalu pindah ke kolom token.
+  Harusnya: muncul pesan kesalahan alamat yang sama dengan format lain. Kalau mau pesan khusus untuk alamat seperti ini, beri tahu tulisannya.
+
+- [ ] M1: Uptime di bawah 1 jam di pill.
+  Buka: layar Remote di HP, saat laptop baru menyala (kurang dari 1 jam).
+  Lakukan: lihat tulisan di pill status.
+  Harusnya: tertulis dengan menit saja, misalnya "NYAMBUNG · 12M". Kalau mau format lain, beri tahu.
+
+- [ ] M1: Pairing ulang tidak menghapus sambungan lama.
+  Buka: layar Remote di HP yang sudah tersambung ke laptop.
+  Lakukan: matikan WiFi laptop sampai status "Nggak kejangkau", tekan "Pairing ulang", lalu tekan back sampai keluar dari pairing. Buka app lagi.
+  Harusnya: sambungan lama masih ada dan app kembali ke layar Remote dengan status yang sesuai.
+
 ## M2 Kontrol Media
 
 - [ ] M2: Play/pause mengenai Brave.

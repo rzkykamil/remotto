@@ -351,3 +351,52 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** File test terpisah `app/test/core/theme/tokens_completeness_test.dart` membaca JSON dan meniru aturan alias serta alpha generator, tanpa mengimpor generator.
 - **Alasan:** Tidak mengubah generator dan tidak membuka API privat.
 - **Dampak:** Pergeseran token di JSON memutus build bila `tokens.g.dart` tidak di-generate ulang.
+
+## [Frontend M1] Q12 mempertahankan sambungan lama dan pairing satu rute
+
+- **Konteks:** Catatan artboard menulis "Pairing ulang" menghapus data lama. PRD BR-9 berbeda. Pairing ulang dari OfflineContent (S10) dan Q12 harus punya satu alur.
+- **Keputusan:** Sambungan lama dipertahankan sampai pairing baru sukses. Data baru disimpan lewat `pairingProvider.save` hanya setelah `/status` sukses, dengan nama laptop dari respons. "Pairing ulang" langsung ke Q01 tanpa C22 (C22 milik M5). Pairing adalah satu rute `/pairing` dengan langkah internal di `pairingFlowProvider` (non-autoDispose; Pengaturan "Pairing ulang" wajib memanggil `reset()`), dibungkus `PopScope`. Back dari Scan/Manual ke Q01, dari Q08 "Batal" ke layar asal, dari Q10/Q11 ke layar asal tes, dari Q09 tidak berbuat apa-apa, dari Q01 keluar app. Q12 dipasang di `routerProvider` lewat `ref.listen`: `tokenRejected` menampilkan Q12 dan `redirectFor` tidak berubah.
+- **Alasan:** PRD menang atas catatan artboard. Pairing yang gagal tidak boleh membuat app kehilangan sambungan yang masih bisa dipakai. Langkah internal menjaga alur linear tanpa rute tambahan.
+- **Dampak:** Q12 belum menghapus sambungan lama dan butuh cek di HP (lihat `docs/todo/waiting.md`). Haptic kegagalan ada di Q10 dan Q11.
+
+## [Frontend M1] Validasi QR dan input manual
+
+- **Konteks:** `docs/data-design.md` bagian 5 dan BR-12 mengatur payload QR dan token. Artboard hanya punya satu pesan error alamat.
+- **Keputusan:** QR maksimal 256 byte UTF-8, harus objek JSON dengan `v == 1`, `name`, `host` IPv4, `port`, dan `token` 64 hex huruf kecil. Field asing diabaikan, isi QR tidak di-log. Host hanya 10/8, 172.16/12, 192.168/16, 100.64/10. Oktet dengan nol di depan ditolak. Input manual di-trim, port default 8765, token di-trim dan dinormalisasi lowercase. Hasil validator berupa sealed `valid`/`invalid(reason)` tanpa throw. Alasan gagal dipisah `invalidAddress` dan `invalidHost`, tetapi semua alasan alamat memakai satu pesan Q07.
+- **Alasan:** Input salah ditolak di app sebelum request. Pesan tunggal mengikuti artboard.
+- **Dampak:** Pesan khusus untuk host di luar rentang dan IP publik butuh keputusan copy (backlog dan `docs/todo/waiting.md`).
+
+## [Frontend M1] Mock pairing dan status
+
+- **Konteks:** M1 frontend berjalan tanpa HTTP sungguhan. Semua respons mengikuti envelope `{data}` di `docs/api-spec.md`.
+- **Keputusan:** Mock membangun JSON envelope lalu diparse lewat parser yang sama dengan HTTP nanti. Host `10.0.0.1` menghasilkan timeout, token 64 nol menghasilkan 401, selain itu sukses dengan nama "Laptop-Kamil". Mock status bisa diprogram urutan respons dan error. Jeda mock diinjeksi dan bernilai 0 di test. Provider default memakai mock.
+- **Alasan:** Parser tunggal mencegah mock dan HTTP nyata berbeda bentuk.
+- **Dampak:** Saat backend M1 masuk, provider diganti ke repository HTTP. Tes tidak menyentuh jaringan.
+
+## [Frontend M1] Mesin koneksi
+
+- **Konteks:** `docs/technical-spec.md` bagian 5, BR-8, BR-9, BR-21, FR-1.12.
+- **Keputusan:** `ConnectionController` non-autoDispose. `start()` selalu ke connecting, termasuk dari poweredOff. `stop()` di dispose. Satu kegagalan tetap online. Dua kegagalan berturut ke offline. Fase back yang gagal tetap back sampai dua kegagalan berturut. Offline yang sukses ke back lalu online setelah 2 detik. 401 di fase mana pun ke tokenRejected. Timeout poll 3 detik sebagai konstanta privat. Timer lewat interface `PollScheduler`, `pollOnce()` publik, maksimal satu fetch berjalan. `volume: null` mempertahankan nilai terakhir. `LastPowerCommand` dan `lastPowerCommandProvider` (default null) disiapkan untuk M4 dengan `record` dan `clear`.
+- **Alasan:** Mesin status bisa dites deterministik tanpa waktu nyata.
+- **Dampak:** M4 mengisi `lastPowerCommand`. Timeout poll tidak berubah tanpa mengubah tes.
+
+## [Frontend M1] Uptime, pill status, dan SCR-010
+
+- **Konteks:** Pill artboard menulis `NYAMBUNG · 3J 12M`. Header SCR-010 harus muat di 360 dp dan teks 130%.
+- **Keputusan:** Menit dibulatkan ke bawah. Uptime di bawah 1 jam tampil `12M`. Helper `formatUptime` ada di `core/strings/`. Label pill memakai Flexible dan ellipsis. Header memakai Align, bukan FittedBox. `connection.start()` dipanggil lewat post-frame callback karena Riverpod melarang mutasi saat mount. SCR-010 tidak punya kontrol palsu (tombol daya, slider, dock).
+- **Alasan:** Riverpod melarang mutasi provider saat widget dimount. Ellipsis mencegah overflow.
+- **Dampak:** Format `12M` di bawah 1 jam belum disetujui desain (lihat `docs/todo/waiting.md`).
+
+## [Frontend M1] Toast, kamera, dan input
+
+- **Konteks:** `docs/design-system.md` dan `design/export/artboards/` untuk Q03 sampai Q06 dan toast.
+- **Keputusan:** Toast memakai overlay kustom, bukan SnackBar, 12 dp di atas dock. `toastBottomInsetProvider` default 0 dan M2 wajib menimpanya dengan tinggi dock. Banner Q04 memakai GlassToast, durasi 3 detik diatur ScanView. Label Semantics "Kembali" dan "Senter" ditambahkan karena tidak ada di artboard. `mobile_scanner` dan `permission_handler` hanya diimpor di satu wrapper, sisanya lewat interface. Test dan fake boleh mengimpor `mobile_scanner` untuk fake controller. Subtree scan dipaksa tema gelap. `GlassTextField` dibungkus `Material(transparency)` karena Q06 crash tanpa Material ancestor (ditemukan lewat tes alur penuh). Tombol mata token hanya ikon `eye` yang mengubah `obscureText`, tanpa `eye-off`. Izin Android: `permission_handler` tidak mengembalikan permanentlyDenied lewat status, jadi Q01 ke Q02 lalu Q05 setelah request.
+- **Alasan:** Satu wrapper membuat plugin mudah diganti dan dites. Material transparan menghindari crash tanpa mengubah tampilan.
+- **Dampak:** Izin Android yang permanen dan ikon eye-off masuk backlog.
+
+## [Frontend M1] Token, ikon, dan layout
+
+- **Konteks:** `design/tokens.json`, `docs/design-system.md` dan `design/export/artboards/`.
+- **Keputusan:** Token `primitive.size.action` 64dp ditambahkan ke `design/tokens.json` lalu `tokens.g.dart` digenerate ulang. Parser path SVG sendiri di `lib/ui` tanpa `flutter_svg` atau `path_drawing`. Token manual 64 hex memakai placeholder "Tempel token dari laptop" dan pesan error "Tokennya 64 karakter, huruf a–f dan angka" dengan gaya error C17. Komentar file M1 ditulis dalam bahasa Inggris.
+- **Alasan:** Parser sendiri menghindari dependensi baru. Token menjaga literal warna dan ukuran tetap di token.
+- **Dampak:** Ikon dan ukuran lain yang belum ada token masuk backlog frontend.

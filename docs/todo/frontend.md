@@ -21,21 +21,21 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 
 ## M1 Pairing & Koneksi
 
-- [ ] Buat validator payload QR dan input manual + unit test
-- [ ] Buat `PairingRepository` dan mock
-- [ ] Buat `ConnectionController` sesuai mesin status `docs/technical-spec.md` bagian 5 + unit test
-- [ ] Buat `PairingScaffold`
-- [ ] Layar Q01 intro dan Q02 izin kamera
-- [ ] `QrViewfinder` dan Q03 scan, senter, Q04 QR tidak valid
-- [ ] Q05 izin ditolak permanen
-- [ ] `GlassTextField`, Q06, Q07 input manual
-- [ ] `StepProgressList`, Q08, Q09, Q10, Q11
-- [ ] Q12 token ditolak dari layar mana pun
-- [ ] `StatusPill` semua variant
-- [ ] Kerangka SCR-010 dengan header dan state S01, S02, S10, S11
-- [ ] `OfflineContent` dengan "Coba lagi" dan "Pairing ulang"
-- [ ] `GlassToast` dan `ToastHost`
-- [ ] Widget test semua primitif baru, termasuk Semantics
+- [x] Buat validator payload QR dan input manual + unit test
+- [x] Buat `PairingRepository` dan mock
+- [x] Buat `ConnectionController` sesuai mesin status `docs/technical-spec.md` bagian 5 + unit test
+- [x] Buat `PairingScaffold`
+- [x] Layar Q01 intro dan Q02 izin kamera
+- [x] `QrViewfinder` dan Q03 scan, senter, Q04 QR tidak valid
+- [x] Q05 izin ditolak permanen
+- [x] `GlassTextField`, Q06, Q07 input manual
+- [x] `StepProgressList`, Q08, Q09, Q10, Q11
+- [x] Q12 token ditolak dari layar mana pun
+- [x] `StatusPill` semua variant
+- [x] Kerangka SCR-010 dengan header dan state S01, S02, S10, S11
+- [x] `OfflineContent` dengan "Coba lagi" dan "Pairing ulang"
+- [x] `GlassToast` dan `ToastHost`
+- [x] Widget test semua primitif baru, termasuk Semantics
 
 ## M2 Kontrol Media
 
