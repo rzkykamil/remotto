@@ -1,6 +1,6 @@
 | # | Modul | Fase aktif | Catatan / blocker |
 |---|---|---|---|
-| 0 | M0 Fondasi Proyek | Integrasi | — |
+| 0 | M0 Fondasi Proyek | Selesai | — |
 | 1 | M1 Pairing & Koneksi | Belum mulai | — |
 | 2 | M2 Kontrol Media | Belum mulai | — |
 | 3 | M3 Volume | Belum mulai | — |

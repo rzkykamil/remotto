@@ -344,3 +344,10 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** `agent/go.sum` kosong dibuat agar langkah cache `setup-go` tidak gagal. `postman/` tidak diubah di M0.
 - **Alasan:** Langkah cache dicek saat push pertama. File kosong membuat langkah itu aman tanpa mengubah `ci.yml`. Tidak ada endpoint, jadi tidak ada request yang perlu disinkronkan.
 - **Dampak:** Hasil job `agent-test` di GitHub Actions dicek lewat `docs/todo/waiting.md`. `postman/` disinkronkan mulai M1 bersama `GET /status`.
+
+## [QA M0] Test kelengkapan token terhadap tokens.json
+
+- **Konteks:** Spot check hanya memeriksa 2 dari 72 nilai warna. Pergeseran nilai di `design/tokens.json` bisa lolos tanpa terdeteksi.
+- **Keputusan:** File test terpisah `app/test/core/theme/tokens_completeness_test.dart` membaca JSON dan meniru aturan alias serta alpha generator, tanpa mengimpor generator.
+- **Alasan:** Tidak mengubah generator dan tidak membuka API privat.
+- **Dampak:** Pergeseran token di JSON memutus build bila `tokens.g.dart` tidak di-generate ulang.

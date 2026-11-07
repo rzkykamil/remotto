@@ -5,9 +5,9 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 ## M0 Fondasi Proyek
 
 - [ ] [O] `flutter analyze`, `dart format`, `go vet`, `gofmt` bersih
-- [ ] [O] Generator menghasilkan semua token terang dan gelap
-- [ ] [O] App tanpa data pairing masuk ke Q01; dengan data ke Remote
-- [ ] [O] `pubspec.yaml` bebas UI kit
+- [x] [O] Generator menghasilkan semua token terang dan gelap
+- [x] [O] App tanpa data pairing masuk ke Q01; dengan data ke Remote
+- [x] [O] `pubspec.yaml` bebas UI kit
 - [ ] [M] Tampilan dasar dan kinerja blur di HP
 
 ## M1 Pairing & Koneksi
