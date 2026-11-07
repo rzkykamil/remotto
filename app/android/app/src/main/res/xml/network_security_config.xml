@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Agent laptop berjalan di HTTP pada LAN. Rentang IP tidak bisa dibatasi di sini,
+     jadi pembatasan ke jaringan lokal (BR-12) ditegakkan oleh validasi di app. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true"/>
+</network-security-config>
