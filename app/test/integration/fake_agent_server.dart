@@ -21,6 +21,9 @@ enum FakeAgentMode {
 
   /// 200 dengan body yang bukan JSON.
   badBody,
+
+  /// Status tetap seperti [ok]; `POST /media/*` membalas 500 `media_failed`.
+  mediaFailed,
 }
 
 /// Server HTTP loopback yang meniru endpoint status agent.
@@ -47,6 +50,9 @@ final class FakeAgentServer {
 
   /// Jumlah permintaan yang sudah diterima handler.
   int requests = 0;
+
+  /// Path setiap `POST /api/v1/media/*` yang diterima, sesuai urutan.
+  final List<String> mediaPaths = [];
 
   /// Jumlah handler yang sedang berjalan sekarang.
   int inFlight = 0;
@@ -129,12 +135,29 @@ final class FakeAgentServer {
     }
   }
 
+  static const _statusPath = '/api/v1/status';
+  static const _mediaPrefix = '/api/v1/media/';
+  static const _mediaActions = {'play-pause', 'next', 'prev'};
+
   Future<void> _respond(HttpRequest request) async {
     final response = request.response;
+    final path = request.uri.path;
+    final isMedia = path.startsWith(_mediaPrefix);
 
-    if (request.uri.path != '/api/v1/status') {
+    if (!isMedia && path != _statusPath) {
       _writeError(response, 404, 'not_found', 'not found');
       return;
+    }
+    if (isMedia) {
+      mediaPaths.add(path);
+      if (request.method != 'POST') {
+        _writeError(response, 405, 'method_not_allowed', 'method not allowed');
+        return;
+      }
+      if (!_mediaActions.contains(path.substring(_mediaPrefix.length))) {
+        _writeError(response, 404, 'not_found', 'not found');
+        return;
+      }
     }
 
     switch (mode) {
@@ -148,11 +171,27 @@ final class FakeAgentServer {
       case FakeAgentMode.badBody:
         _writeRaw(response, 200, '<html>bukan json</html>');
       case FakeAgentMode.ok:
+      case FakeAgentMode.mediaFailed:
         if (request.headers.value('authorization') != 'Bearer $token') {
           _writeError(response, 401, 'invalid_token', 'invalid token');
           return;
         }
-        _writeRaw(response, 200, jsonEncode({'data': _statusData()}));
+        if (!isMedia) {
+          _writeRaw(response, 200, jsonEncode({'data': _statusData()}));
+          return;
+        }
+        if (mode == FakeAgentMode.mediaFailed) {
+          _writeError(response, 500, 'media_failed', 'media key failed');
+          return;
+        }
+        final action = path.substring(_mediaPrefix.length);
+        _writeRaw(
+          response,
+          200,
+          jsonEncode({
+            'data': {'action': action},
+          }),
+        );
     }
   }
 

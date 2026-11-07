@@ -17,7 +17,9 @@ import 'package:remotto/core/strings/remote_strings.dart';
 import 'package:remotto/core/theme/app_theme.dart';
 import 'package:remotto/core/theme/tokens.g.dart';
 import 'package:remotto/features/remote/data/media_repository.dart';
-import 'package:remotto/features/remote/data/mock_media_repository.dart';
+
+import '../../support/fake_media_repository.dart';
+
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:remotto/features/remote/state/media_controller.dart';
 import 'package:remotto/features/remote/state/media_providers.dart';
@@ -244,9 +246,9 @@ void main() {
     _flowTest(
       '500 media_failed: ikon kembali, toast Ulangi, Ulangi kirim ulang dan berhasil',
       (tester) async {
-        final repo = MockMediaRepository([
-          mockMediaError(500, 'media_failed'),
-          mockMediaOk(MediaAction.playPause),
+        final repo = FakeMediaRepository([
+          fakeMediaError(500, 'media_failed'),
+          fakeMediaOk(MediaAction.playPause),
         ]);
         final h = await _pumpRemote(
           tester,
@@ -306,9 +308,9 @@ void main() {
     _flowTest(
       'prev gagal: Ulangi mengirim prev lagi, ikon play tidak berubah',
       (tester) async {
-        final repo = MockMediaRepository([
-          mockMediaError(500, 'media_failed'),
-          mockMediaOk(MediaAction.prev),
+        final repo = FakeMediaRepository([
+          fakeMediaError(500, 'media_failed'),
+          fakeMediaOk(MediaAction.prev),
         ]);
         final h = await _pumpRemote(
           tester,
@@ -333,9 +335,9 @@ void main() {
     _flowTest('Ulangi pada play mengulang toggle dari keadaan rollback', (
       tester,
     ) async {
-      final repo = MockMediaRepository([
-        mockMediaError(500, 'media_failed'),
-        mockMediaOk(MediaAction.playPause),
+      final repo = FakeMediaRepository([
+        fakeMediaError(500, 'media_failed'),
+        fakeMediaOk(MediaAction.playPause),
       ]);
       final h = await _pumpRemote(
         tester,
@@ -358,7 +360,7 @@ void main() {
     _flowTest('401 dari media: token ditolak, tanpa toast Ulangi', (
       tester,
     ) async {
-      final repo = MockMediaRepository([mockMediaError(401, 'invalid_token')]);
+      final repo = FakeMediaRepository([fakeMediaError(401, 'invalid_token')]);
       final h = await _pumpRemote(
         tester,
         status: FakeStatusRepository([fakeStatusOk()]),
@@ -378,7 +380,7 @@ void main() {
     _flowTest('offline: dock nonaktif dan tap tidak mengirim perintah', (
       tester,
     ) async {
-      final repo = MockMediaRepository([mockMediaOk(MediaAction.prev)]);
+      final repo = FakeMediaRepository([fakeMediaOk(MediaAction.prev)]);
       final h = await _pumpRemote(
         tester,
         status: FakeStatusRepository([
@@ -453,7 +455,7 @@ void main() {
           await _pumpRemote(
             tester,
             status: FakeStatusRepository([fakeStatusOk()]),
-            media: MockMediaRepository([mockMediaError(500, 'media_failed')]),
+            media: FakeMediaRepository([fakeMediaError(500, 'media_failed')]),
             size: Size(width, 800),
             dark: dark,
             textScale: 1.3,

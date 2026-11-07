@@ -11,7 +11,9 @@ import 'package:remotto/core/strings/remote_strings.dart';
 import 'package:remotto/core/theme/tokens.g.dart';
 import 'package:remotto/core/toast/toast_controller.dart';
 import 'package:remotto/features/remote/data/media_repository.dart';
-import 'package:remotto/features/remote/data/mock_media_repository.dart';
+
+import '../../../support/fake_media_repository.dart';
+
 import 'package:remotto/features/remote/state/media_controller.dart';
 import 'package:remotto/features/remote/state/media_providers.dart';
 
@@ -73,7 +75,7 @@ void main() {
   Future<void> settle() => Future<void>.delayed(Duration.zero);
 
   test('state awal: playing true dan tanpa proses', () {
-    final c = makeContainer(MockMediaRepository(const [MockMediaEcho()]));
+    final c = makeContainer(FakeMediaRepository(const [FakeMediaEcho()]));
 
     expect(state(c).playing, isTrue);
     expect(state(c).playProcessing, isFalse);
@@ -107,7 +109,7 @@ void main() {
   );
 
   test('cincin tidak muncul bila balasan lebih cepat', () async {
-    final c = makeContainer(MockMediaRepository(const [MockMediaEcho()]));
+    final c = makeContainer(FakeMediaRepository(const [FakeMediaEcho()]));
 
     ctrl(c).togglePlay();
     await settle();
@@ -118,7 +120,7 @@ void main() {
   });
 
   test('tap ulang play saat diproses diabaikan', () async {
-    final repo = MockMediaRepository(const [MockMediaEcho()]);
+    final repo = FakeMediaRepository(const [FakeMediaEcho()]);
     final c = makeContainer(repo);
 
     ctrl(c)
@@ -131,7 +133,7 @@ void main() {
   });
 
   test('sukses: ikon tetap di keadaan optimistic dan flag bersih', () async {
-    final repo = MockMediaRepository(const [MockMediaEcho()]);
+    final repo = FakeMediaRepository(const [FakeMediaEcho()]);
     final c = makeContainer(repo);
 
     ctrl(c).togglePlay();
@@ -145,7 +147,7 @@ void main() {
   });
 
   test('500 pada play: rollback, toast Ulangi, haptic gagal', () async {
-    final repo = MockMediaRepository([mockMediaError(500, 'media_failed')]);
+    final repo = FakeMediaRepository([fakeMediaError(500, 'media_failed')]);
     final c = makeContainer(repo);
 
     ctrl(c).togglePlay();
@@ -160,7 +162,7 @@ void main() {
   });
 
   test('timeout pada play: rollback dan toast', () async {
-    final repo = MockMediaRepository(const [MockMediaTimeout()]);
+    final repo = FakeMediaRepository(const [FakeMediaTimeout()]);
     final c = makeContainer(repo);
 
     ctrl(c).togglePlay();
@@ -189,7 +191,7 @@ void main() {
   });
 
   test('401 pada play: token ditolak dan tanpa toast', () async {
-    final repo = MockMediaRepository([mockMediaError(401, 'invalid_token')]);
+    final repo = FakeMediaRepository([fakeMediaError(401, 'invalid_token')]);
     final c = makeContainer(repo);
 
     ctrl(c).togglePlay();
@@ -206,9 +208,9 @@ void main() {
   test(
     '"Ulangi" pada play memanggil togglePlay lagi dengan aksi sama',
     () async {
-      final repo = MockMediaRepository([
-        mockMediaError(500, 'media_failed'),
-        const MockMediaEcho(),
+      final repo = FakeMediaRepository([
+        fakeMediaError(500, 'media_failed'),
+        const FakeMediaEcho(),
       ]);
       final c = makeContainer(repo);
 
@@ -225,7 +227,7 @@ void main() {
   );
 
   test('prev/next memajukan tick kedip dan mengirim aksi yang benar', () async {
-    final repo = MockMediaRepository(const [MockMediaEcho()]);
+    final repo = FakeMediaRepository(const [FakeMediaEcho()]);
     final c = makeContainer(repo);
 
     ctrl(c).prev();
@@ -269,9 +271,9 @@ void main() {
   });
 
   test('gagal prev: toast Ulangi mengirim prev lagi', () async {
-    final repo = MockMediaRepository([
-      mockMediaError(500, 'media_failed'),
-      const MockMediaEcho(),
+    final repo = FakeMediaRepository([
+      fakeMediaError(500, 'media_failed'),
+      const FakeMediaEcho(),
     ]);
     final c = makeContainer(repo);
 

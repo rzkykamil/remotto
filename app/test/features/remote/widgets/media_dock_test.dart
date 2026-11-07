@@ -11,7 +11,9 @@ import 'package:remotto/core/strings/remote_strings.dart';
 import 'package:remotto/core/connection/connection_providers.dart';
 import 'package:remotto/core/theme/tokens.g.dart';
 import 'package:remotto/features/remote/data/media_repository.dart';
-import 'package:remotto/features/remote/data/mock_media_repository.dart';
+
+import '../../../support/fake_media_repository.dart';
+
 import 'package:remotto/features/remote/state/media_providers.dart';
 import 'package:remotto/features/remote/widgets/media_dock.dart';
 import 'package:remotto/ui/glass_key.dart';
@@ -83,12 +85,12 @@ bool Function(Widget) _iconIs(RIconData data) =>
     (w) => w is RIcon && identical(w.data, data);
 
 void main() {
-  late MockMediaRepository repo;
+  late FakeMediaRepository repo;
   late FakePollScheduler scheduler;
   late RecordingHapticSink sink;
 
   setUp(() {
-    repo = MockMediaRepository(const [MockMediaEcho()]);
+    repo = FakeMediaRepository(const [FakeMediaEcho()]);
     scheduler = FakePollScheduler();
     sink = RecordingHapticSink();
   });

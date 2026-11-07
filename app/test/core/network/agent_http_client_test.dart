@@ -468,4 +468,244 @@ void main() {
       expect(error.toString(), isNot(contains(_token)));
     });
   });
+
+  group('postMedia', () {
+    Future<Object?> postMedia(
+      AgentHttpClient client, {
+      String action = 'play-pause',
+      Duration timeout = _timeout,
+    }) {
+      return _errorOf(
+        () => client.postMedia(
+          host: _host,
+          port: _port,
+          token: _token,
+          action: action,
+          timeout: timeout,
+        ),
+      );
+    }
+
+    String echoBody(String action) => jsonEncode({
+      'data': {'action': action},
+    });
+
+    test('POST ke /api/v1/media/play-pause dengan Bearer token', () async {
+      final built = _build((_) => _json(200, echoBody('play-pause')));
+
+      await built.client.postMedia(
+        host: _host,
+        port: _port,
+        token: _token,
+        action: 'play-pause',
+        timeout: _timeout,
+      );
+
+      expect(built.requests, hasLength(1));
+      final request = built.requests.single;
+      expect(request.method, 'POST');
+      expect(
+        request.url,
+        Uri.http('$_host:$_port', '/api/v1/media/play-pause'),
+      );
+      expect(request.headers['Authorization'], 'Bearer $_token');
+      expect(request.headers['Accept'], 'application/json');
+      expect(request.body, isEmpty);
+    });
+
+    test('tiga action memakai tiga path berbeda', () async {
+      final built = _build((request) {
+        final action = request.url.pathSegments.last;
+        return _json(200, echoBody(action));
+      });
+
+      for (final action in ['play-pause', 'next', 'prev']) {
+        await built.client.postMedia(
+          host: _host,
+          port: _port,
+          token: _token,
+          action: action,
+          timeout: _timeout,
+        );
+      }
+
+      expect(built.requests.map((r) => r.url.path).toList(), [
+        '/api/v1/media/play-pause',
+        '/api/v1/media/next',
+        '/api/v1/media/prev',
+      ]);
+      expect(built.requests.every((r) => r.method == 'POST'), isTrue);
+    });
+
+    test('200 dengan action cocok selesai tanpa error', () async {
+      final built = _build((_) => _json(200, echoBody('next')));
+
+      final error = await postMedia(built.client, action: 'next');
+
+      expect(error, isNull);
+      expect(built.requests, hasLength(1));
+    });
+
+    test('200 dengan action berbeda menjadi ServerFailure', () async {
+      final built = _build((_) => _json(200, echoBody('prev')));
+
+      final error = await postMedia(built.client, action: 'next');
+
+      expect(error, isA<ServerFailure>());
+    });
+
+    test('200 tanpa action di data menjadi ServerFailure', () async {
+      final built = _build((_) => _json(200, jsonEncode({'data': {}})));
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<ServerFailure>());
+    });
+
+    test('200 dengan body bukan JSON menjadi ServerFailure', () async {
+      final built = _build((_) => _json(200, '<html>proxy</html>'));
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<ServerFailure>());
+    });
+
+    test('401 invalid_token menjadi UnauthorizedFailure', () async {
+      final built = _build(
+        (_) => _json(
+          401,
+          jsonEncode({
+            'error': {'code': 'invalid_token', 'message': 'Token salah'},
+          }),
+        ),
+      );
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<UnauthorizedFailure>());
+      expect((error as UnauthorizedFailure).code, 'invalid_token');
+    });
+
+    test('403 forbidden_network menjadi ForbiddenFailure', () async {
+      final built = _build(
+        (_) => _json(
+          403,
+          jsonEncode({
+            'error': {'code': 'forbidden_network', 'message': 'Di luar LAN'},
+          }),
+        ),
+      );
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<ForbiddenFailure>());
+      expect((error as ForbiddenFailure).code, 'forbidden_network');
+    });
+
+    test(
+      '429 dengan Retry-After 2 menjadi RateLimitedFailure 2 detik',
+      () async {
+        final built = _build(
+          (_) => _json(
+            429,
+            jsonEncode({
+              'error': {'code': 'rate_limited', 'message': 'Terlalu banyak'},
+            }),
+            headers: {'Retry-After': '2'},
+          ),
+        );
+
+        final error = await postMedia(built.client);
+
+        expect(error, isA<RateLimitedFailure>());
+        final failure = error as RateLimitedFailure;
+        expect(failure.code, 'rate_limited');
+        expect(failure.retryAfter, const Duration(seconds: 2));
+      },
+    );
+
+    test(
+      '500 media_failed menjadi ServerFailure dengan code media_failed',
+      () async {
+        final built = _build(
+          (_) => _json(
+            500,
+            jsonEncode({
+              'error': {'code': 'media_failed', 'message': 'Pesan aman'},
+            }),
+          ),
+        );
+
+        final error = await postMedia(built.client);
+
+        expect(error, isA<ServerFailure>());
+        expect((error as ServerFailure).code, 'media_failed');
+      },
+    );
+
+    test('409 tidak dipetakan khusus dan jatuh ke ServerFailure', () async {
+      final built = _build(
+        (_) => _json(
+          409,
+          jsonEncode({
+            'error': {'code': 'power_pending', 'message': 'Ada jadwal'},
+          }),
+        ),
+      );
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<ServerFailure>());
+      expect((error as ServerFailure).code, 'power_pending');
+    });
+
+    test('handler tak pernah selesai menjadi TimeoutFailure', () async {
+      final gate = Completer<void>();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      final built = _build((_) async {
+        await gate.future;
+        return _json(200, echoBody('play-pause'));
+      });
+
+      final error = await postMedia(
+        built.client,
+        timeout: const Duration(milliseconds: 50),
+      );
+
+      expect(error, isA<TimeoutFailure>());
+    });
+
+    test('SocketException menjadi UnreachableFailure', () async {
+      final built = _build(
+        (_) => throw const SocketException('Connection refused'),
+      );
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<UnreachableFailure>());
+    });
+
+    test('http.ClientException menjadi UnreachableFailure', () async {
+      final built = _build(
+        (_) => throw http.ClientException('Connection closed'),
+      );
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<UnreachableFailure>());
+    });
+
+    test('pesan exception yang memuat token tidak ikut ke failure', () async {
+      final built = _build(
+        (_) => throw const SocketException('gagal ke Bearer $_token'),
+      );
+
+      final error = await postMedia(built.client);
+
+      expect(error, isA<UnreachableFailure>());
+      expect(error.toString(), isNot(contains(_token)));
+    });
+  });
 }
