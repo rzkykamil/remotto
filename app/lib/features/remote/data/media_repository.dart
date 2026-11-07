@@ -10,7 +10,7 @@ enum MediaAction {
   final String wire;
 }
 
-/// Source of the media commands. Mock now, HTTP in the Integrasi phase.
+/// Source of the media commands. HTTP implementation in `http_media_repository.dart`.
 abstract interface class MediaRepository {
   /// Failure throws [ApiFailure] (see `api_failure.dart`).
   /// The media command is not idempotent, so callers must not retry it automatically.
