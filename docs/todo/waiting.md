@@ -255,6 +255,31 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: atur volume dengan satu jempol.
   Harusnya: mudah dipakai, dan layar pendek tetap rapi.
 
+- [ ] M3 Frontend: Panel volume di HP fisik mirip desain, lebar 412 dan 360 dp, terang dan gelap, serta angka dan layar pendek.
+  Buka: app Remotto di HP (layar Remote, setelah Integrasi M3 selesai), dan file di `design/export/artboards/` di laptop sebagai pembanding: Remote-412-dark, Remote-360-light, dan States-light (S01, S05, S07, S08, S09, S12). Syarat: layar Remote di app asli belum bisa dibuka sampai Integrasi M3, karena provider volume asli belum ada dan sekarang melempar error.
+  Lakukan: bandingkan panel volume dengan artboard, lalu ganti tema HP ke terang dan gelap. Pastikan agent di laptop menyala.
+  Harusnya: susunan dan warna mirip artboard, angka besar (128, 108 di layar 360 dp) terbaca, badge BISU hanya muncul saat laptop dibisukan, dan tidak ada yang terpotong atau tumpang tindih.
+
+- [ ] M3 Frontend: Rasa geser slider, haptic, dan tap-lompat.
+  Buka: layar Remote di HP (setelah Integrasi M3 selesai).
+  Lakukan: geser slider pelan, lalu cepat, lalu tahan di tengah. Ketuk track di beberapa titik.
+  Harusnya: track menebal sedikit saat ditarik (60 ke 68 dp) dan handle hanya tampak di atas 6%. Getar tipis tiap kelipatan 5% dan getar di 0 dan 100%. Tap-lompat langsung pindah tanpa getar tiap 5%.
+
+- [ ] M3 Frontend: Toast S06 dan animasi rollback.
+  Buka: layar Remote di HP (setelah Integrasi M3 selesai). Matikan agent di laptop dulu supaya kirim gagal.
+  Lakukan: geser slider saat agent mati, lalu lihat slider dan angkanya. Ulangi dengan mode animasi dikurangi di pengaturan HP.
+  Harusnya: slider dan angka kembali ke nilai terakhir dalam sekitar 120 ms. Toast "Volume nggak kekirim, balik ke N%" dengan tombol "Ulangi" muncul 12 dp di atas dock dan tidak menutupi tombol. Animasi balik tetap jalan walau animasi dikurangi.
+
+- [ ] M3 Aksesibilitas: TalkBack dan VoiceOver pada slider volume, dan urutan fokusnya.
+  Buka: TalkBack di HP Android atau VoiceOver di iPhone, lalu layar Remote (setelah Integrasi M3 selesai).
+  Lakukan: jelajahi grup volume, slider, mute, −, dan +. Di slider, naik dan turun dengan gerakan geser ke atas dan ke bawah.
+  Harusnya: slider terbaca "Volume, N persen" sesuai nilai, dan tiap geser naik atau turun 5. Urutannya slider, mute, −, lalu +. Cek apakah "Volume" terbaca dua kali karena grup dan slider sama-sama berlabel "Volume". Bila iya, catat pembacaannya.
+
+- [ ] M3 Frontend: Ambang layar pendek 700 dp di HP nyata.
+  Buka: layar Remote di HP dengan tinggi layar dekat 700 dp (setelah Integrasi M3 selesai).
+  Lakukan: lihat hint dan angka volume di HP yang tingginya di bawah 700 dp, lalu di HP yang lebih tinggi.
+  Harusnya: di bawah 700 dp hint hilang dan angka mengecil (96). Di atasnya hint tampak. Tidak ada yang terpotong. Bila ambang 700 dp tidak pas, catat tinggi layarnya.
+
 ## M4 Daya
 
 - [ ] M4: Sleep benar-benar menidurkan laptop.

@@ -44,7 +44,20 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M3 Volume
 
-Belum ada temuan.
+- [ ] Konstanta artboard tanpa token di `volume_panel.dart` dan `volume_slider.dart` (badge 28 dp, inset 18, handle 5×24, ambang 6%, ikon 14/20/22, gap 10/6, lebar tombol −/+ 72) perlu token di `design/tokens.json`.
+- [ ] `GlassKey` tidak mengisi lebar slot flex (`Pressable` membungkus `Center`), jadi tombol Mute tidak selebar slot dan tombol −/+ jadi 56 dp, bukan kapsul 72×56 dari artboard. Perlu parameter lebar di primitif.
+- [ ] Hint `hintWaiting` juga tampil saat `known=false` di fase online (keputusan sementara T5; desain untuk volume `null` belum ada).
+- [ ] Hint saat `tokenRejected` mengikuti prioritas state; layar sudah diarahkan ke Q12, jadi tidak tampil lama.
+- [ ] Komentar dokumentasi `pause` di `app/lib/ui/r_icons_data.dart` (~76–78) tertukar tempat setelah ikon volume disisipkan; pindahkan ke ikon `pause`. SARAN reviewer M3.
+- [ ] Literal `strokeWidth: 2.4` di `app/lib/features/remote/widgets/volume_panel.dart` (~187, ~205) belum jadi konstanta atau token. SARAN reviewer M3.
+- [ ] Balasan telat setelah timeout 3 dtk bisa menimpa `confirmed` (`volume_controller.dart` ~260–271, `volume_sender.dart` ~145). Perlu token per percobaan. SARAN reviewer M3.
+- [ ] Semantics increase di 100 atau decrease di 0 tidak membuka mute walau laptop sedang bisu (`volume_controller.dart` `_step` ~333–340). Perlu keputusan produk. SARAN reviewer M3.
+- [ ] `_retrySlider` di `volume_controller.dart` (~288) tidak mengecek dragging dan fase koneksi. SARAN reviewer M3.
+- [ ] Haptic detent untuk tap-lompat slider belum ada (sengaja, tap hanya memindah nilai). Lihat `[Frontend M3] Haptic dikelola controller` di `docs/decision-log.md`. Di luar lingkup M3.
+- [ ] Polling dan lifecycle app (berhenti saat background, lanjut saat kembali) masuk M6. Di luar lingkup M3.
+- [ ] `HttpVolumeRepository` dan `volumeRepositoryProvider` asli masuk Integrasi M3. Lihat `[Frontend M3] Fake volume di test/support, provider tanpa default`.
+- [ ] Golden test panel volume belum dibuat; pengecekan terang dan gelap memakai widget test. Di luar lingkup M3.
+- [ ] Ambang layar pendek 700 dp dan `_shortHeight` perlu dicek di HP nyata.
 
 ## M4 Daya
 

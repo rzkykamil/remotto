@@ -49,16 +49,16 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 
 ## M3 Volume
 
-- [ ] Buat `VolumeRepository` dan mock
-- [ ] `VolumeSlider` kustom: tap, drag, rollback, state muted dan disabled
-- [ ] Pengirim nilai dengan throttle 100 ms dan satu request berjalan + unit test
-- [ ] `VolumeReadout` dengan hint per state
-- [ ] Tombol mute dan −/+
-- [ ] State S05 sampai S09
-- [ ] Offline saat drag: gesture dibatalkan
-- [ ] Sinkron nilai dari polling kecuali saat ditarik
-- [ ] Layar pendek dan S12
-- [ ] Widget test + Semantics slider
+- [x] Buat `VolumeRepository` dan mock
+- [x] `VolumeSlider` kustom: tap, drag, rollback, state muted dan disabled
+- [x] Pengirim nilai dengan throttle 100 ms dan satu request berjalan + unit test
+- [x] `VolumeReadout` dengan hint per state
+- [x] Tombol mute dan −/+
+- [x] State S05 sampai S09
+- [x] Offline saat drag: gesture dibatalkan
+- [x] Sinkron nilai dari polling kecuali saat ditarik
+- [x] Layar pendek dan S12
+- [x] Widget test + Semantics slider
 
 ## M4 Daya
 

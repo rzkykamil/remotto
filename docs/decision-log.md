@@ -568,3 +568,87 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Pemetaan dipindah ke helper privat `_guard` yang dipakai `getStatus` dan `postMedia`. Test `getStatus` lama tidak diubah.
 - **Alasan:** Menghindari duplikasi dan menjaga pemetaan error tetap satu sumber.
 - **Dampak:** Token tidak masuk ke failure atau log. Perubahan pada pemetaan berlaku untuk dua endpoint sekaligus.
+
+## [Frontend M3] Satu VolumeController dan VolumeSender terpisah
+
+- **Konteks:** Slider butuh throttle, satu request berjalan, dan kirim nilai akhir. Aturan itu bercampur dengan state UI bila ada di satu kelas.
+- **Keputusan:** `VolumeSender` kelas murni (tanpa Riverpod dan widget) yang mengurus throttle 100 ms, satu request berjalan, timeout, dan retry. `VolumeController` memegang state dan memanggil sender. Keduanya non-autoDispose seperti `MediaController`.
+- **Alasan:** Sender bisa diuji dengan `FakePollScheduler` dan `Completer` tanpa widget. Aturan kirim ada di satu tempat.
+- **Dampak:** Controller tidak perlu tahu jadwal throttle.
+
+## [Frontend M3] Fake volume di test/support, provider tanpa default
+
+- **Konteks:** `docs/todo/frontend.md` M3 dan pola `[Integrasi M2]` memindahkan mock media ke `test/support/`. Rencana awal menaruh mock volume di `lib/`.
+- **Keputusan:** `FakeVolumeRepository` ada di `app/test/support/`. `volumeRepositoryProvider` tidak punya default. App asli melempar error di layar Remote sampai Integrasi M3 menyediakan `HttpVolumeRepository`.
+- **Alasan:** Tanpa default, tidak ada angka tiruan yang bisa tampil sebagai volume laptop. Pola ini sama dengan `[Integrasi M2]`.
+- **Dampak:** Layar Remote di app asli tidak bisa dibuka sampai Integrasi M3. Pembuktian visual di HP menunggu (`docs/todo/waiting.md` M3).
+
+## [Frontend M3] Angka "—" saat nilai volume belum diketahui
+
+- **Konteks:** Sebelum status pertama dari agent, nilai volume belum diketahui. `docs/api-spec.md` mengizinkan `volume` bernilai null bila Core Audio gagal (desain untuk kasus ini belum ada).
+- **Keputusan:** `known=false` (connecting dan belum pernah sukses) menampilkan "—", hint `hintWaiting`, dan kontrol nonaktif. Setelah ada status, angka terakhir tetap tampil saat connecting atau offline, dengan kontrol nonaktif.
+- **Alasan:** Angka 0 atau 35 palsu membuat pengguna mengira volume laptop sudah diketahui. Angka terakhir tetap berguna saat koneksi putus.
+- **Dampak:** Hint `hintWaiting` juga tampil di fase online selama `known=false` (`docs/todo/backlog/frontend.md` M3).
+
+## [Frontend M3] Sinkron polling hanya saat idle
+
+- **Konteks:** FR-3.7 dan BR-14. Polling datang berkala. Bila menimpa saat jari masih di slider, nilai melompat.
+- **Keputusan:** Nilai dari status hanya diterapkan saat tidak dragging, sender tidak busy, dan tidak ada tombol berjalan. Bila ditahan, `confirmed` terbaru diterapkan saat idle. Poll diproses hanya bila identitas objek status berubah, sehingga status lama tidak diterapkan ulang. `volume == null` tidak mengubah apa pun.
+- **Alasan:** Slider yang melompat saat ditarik terasa rusak. Identitas objek mencegah nilai basi menimpa nilai baru.
+- **Dampak:** Angka di HP bisa tertinggal sampai slider dilepas.
+
+## [Frontend M3] −/+ tanpa retry, mute retry diam-diam sekali
+
+- **Konteks:** `docs/technical-spec.md` bagian 6: perintah relatif (`up`, `down`) tidak idempoten. `PUT /volume` dan `POST /volume/mute` dengan nilai eksplisit idempoten.
+- **Keputusan:** −/+ optimistic ±5 tanpa retry. Tap ulang saat request berjalan diabaikan. Gagal: rollback ke `confirmed` dan toast `toastCommandFailed` dengan "Ulangi". Mute optimistic dan retry diam-diam sekali. Gagal lagi: rollback dan toast yang sama. Slider gagal: rollback ke `confirmed` dan toast S06 dengan "Ulangi".
+- **Alasan:** Retry perintah relatif bisa menaikkan atau menurunkan volume dua kali. Mute memakai nilai eksplisit, jadi retry aman.
+- **Dampak:** Kegagalan −/+ selalu terlihat pengguna sebagai toast. Kegagalan mute terlihat hanya bila retry kedua juga gagal.
+
+## [Frontend M3] Geser saat bisu membuka bisu secara lokal
+
+- **Konteks:** BR-15. `setLevel` di agent juga mematikan bisu. Tampilan tidak boleh menunjukkan bisu saat slider sedang mengubah volume.
+- **Keputusan:** `dragStart` langsung mengatur `muted=false` secara lokal. Badge BISU hilang dan label tombol berubah saat itu juga.
+- **Alasan:** Tampilan dan perilaku agent harus sama. Pengguna yang menggeser ingin mendengar suara.
+- **Dampak:** Semantics increase di 100 atau decrease di 0 saat bisu belum membuka mute. Keputusan produk ada di `docs/todo/backlog/frontend.md` M3.
+
+## [Frontend M3] Offline atau tokenRejected saat drag membatalkan gesture tanpa toast
+
+- **Konteks:** `docs/todo/frontend.md` FR-3.6 dan `design/components.md` C04: offline saat drag membatalkan gesture dan slider kembali ke nilai terakhir.
+- **Keputusan:** Saat phase masuk offline, poweredOff, atau tokenRejected dan sedang dragging atau request berjalan: `dragCancel`, tertunda dibuang, level dan muted kembali ke `confirmed`. Request yang sudah berjalan tidak diputus. Balasannya dibuang lewat penanda epoch (generation). Tidak ada toast.
+- **Alasan:** Panel status sudah menjelaskan koneksi putus, sehingga toast menumpuk. Balasan lama tidak boleh menimpa nilai setelah koneksi pulih.
+- **Dampak:** Setelah pulih, nilai disinkron biasa lewat polling.
+
+## [Frontend M3] Animasi rollback tetap saat reduced motion
+
+- **Konteks:** `docs/design-system.md` §6 mencatat animasi rollback sebagai "Tetap" saat reduced motion.
+- **Keputusan:** Animasi isi slider kembali (`RMotion.fast`) tetap jalan saat reduced motion. Animasi lain di slider dimatikan saat reduced motion.
+- **Alasan:** Rollback adalah umpan balik bahwa nilai gagal. Tanpa animasi, pengguna tidak melihat perubahan nilai.
+- **Dampak:** Rasa animasi rollback dicek di HP (`docs/todo/waiting.md` M3).
+
+## [Frontend M3] VolumeSlider memakai Listener dan parameter increase/decrease wajib
+
+- **Konteks:** `Slider`, `SliderTheme`, dan `InkWell` dilarang. Tap dan drag horizontal harus dibedakan dari drag vertikal.
+- **Keputusan:** `VolumeSlider` memakai `Listener` dan `StatefulWidget` sendiri. Drag vertikal diabaikan. Parameter `increasedValue` dan `decreasedValue` wajib agar Semantics selalu lengkap. State animasi dan ukuran track saat dragging disimpan di widget.
+- **Alasan:** `Listener` memberi kontrol penuh atas tap dan drag horizontal. Animasi rollback butuh state di widget.
+- **Dampak:** Pemanggil wajib mengisi nilai increase dan decrease.
+
+## [Frontend M3] Konstanta artboard tanpa token jadi konstanta privat bernama
+
+- **Konteks:** Badge 28 dp, inset 18, handle 5×24, ambang 6%, ikon 14/20/22, dan tombol −/+ 72 dp belum ada di `design/tokens.json`.
+- **Keputusan:** Nilai itu menjadi konstanta privat bernama dengan komentar sumber artboard. Daftarnya dicatat di backlog M3 untuk masuk token nanti.
+- **Alasan:** Sama dengan `[Frontend M2] Ikon media, ukuran key, dan konstanta lokal`. Token menunggu keputusan desain.
+- **Dampak:** Perubahan token nanti perlu menyentuh `volume_panel.dart` dan `volume_slider.dart`.
+
+## [Frontend M3] Haptic dikelola controller
+
+- **Konteks:** `[Frontend M2] Gagal, 401, dan sumber haptic` menetapkan satu sumber haptic per aksi. Slider tidak memakai `Pressable`.
+- **Keputusan:** `VolumeController` memanggil `RHaptics`: detent tiap kelipatan 5 yang terlewati, limit saat menyentuh 0 atau 100, dan failure saat kirim gagal. `VolumeSlider` hanya menerima callback `onDetent` dan `onLimit`. Tap-lompat tidak memberi detent per 5%.
+- **Alasan:** Controller tahu nilai lama dan baru. Widget tidak perlu tahu aturan haptic.
+- **Dampak:** Rasa getar dicek di HP (`docs/todo/waiting.md` M3). Haptic tap-lompat ada di `docs/todo/backlog/frontend.md` M3.
+
+## [Frontend M3] setConfirmed menyemai nilai terkonfirmasi di sender
+
+- **Konteks:** Aturan `finish` tidak mengirim nilai yang sama dengan sukses terakhir. Saat bisu, nilai itu tidak berlaku.
+- **Keputusan:** `VolumeSender.setConfirmed` disemai dari status sukses. Saat bisu, nilainya null.
+- **Alasan:** `setLevel` juga mematikan bisu (BR-15). Saat bisu, nilai yang sama tetap harus dikirim.
+- **Dampak:** Tidak ada perubahan perilaku di luar sender.
