@@ -280,6 +280,11 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: lihat hint dan angka volume di HP yang tingginya di bawah 700 dp, lalu di HP yang lebih tinggi.
   Harusnya: di bawah 700 dp hint hilang dan angka mengecil (96). Di atasnya hint tampak. Tidak ada yang terpotong. Bila ambang 700 dp tidak pas, catat tinggi layarnya.
 
+- [ ] M3 Backend: Volume lewat Postman ke agent asli.
+  Buka: laptop Windows, jalankan agent dengan `cd agent && go run ./cmd/agent run` di terminal. Buka Postman dengan environment `Remotto Agent`, lalu folder Volume.
+  Lakukan: kirim GET `/volume`, lalu PUT `/volume` dengan level 35. Kirim POST `/volume/up` dua kali, lalu `/volume/down` sekali. Kirim POST `/volume/mute` dengan `true`, lalu `false`. Terakhir kirim PUT `/volume` dengan level 101, lalu 35.5. Setelah itu buka `GET /status` dan lihat isi `volume`. Opsional: colok headset, lalu ulangi PUT `/volume` dan lihat perangkat mana yang berubah.
+  Harusnya: angka sama dengan ikon volume Windows. Up dan down berubah 5. Mute menyalakan dan mematikan ikon speaker. Level 101 dan 35.5 ditolak dengan 400 dan kode `invalid_level`. `GET /status` memuat `volume` yang sama, bukan null. Saat headset dicolok, perubahan mengenai headset.
+
 ## M4 Daya
 
 - [ ] M4: Sleep benar-benar menidurkan laptop.

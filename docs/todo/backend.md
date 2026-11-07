@@ -36,15 +36,15 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 
 ## M3 Volume
 
-- [ ] Domain volume: batas 0–100, langkah 5, unmute saat level berubah + test BR-3, BR-15, BR-16
-- [ ] Pekerja COM Core Audio di `internal/oswin`
-- [ ] Field `volume` di `/status`, `null` saat audio gagal
-- [ ] `GET /volume` dan `PUT /volume` + test
-  - [ ] Sinkronkan `postman/`
-- [ ] `POST /volume/up` dan `/volume/down` + test
-  - [ ] Sinkronkan `postman/`
-- [ ] `POST /volume/mute` + test
-  - [ ] Sinkronkan `postman/`
+- [x] Domain volume: batas 0–100, langkah 5, unmute saat level berubah + test BR-3, BR-15, BR-16
+- [x] Pekerja COM Core Audio di `internal/oswin`
+- [x] Field `volume` di `/status`, `null` saat audio gagal
+- [x] `GET /volume` dan `PUT /volume` + test
+  - [x] Sinkronkan `postman/`
+- [x] `POST /volume/up` dan `/volume/down` + test
+  - [x] Sinkronkan `postman/`
+- [x] `POST /volume/mute` + test
+  - [x] Sinkronkan `postman/`
 
 ## M4 Daya
 

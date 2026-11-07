@@ -28,7 +28,13 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M3 Volume
 
-Belum ada temuan.
+- `oswin.Audio.Close()` belum dipanggil saat shutdown, menunggu graceful shutdown M6 (`agent/cmd/agent/platform_windows.go`, `agent/internal/oswin/audio_windows.go`).
+- Operasi COM tidak bisa dibatalkan. Bila device macet, pekerja tertahan dan request berikutnya timeout 1 dtk; timeout hanya membebaskan pemanggil (`agent/internal/oswin/audio_windows.go`).
+- Notifikasi perubahan volume Windows (`IAudioEndpointVolumeCallback`) tidak dipakai; polling cukup untuk sekarang (`agent/internal/oswin/audio_windows.go`).
+- Race baca-tulis dengan proses atau HP lain di luar mutex diterima (`agent/internal/control/volume.go`).
+- `go test -race` untuk paket M3 belum bisa lokal (CGO mati). Dicek di CI (`agent/internal/control`, `agent/internal/oswin`, `agent/internal/server`).
+- go-wca terakhir rilis 2023. Risiko dibatasi di balik `AudioController` (`agent/go.mod`).
+- `CoInitializeEx` yang mengembalikan S_FALSE dianggap error oleh go-ole 1.3.0. Tidak realistis di thread baru yang dibuat pekerja (`agent/internal/oswin/audio_windows.go`).
 
 ## M4 Daya
 

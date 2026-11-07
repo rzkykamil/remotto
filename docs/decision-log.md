@@ -652,3 +652,59 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** `VolumeSender.setConfirmed` disemai dari status sukses. Saat bisu, nilainya null.
 - **Alasan:** `setLevel` juga mematikan bisu (BR-15). Saat bisu, nilai yang sama tetap harus dikirim.
 - **Dampak:** Tidak ada perubahan perilaku di luar sender.
+
+## [Backend M3] VolumeService bermutex dan unmute di domain
+
+- **Konteks:** `docs/prd.md` BR-3, BR-15, BR-16. `MediaService` sudah memakai mutex. `Step` membaca lalu menulis, jadi perlu serialisasi.
+- **Keputusan:** `VolumeService` memakai `sync.Mutex`. `SetLevel` dan `Step` selalu memanggil `SetMuted(false)`, termasuk saat level berada di batas 0 atau 100. `Step` di batas tetap sukses dan tetap unmute.
+- **Alasan:** Aturan unmute ada di domain, jadi handler dan UI tidak perlu mengulangnya. Batas tetap sukses supaya tombol + dan − tidak terasa rusak.
+- **Dampak:** Test `TestBR15_*` dan `TestBR16_*` di `internal/control/volume_test.go` mengunci perilaku ini.
+
+## [Backend M3] Respons volume berisi hasil baca ulang OS
+
+- **Konteks:** Setelah tulis, nilai yang dikirim klien bisa berbeda dengan nilai di perangkat (pembulatan scalar, perangkat lain).
+- **Keputusan:** Setiap operasi volume (GET, PUT, up, down, mute) membaca ulang OS, lalu mengembalikan hasil bacaan itu.
+- **Alasan:** Klien melihat nilai yang benar-benar berlaku, bukan nilai yang diminta.
+- **Dampak:** Satu baca OS tambahan per operasi. Biaya ini diterima untuk layar kendali.
+
+## [Backend M3] Validasi PUT dua tingkat: invalid_request dan invalid_level
+
+- **Konteks:** `docs/api-spec.md` Volume. Ada dua jenis salah kirim: body rusak dan nilai level salah.
+- **Keputusan:** `level` hilang atau struktur body salah berarti `invalid_request`. `level` ada tetapi bukan integer 0 sampai 100 berarti `invalid_level`. Contoh `invalid_level`: 35.5, `"35"`, null, `true`, `1e2`, nilai di luar rentang. Pengecekan memakai regex pada `json.RawMessage`, bukan tipe Go.
+- **Alasan:** Tipe Go tidak membedakan `35` dari `35.0` atau `1e2`. Regex pada teks mentah menolak bentuk yang tidak tepat dan tetap bisa membedakan dua kelompok error.
+- **Dampak:** Handler `PUT /volume` menjalankan dua pengecekan sebelum menyentuh OS.
+
+## [Backend M3] Interface audioBackend agar COM dites tanpa COM
+
+- **Konteks:** Pekerja COM butuh Windows dan perangkat audio. Test otomatis tidak boleh mengubah volume sungguhan.
+- **Keputusan:** Interface internal `audioBackend` (`read`, `writeLevel`, `writeMuted`, `close`) dengan implementasi `comBackend` di `_windows.go`. Test memakai backend palsu lewat `newAudioWith`.
+- **Alasan:** Pemetaan scalar, timeout, re-init, dan recover bisa dites di semua OS tanpa COM.
+- **Dampak:** Tidak ada test COM asli. Pembuktian COM asli ada di `docs/todo/waiting.md` M3.
+
+## [Backend M3] Endpoint render default diambil ulang tiap operasi
+
+- **Konteks:** Pengguna bisa mencolok atau mencabut headset kapan saja. `go-wca` `GetDefaultAudioEndpoint` menerima `stateMask` sebagai argumen kedua, padahal argumen itu sebenarnya ERole.
+- **Keputusan:** `comBackend` memanggil `GetDefaultAudioEndpoint(eRender, eConsole)` setiap operasi. Nilai `wca.EConsole` dikirim ke argumen kedua, sesuai ERole.
+- **Alasan:** Endpoint yang disimpan bisa usang setelah headset berubah. Biaya pemanggilan ulang kecil dibanding risiko salah perangkat.
+- **Dampak:** Perubahan headset langsung terlihat di operasi berikutnya. Nama argumen di go-wca tetap membingungkan dan tidak diubah.
+
+## [Backend M3] Wiring /status cukup oswin.NewAudio
+
+- **Konteks:** `GET /status` sudah punya field `volume` dan `null` saat gagal (`StatusDeps.Audio`). Di Windows `platform_windows.go` masih memakai `unsupported{}`.
+- **Keputusan:** `platform_windows.go` memakai `oswin.NewAudio()`. `status.go` tidak diubah.
+- **Alasan:** Field dan aturan null sudah ada dan sudah dites. Perubahan hanya di wiring.
+- **Dampak:** `/status.volume` bernilai asli di Windows. `Audio.Close()` belum dipanggil saat shutdown, lihat `docs/todo/backlog/backend.md` M3.
+
+## [Backend M3] Dependency go-wca dan go-ole hanya di file _windows
+
+- **Konteks:** `agent/go.mod` belum punya `github.com/moutend/go-wca` dan `github.com/go-ole/go-ole`. Agent juga dibangun untuk non-Windows.
+- **Keputusan:** Tambah `go-wca` v0.3.0 dan `go-ole` v1.3.0. Kedua import hanya di file `_windows.go`.
+- **Alasan:** Build non-Windows tidak menarik COM. `GOOS=linux go build` tetap bersih.
+- **Dampak:** Risiko library terakhir rilis 2023 dibatasi di balik `AudioController`, lihat backlog M3.
+
+## [Backend M3] Tidak memakai VK_VOLUME_* (S-3)
+
+- **Konteks:** Tombol volume bisa dikirim lewat `SendInput` dengan `VK_VOLUME_UP`, `VK_VOLUME_DOWN`, dan `VK_VOLUME_MUTE`. Temuan S-3 membahas jalur ini.
+- **Keputusan:** Volume memakai Core Audio lewat COM, bukan tombol virtual.
+- **Alasan:** Tombol virtual tidak memberi nilai absolut dan tidak bisa membaca status. Endpoint `PUT /volume` butuh level pasti.
+- **Dampak:** Kode M2 `SendInput` tidak berubah. Jalur tombol virtual tidak dipakai di M3.
