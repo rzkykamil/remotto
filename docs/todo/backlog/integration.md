@@ -20,7 +20,11 @@ Belum ada temuan.
 
 ## M2 Kontrol Media
 
-Belum ada temuan.
+- [ ] Tes media hanya menguji server palsu di `test/integration/`, bukan agent Go asli. Pembuktian dengan agent asli ada di `waiting.md` M2 Integrasi.
+- [ ] `Future.timeout` pada `postMedia` tidak membatalkan request; request yang sudah terkirim bisa tetap diproses setelah timeout. Sama dengan item M1 di atas. Tanpa retry otomatis, jadi tidak ada perintah ganda.
+- [ ] `pairing_repository.dart` baris 4 dan `status_repository.dart` baris 3 masih menyebut "Mock". Di luar lingkup M2; ganti di fase yang menyentuh file tersebut.
+- [ ] Impor `../support/fake_media_repository.dart` di `media_flow_test`, `media_controller_test`, dan `media_dock_test` masih di blok package. Pindahkan ke blok relatif.
+- [ ] Jeda 50 ms di helper `untilReplied` (`media_http_flow_test.dart`) berpotensi flaky. Ganti dengan sinyal dari sisi klien bila muncul.
 
 ## M3 Volume
 

@@ -194,7 +194,7 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Harusnya: video berhenti dalam sekejap, tekan lagi jalan lagi.
 
 - [ ] M2: Play/pause, next, dan prev mengenai Spotify, langsung lewat agent.
-  Buka: Spotify di laptop yang sudah menjalankan agent hasil build, dan layar Remote di HP. Tombol HP masih tiruan sampai Integrasi, jadi bisa juga pakai Postman atau PowerShell dengan token pairing.
+  Buka: Spotify di laptop yang sudah menjalankan agent hasil build, dan layar Remote di HP. Tombol HP sudah lewat agent asli, jadi bisa juga pakai Postman atau PowerShell dengan token pairing.
   Lakukan: putar lagu, lalu tekan play/pause, next, dan prev di HP. Lewat Postman atau PowerShell: kirim POST ke `/api/v1/media/play-pause`, lalu `/api/v1/media/next` dan `/api/v1/media/prev`.
   Harusnya: lagu berhenti, pindah ke berikutnya, dan kembali. Respons 200 berisi nama aksinya, misalnya `{"data":{"action":"next"}}`.
 
@@ -210,18 +210,23 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
 
 - [ ] M2 Frontend: Dock media di HP fisik mirip desain, lebar 412 dp dan 360 dp, terang dan gelap.
   Buka: app Remotto di HP (layar Remote), dan file di `design/export/artboards/` di laptop sebagai pembanding: Remote-412-dark, Remote-360-light, dan States-light (S01, S03, S04, S10).
-  Lakukan: bandingkan dock media dengan artboard, lalu ganti tema HP ke terang dan gelap. Tombol media di app masih tiruan, jadi selalu berhasil.
+  Lakukan: bandingkan dock media dengan artboard, lalu ganti tema HP ke terang dan gelap. Tombol media sudah lewat agent asli, jadi agent di laptop harus menyala.
   Harusnya: susunan prev, play, dan next mirip artboard, warna cocok, tidak ada yang terpotong atau tumpang tindih.
 
 - [ ] M2 Frontend: Getar saat tombol media ditekan.
   Buka: layar Remote di HP.
   Lakukan: tekan play, prev, dan next, satu per satu.
-  Harusnya: tiap tekan terasa satu getaran singkat tepat saat jari menyentuh. Getar gagal belum bisa dicoba sekarang karena kegagalan kirim baru bisa terjadi setelah fase Integrasi; cek ulang nanti.
+  Harusnya: tiap tekan terasa satu getaran singkat tepat saat jari menyentuh. Getar gagal dicoba dengan mematikan agent, lihat item M2 Integrasi.
 
 - [ ] M2 Frontend: Kedip ikon, cincin proses, dan posisi toast.
   Buka: layar Remote di HP.
-  Lakukan: tekan prev dan next, lihat ikonnya berkedip. Tekan play; cincin proses hanya muncul bila jawaban lebih dari sekitar 0,4 detik, dan tiruan biasanya lebih cepat, jadi cincin mungkin tidak terlihat sekarang. Toast "Perintah nggak sampai ke laptop" belum bisa dipicu sampai Integrasi; cek ulang nanti.
+  Lakukan: tekan prev dan next, lihat ikonnya berkedip. Tekan play; cincin proses hanya muncul bila jawaban lebih dari sekitar 0,4 detik, dan agent di laptop biasanya lebih cepat, jadi cincin mungkin tidak terlihat. Toast "Perintah nggak sampai ke laptop" muncul saat agent mati, lihat item M2 Integrasi.
   Harusnya: kedip ikon sekitar 240 ms (sekejap). Cincin berputar sekitar 0,4 detik setelah tekan bila jawaban lambat. Toast muncul 12 dp di atas dock.
+
+- [ ] M2 Integrasi: Tombol media HP mengenai laptop lewat agent asli.
+  Buka: Spotify di laptop (agent jalan lewat `go run ./cmd/agent run`), dan layar Remote di HP yang sudah pairing.
+  Lakukan: tekan play, next, dan prev di HP. Lalu matikan agent (Ctrl+C), tekan play lagi. Nyalakan agent lagi, lalu tekan "Ulangi". Terakhir, ganti isi `"token"` di `config.json`, simpan, lalu tekan next.
+  Harusnya: lagu mengikuti tiap tombol. Saat agent mati, ikon kembali dan muncul toast "Perintah nggak sampai ke laptop" beserta "Ulangi". "Ulangi" berhasil saat agent hidup lagi. Setelah token diganti, app menampilkan layar "Token ditolak" (Q12). Saat ditekan cepat, tidak ada perintah ganda.
 
 ## M3 Volume
 

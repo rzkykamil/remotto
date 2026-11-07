@@ -18,9 +18,9 @@ Tidak ada endpoint. Fase ini dicatat "tidak relevan" saat dijalankan.
 
 | Screen/Widget | Endpoint | Status | Catatan |
 |---|---|---|---|
-| `PlayKey` | `POST /media/play-pause` | Belum | Tanpa retry; gagal → S04; 500 saat layar terkunci |
-| Dock next | `POST /media/next` | Belum | Tanpa retry |
-| Dock prev | `POST /media/prev` | Belum | Tanpa retry |
+| `PlayKey` | `POST /media/play-pause` | Selesai | Tanpa retry; gagal → S04; 500 saat layar terkunci. Tes loopback; HP di `waiting.md` |
+| Dock next | `POST /media/next` | Selesai | Tanpa retry. Tes loopback; HP di `waiting.md` |
+| Dock prev | `POST /media/prev` | Selesai | Tanpa retry. Tes loopback; HP di `waiting.md` |
 
 ## M3 Volume
 

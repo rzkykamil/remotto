@@ -526,3 +526,45 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** `Media` menerima `sendFunc` yang disuntik. Test memakai fake. `NewMedia()` hanya dipasang di `cmd/agent`.
 - **Alasan:** Test aman, cepat, dan tidak memengaruhi laptop.
 - **Dampak:** Pembuktian nyata hanya lewat `docs/todo/waiting.md`.
+
+## [Integrasi M2] Mock media dipindah ke fake di test/support
+
+- **Konteks:** `MockMediaRepository` di `lib/` menjadi default `mediaRepositoryProvider` sejak Frontend M2. Pola M1 memindahkan mock ke `test/support/` sebagai fake.
+- **Keputusan:** `MockMediaRepository` keluar dari `lib/` dan menjadi `FakeMediaRepository` di `test/support/` (file dan test ikut dipindah). Simbol `MockMedia*` dan `mockMedia*` diganti `FakeMedia*` dan `fakeMedia*`.
+- **Alasan:** Tidak ada mock di build produksi. Fake di `test/support/` tetap dipakai test yang butuh skrip balasan.
+- **Dampak:** `grep` untuk `mock_media` dan `MockMedia` di `app/lib` dan `app/test` kosong.
+
+## [Integrasi M2] Pairing null menghasilkan UnreachableFailure
+
+- **Konteks:** `HttpStatusRepository` memakai pola ini di M1. Media butuh aturan yang sama.
+- **Keputusan:** `HttpMediaRepository` membaca `pairingProvider` pada setiap `send`. Bila pairing null, hasilnya `UnreachableFailure` tanpa request.
+- **Alasan:** Tanpa pairing, app tidak tahu alamat atau token. `UnauthorizedFailure` akan salah memicu alur token ditolak.
+- **Dampak:** Tombol media tanpa pairing menampilkan toast "Ulangi", bukan layar token ditolak.
+
+## [Integrasi M2] Timeout repository sama dengan controller
+
+- **Konteks:** `docs/technical-spec.md` bagian 6 dan `RMotion.commandTimeout` dipakai `MediaController`.
+- **Keputusan:** `HttpMediaRepository` memakai `RMotion.commandTimeout` (3 dtk) sebagai default. `AgentHttpClient.postMedia` menerima `timeout` dan memasang `Future.timeout`. Tidak ada retry otomatis.
+- **Alasan:** Timeout repository dan controller sama, sehingga keduanya memberi hasil yang sama. Ulangi dilakukan pengguna secara manual.
+- **Dampak:** `Future.timeout` tidak membatalkan request. Request yang sudah terkirim bisa tetap diproses setelah toast gagal muncul (lihat `docs/todo/backlog/integration.md` M2 dan M1).
+
+## [Integrasi M2] Aksi di data tidak cocok menjadi ServerFailure
+
+- **Konteks:** `docs/api-spec.md` Media mengembalikan `{"data":{"action":...}}`. Aturan ini sebelumnya ada di mock.
+- **Keputusan:** Bila `data['action']` tidak sama dengan aksi yang dikirim, klien melempar `ServerFailure`.
+- **Alasan:** Respons yang tidak cocok berarti agent atau jalur lain tidak menjalankan aksi yang diminta. Tidak boleh dianggap sukses.
+- **Dampak:** Aturan ini dijaga di jalur HTTP asli, bukan lagi di mock.
+
+## [Integrasi M2] Kegagalan media menjadi rollback dan toast Ulangi
+
+- **Konteks:** `docs/api-spec.md` Media dan `MediaController` (rollback, toast "Ulangi", tanpa retry otomatis).
+- **Keputusan:** 403, 429, dan 500 `media_failed` menjadi rollback dan toast "Ulangi". 401 menjadi `UnauthorizedFailure` dan mengikuti alur token ditolak. Endpoint media tidak mengirim 409, jadi 409 bila muncul jatuh ke `ServerFailure`.
+- **Alasan:** Satu perilaku untuk semua kegagalan kirim mengurangi kasus khusus. Copy khusus 403 dan 429 tidak ada di desain, jadi tidak ditambahkan.
+- **Dampak:** Copy khusus untuk 403 dan 429 ada di `docs/todo/backlog/integration.md` M2 bila pemilik mau.
+
+## [Integrasi M2] Helper _guard di AgentHttpClient
+
+- **Konteks:** `getStatus` di M1 sudah punya blok pemetaan exception (timeout, format, socket, client). `postMedia` memakai pemetaan yang sama.
+- **Keputusan:** Pemetaan dipindah ke helper privat `_guard` yang dipakai `getStatus` dan `postMedia`. Test `getStatus` lama tidak diubah.
+- **Alasan:** Menghindari duplikasi dan menjaga pemetaan error tetap satu sumber.
+- **Dampak:** Token tidak masuk ke failure atau log. Perubahan pada pemetaan berlaku untuk dua endpoint sekaligus.
