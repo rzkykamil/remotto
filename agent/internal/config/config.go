@@ -94,6 +94,33 @@ func laptopNameFrom(hostname string) string {
 	return string(runes)
 }
 
+// ErrNewerVersion means the file was written by a newer agent. The agent
+// refuses to start and must not touch the file.
+var ErrNewerVersion = errors.New("config written by a newer agent version")
+
+// checkVersion accepts only CurrentVersion. A newer version wraps
+// ErrNewerVersion; an older one is a ValidationError, because Load does not
+// migrate (LoadOrInit does).
+func checkVersion(v int) error {
+	switch {
+	case v > CurrentVersion:
+		return fmt.Errorf("%w: file has configVersion %d, agent supports %d", ErrNewerVersion, v, CurrentVersion)
+	case v != CurrentVersion:
+		return invalid("configVersion", fmt.Sprintf("unsupported version %d, this agent supports %d", v, CurrentVersion))
+	}
+	return nil
+}
+
+// decodeInto decodes data into a copy of defaults, so fields missing from
+// the JSON keep their default values. Unknown fields are ignored.
+func decodeInto(data []byte, defaults Config) (Config, error) {
+	c := defaults
+	if err := json.NewDecoder(bytes.NewReader(data)).Decode(&c); err != nil {
+		return Config{}, err
+	}
+	return c, nil
+}
+
 // Load reads the file at path into a copy of defaults, so fields missing
 // from the file keep their default values. Unknown fields are ignored.
 // The returned error wraps fs.ErrNotExist when the file does not exist.
@@ -102,9 +129,12 @@ func Load(path string, defaults Config) (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("read config %s: %w", path, err)
 	}
-	c := defaults
-	if err := json.NewDecoder(bytes.NewReader(data)).Decode(&c); err != nil {
+	c, err := decodeInto(data, defaults)
+	if err != nil {
 		return Config{}, fmt.Errorf("parse config %s: %w", path, err)
+	}
+	if err := checkVersion(c.ConfigVersion); err != nil {
+		return Config{}, err
 	}
 	if err := Validate(c); err != nil {
 		return Config{}, err
@@ -116,6 +146,9 @@ func Load(path string, defaults Config) (Config, error) {
 // file in the same folder, syncs it, and renames it over the target. An
 // invalid config writes nothing.
 func Save(path string, c Config) error {
+	if err := checkVersion(c.ConfigVersion); err != nil {
+		return err
+	}
 	if err := Validate(c); err != nil {
 		return err
 	}

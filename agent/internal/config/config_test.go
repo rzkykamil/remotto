@@ -176,7 +176,6 @@ func TestValidate(t *testing.T) {
 		wantField string // empty means valid
 	}{
 		{name: "default is valid", mutate: func(c *Config) {}},
-		{name: "configVersion 2 rejected", mutate: func(c *Config) { c.ConfigVersion = 2 }, wantField: "configVersion"},
 		{name: "laptopName empty rejected", mutate: func(c *Config) { c.LaptopName = "" }, wantField: "laptopName"},
 		{name: "laptopName 64 runes ok", mutate: func(c *Config) { c.LaptopName = strings.Repeat("x", 64) }},
 		{name: "laptopName 65 runes rejected", mutate: func(c *Config) { c.LaptopName = strings.Repeat("x", 65) }, wantField: "laptopName"},

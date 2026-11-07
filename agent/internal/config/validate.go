@@ -35,9 +35,8 @@ func invalid(field, reason string) error {
 // Validate checks every field against its range and format. It returns a
 // *ValidationError for the first rule that fails, or nil.
 func Validate(c Config) error {
-	if c.ConfigVersion != CurrentVersion {
-		return invalid("configVersion", fmt.Sprintf("unsupported version %d, this agent supports %d", c.ConfigVersion, CurrentVersion))
-	}
+	// configVersion is checked by checkVersion in Load, Save and LoadOrInit,
+	// because an older version is a migration case, not an invalid value.
 	if n := utf8.RuneCountInString(c.LaptopName); n < 1 || n > maxLaptopNameRunes {
 		return invalid("laptopName", "must be 1-64 characters")
 	}
