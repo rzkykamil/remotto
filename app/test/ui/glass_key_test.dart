@@ -49,6 +49,20 @@ GlassKey _key({
 double _height(WidgetTester tester) =>
     tester.getSize(find.byType(GlassKey)).height;
 
+/// Decoration of the outermost capsule frame inside the first [GlassKey].
+BoxDecoration _capsuleDecoration(WidgetTester tester) =>
+    tester
+            .widget<DecoratedBox>(
+              find
+                  .descendant(
+                    of: find.byType(GlassKey),
+                    matching: find.byType(DecoratedBox),
+                  )
+                  .first,
+            )
+            .decoration
+        as BoxDecoration;
+
 void main() {
   testWidgets('every variant and size reaches at least its token height', (
     tester,
@@ -58,6 +72,7 @@ void main() {
       GlassKeySize.touch: RSize.touchMin,
       GlassKeySize.power: RSize.power,
       GlassKeySize.control: RSize.control,
+      GlassKeySize.action: RSize.action,
       GlassKeySize.media: RSize.media,
     };
     for (final variant in GlassKeyVariant.values) {
@@ -225,6 +240,87 @@ void main() {
       () => GlassKey(semanticsLabel: 'kosong', onPressed: () {}),
       throwsA(isA<AssertionError>()),
     );
+  });
+
+  testWidgets('accent enabled: gradient, accent text and shadow, both modes', (
+    tester,
+  ) async {
+    final sink = RecordingHapticSink();
+    for (final dark in [false, true]) {
+      await tester.pumpWidget(const SizedBox());
+      await pumpApp(
+        tester,
+        _key(
+          onPressed: () {},
+          variant: GlassKeyVariant.accent,
+          size: GlassKeySize.action,
+          label: 'Scan QR',
+        ),
+        dark: dark,
+        overrides: await _overrides(sink),
+      );
+
+      final tokens = dark ? kDarkTokens : kLightTokens;
+      final decoration = _capsuleDecoration(tester);
+      final gradient = decoration.gradient! as LinearGradient;
+      expect(gradient.colors, [
+        tokens.accent.highlight,
+        tokens.accent.defaultColor,
+      ], reason: 'dark=$dark');
+      expect(decoration.boxShadow, hasLength(1));
+      expect(decoration.boxShadow!.single.color, tokens.accent.shadow);
+
+      final text = tester.widget<Text>(find.text('Scan QR'));
+      expect(text.style?.color, tokens.accent.on, reason: 'dark=$dark');
+    }
+  });
+
+  testWidgets('accent disabled: no gradient, no shadow, disabled text', (
+    tester,
+  ) async {
+    final sink = RecordingHapticSink();
+    await pumpApp(
+      tester,
+      _key(
+        variant: GlassKeyVariant.accent,
+        size: GlassKeySize.action,
+        label: 'Sambungkan',
+      ),
+      overrides: await _overrides(sink),
+    );
+
+    final decoration = _capsuleDecoration(tester);
+    expect(decoration.gradient, isNull);
+    expect(decoration.boxShadow, isNull);
+    expect(decoration.color, kLightTokens.glass.chipDisabled);
+
+    final text = tester.widget<Text>(find.text('Sambungkan'));
+    expect(text.style?.color, kLightTokens.fg.disabled);
+  });
+
+  testWidgets('accent pressed: scales to the key press scale', (tester) async {
+    final sink = RecordingHapticSink();
+    await pumpApp(
+      tester,
+      _key(
+        onPressed: () {},
+        variant: GlassKeyVariant.accent,
+        size: GlassKeySize.action,
+        label: 'Scan QR',
+      ),
+      overrides: await _overrides(sink),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(GlassKey)),
+    );
+    await tester.pump(RMotion.pressDown);
+    expect(
+      tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale,
+      RComponent.keyPressedScale,
+    );
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('does not use InkWell', (tester) async {

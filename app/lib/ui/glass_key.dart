@@ -18,18 +18,28 @@ enum GlassKeyVariant {
 
   /// Primary non-accent action: filled with the foreground color.
   strong,
+
+  /// Main action of a screen (C02 `.key.acc`): accent gradient, accent shadow,
+  /// no blur. Use once per screen.
+  accent,
 }
 
 /// Key size, mapped to the token scale. There is no 64 dp token, so the
 /// 64 dp size from C02 is not offered (decision K9).
-enum GlassKeySize { touch, power, control, media }
+enum GlassKeySize { touch, power, control, action, media }
 
 double _heightOf(GlassKeySize size) => switch (size) {
   GlassKeySize.touch => RSize.touchMin,
   GlassKeySize.power => RSize.power,
   GlassKeySize.control => RSize.control,
+  GlassKeySize.action => RSize.action,
   GlassKeySize.media => RSize.media,
 };
+
+/// Accent key shadow: 0 10px 28px `accent.shadow` (C02 `.key.acc`).
+/// Not a token, like the glass shadow in `GlassPanel`.
+const Offset _accentShadowOffset = Offset(0, 10);
+const double _accentShadowBlur = 28;
 
 /// Capsule button (`design/components.md` C02).
 ///
@@ -121,7 +131,54 @@ final class GlassKey extends StatelessWidget {
           overlay: pressedTint,
           child: _body(context, color: scheme.surface, height: height),
         );
+      case GlassKeyVariant.accent:
+        return _accent(context, enabled: enabled, height: height);
     }
+  }
+
+  /// Accent key: gradient `accent.highlight` to `ColorScheme.primary`
+  /// (`accent.default`), text `accent.on`, shadow `accent.shadow`. Pressed
+  /// feedback is the scale from [Pressable] only, so no tint is laid over the
+  /// gradient. Disabled drops the gradient and shadow.
+  Widget _accent(
+    BuildContext context, {
+    required bool enabled,
+    required double height,
+  }) {
+    final accent = context.accent;
+    final control = context.control;
+    final glass = context.glass;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: enabled ? null : glass.chipDisabled,
+        gradient: enabled
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [accent.highlight, primary],
+              )
+            : null,
+        borderRadius: BorderRadius.circular(RRadius.full),
+        boxShadow: enabled
+            ? [
+                BoxShadow(
+                  color: accent.shadow,
+                  offset: _accentShadowOffset,
+                  blurRadius: _accentShadowBlur,
+                ),
+              ]
+            : null,
+      ),
+      child: _body(
+        context,
+        color: enabled
+            ? Theme.of(context).colorScheme.onPrimary
+            : control.fgDisabled,
+        height: height,
+      ),
+    );
   }
 
   /// Capsule frame: fill, optional 1 dp edge and top highlight, clipped to a

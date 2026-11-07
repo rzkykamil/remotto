@@ -255,6 +255,7 @@ abstract final class RSize {
   static const double touchMin = 48.0;
   static const double power = 52.0;
   static const double control = 56.0;
+  static const double action = 64.0;
   static const double hold = 72.0;
   static const double media = 80.0;
   static const double mediaCompact = 72.0;

@@ -17,4 +17,13 @@ abstract final class RBehavior {
 
   /// Maximum wait for the connection to resume after the app returns.
   static const Duration resumeWait = Duration(seconds: 2);
+
+  /// How long the invalid-QR banner stays visible.
+  static const Duration qrErrorBanner = Duration(seconds: 3);
+
+  /// Window in which a repeated QR code is ignored.
+  static const Duration qrDuplicateIgnore = Duration(seconds: 2);
+
+  /// Maximum wait for each pairing test step.
+  static const Duration stepTimeout = Duration(seconds: 5);
 }
