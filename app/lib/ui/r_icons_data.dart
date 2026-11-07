@@ -62,4 +62,20 @@ abstract final class RIcons {
   ]);
 
   static const power = RIconData(['M12 2v10', 'M18.4 6.6a9 9 0 1 1-12.77.04']);
+
+  /// Media icons from States-light (dock). Use with `filled: true`; the
+  /// skip icons add a 2 dp stroke, play and pause pass `strokeWidth: 0`.
+  static const skipPrev = RIconData(['M19 20 9 12l10-8z', 'M5 19V5']);
+
+  static const skipNext = RIconData(['M5 4l10 8-10 8z', 'M19 5v14']);
+
+  static const play = RIconData([
+    'M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8Z',
+  ]);
+
+  /// Two rounded bars, x 6 and x 14, y 4.5, 4 x 15, rx 1.2.
+  static const pause = RIconData([
+    'M7.2 4.5h1.6A1.2 1.2 0 0 1 10 5.7v11.1a1.2 1.2 0 0 1-1.2 1.2H7.2A1.2 1.2 0 0 1 6 16.8V5.7a1.2 1.2 0 0 1 1.2-1.2Z',
+    'M15.2 4.5h1.6A1.2 1.2 0 0 1 18 5.7v11.1a1.2 1.2 0 0 1-1.2 1.2h-1.6a1.2 1.2 0 0 1-1.2-1.2V5.7a1.2 1.2 0 0 1 1.2-1.2Z',
+  ]);
 }

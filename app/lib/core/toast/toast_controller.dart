@@ -43,6 +43,20 @@ final toastControllerProvider =
     NotifierProvider<ToastController, ToastMessage?>(ToastController.new);
 
 /// Height of the media dock at the bottom of the screen, in dp. The toast sits above it
-/// with a 12 dp gap (C07). Defaults to 0 until the dock exists (M2) and
-/// overrides this provider.
-final toastBottomInsetProvider = Provider<double>((ref) => 0);
+/// with a 12 dp gap (C07). The Remote screen sets it while open and resets it to 0
+/// when closed.
+final class ToastBottomInset extends Notifier<double> {
+  @override
+  double build() => 0;
+
+  /// No-op after the provider is disposed, e.g. when the app container closes
+  /// while a screen is still unmounting.
+  void set(double value) {
+    if (!ref.mounted) return;
+    state = value;
+  }
+}
+
+final toastBottomInsetProvider = NotifierProvider<ToastBottomInset, double>(
+  ToastBottomInset.new,
+);

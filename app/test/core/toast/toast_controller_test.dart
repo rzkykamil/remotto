@@ -33,9 +33,15 @@ void main() {
     expect(container.read(toastControllerProvider), isNull);
   });
 
-  test('bottom inset defaults to 0 until the dock overrides it', () {
+  test('bottom inset defaults to 0 and can be set and reset', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
+    expect(container.read(toastBottomInsetProvider), 0);
+
+    container.read(toastBottomInsetProvider.notifier).set(80);
+    expect(container.read(toastBottomInsetProvider), 80);
+
+    container.read(toastBottomInsetProvider.notifier).set(0);
     expect(container.read(toastBottomInsetProvider), 0);
   });
 }

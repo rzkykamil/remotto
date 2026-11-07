@@ -15,6 +15,7 @@ import '../../core/theme/tokens.g.dart';
 import '../../core/toast/toast_controller.dart';
 import '../../ui/glass_panel.dart';
 import '../../ui/status_pill.dart';
+import 'widgets/media_dock.dart';
 import 'widgets/offline_content.dart';
 import 'widgets/remote_header.dart';
 
@@ -23,8 +24,8 @@ const double _compactWidth = 380;
 
 /// Remote screen SCR-010 (`design/components.md` C10, `States-light`).
 ///
-/// M1: header and empty volume panel. Power, volume, and dock controls
-/// come later in M2-M4. Polling starts when the screen opens and stops when
+/// Header, status panel, and the media dock. Power and volume controls
+/// come later in M3-M4. Polling starts when the screen opens and stops when
 /// the screen closes.
 class RemoteScreen extends ConsumerStatefulWidget {
   const RemoteScreen({super.key});
@@ -36,12 +37,14 @@ class RemoteScreen extends ConsumerStatefulWidget {
 class _RemoteScreenState extends ConsumerState<RemoteScreen> {
   // Stored in initState so dispose does not use `ref`.
   late final ConnectionController _connection;
+  late final ToastBottomInset _toastInset;
   bool _retrying = false;
 
   @override
   void initState() {
     super.initState();
     _connection = ref.read(connectionControllerProvider.notifier);
+    _toastInset = ref.read(toastBottomInsetProvider.notifier);
     // start() changes a provider; Riverpod forbids that in initState. Run
     // after the first frame. If the screen was already closed, nothing starts.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,7 +55,20 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
   @override
   void dispose() {
     _connection.stop();
+    // dispose runs during the tree update, where Riverpod rejects provider
+    // changes. The reset runs right after it.
+    final toastInset = _toastInset;
+    Future.microtask(() => toastInset.set(0));
     super.dispose();
+  }
+
+  /// Lifts toasts above the dock. Changing a provider is not allowed during
+  /// build, so the update runs after the frame.
+  void _syncToastInset(double height) {
+    if (ref.read(toastBottomInsetProvider) == height) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _toastInset.set(height);
+    });
   }
 
   void _retry() {
@@ -86,10 +102,14 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
     final pairing = ref.watch(pairingProvider);
     final name = connection.status?.name ?? pairing?.laptopName ?? '';
     final width = MediaQuery.sizeOf(context).width;
-    final margin = width < _compactWidth
-        ? RSize.screenMarginCompact
-        : RSize.screenMargin;
+    final compact = width < _compactWidth;
+    final margin = compact ? RSize.screenMarginCompact : RSize.screenMargin;
     final phase = connection.phase;
+    final dockEnabled =
+        phase == ConnectionPhase.online || phase == ConnectionPhase.back;
+    // The dock sits above the screen's bottom padding (RSpace.s6), and
+    // ToastHost measures from the screen bottom, so the inset includes it.
+    _syncToastInset(MediaDock.heightFor(compact) + RSpace.s6);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -113,6 +133,8 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
                   child: Center(child: _panelContent(phase)),
                 ),
               ),
+              const SizedBox(height: RSpace.s5),
+              MediaDock(enabled: dockEnabled, compact: compact),
             ],
           ),
         ),

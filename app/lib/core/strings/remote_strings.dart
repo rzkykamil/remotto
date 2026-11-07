@@ -35,4 +35,12 @@ abstract final class RemoteStrings {
   static const toastRetry = 'Ulangi';
 
   static const settingsButton = 'Pengaturan';
+
+  // SCR-010 media dock (C03, C10)
+  static const playLabel = 'Putar';
+  static const pauseLabel = 'Jeda';
+  static const playSendingHint = 'Ngirim ke laptop';
+  static const prevLabel = 'Lagu sebelumnya';
+  static const nextLabel = 'Lagu berikutnya';
+  static const mediaGroupLabel = 'Media';
 }

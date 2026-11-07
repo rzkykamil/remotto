@@ -21,6 +21,10 @@ const _all = <RIconData>[
   RIcons.eye,
   RIcons.settingsSliders,
   RIcons.power,
+  RIcons.skipPrev,
+  RIcons.skipNext,
+  RIcons.play,
+  RIcons.pause,
 ];
 
 void main() {
@@ -51,6 +55,30 @@ void main() {
       RIcon(RIcons.check, size: 48, color: kLightTokens.fg.primary),
     );
     expect(tester.getSize(find.byType(RIcon)), const Size(48, 48));
+  });
+
+  testWidgets('RIcon filled renders and stays excluded from Semantics', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      RIcon(
+        RIcons.play,
+        size: 36,
+        color: kLightTokens.fg.primary,
+        strokeWidth: 0,
+        filled: true,
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(RIcon)), const Size(36, 36));
+    expect(
+      find.descendant(
+        of: find.byType(RIcon),
+        matching: find.byType(ExcludeSemantics),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('RIcon is decorative and excluded from Semantics', (

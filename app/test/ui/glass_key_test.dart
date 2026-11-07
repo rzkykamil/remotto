@@ -74,6 +74,9 @@ void main() {
       GlassKeySize.control: RSize.control,
       GlassKeySize.action: RSize.action,
       GlassKeySize.media: RSize.media,
+      GlassKeySize.mediaCompact: RSize.mediaCompact,
+      GlassKeySize.play: RSize.play,
+      GlassKeySize.playCompact: RSize.playCompact,
     };
     for (final variant in GlassKeyVariant.values) {
       for (final entry in sizes.entries) {

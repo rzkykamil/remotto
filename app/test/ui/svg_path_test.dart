@@ -161,7 +161,18 @@ void main() {
       'eye': RIcons.eye,
       'settingsSliders': RIcons.settingsSliders,
       'power': RIcons.power,
+      'skipPrev': RIcons.skipPrev,
+      'skipNext': RIcons.skipNext,
+      'play': RIcons.play,
+      'pause': RIcons.pause,
     };
+
+    test('media icons have the expected path counts', () {
+      expect(RIcons.skipPrev.paths, hasLength(2));
+      expect(RIcons.skipNext.paths, hasLength(2));
+      expect(RIcons.play.paths, hasLength(1));
+      expect(RIcons.pause.paths, hasLength(2));
+    });
 
     test('every icon parses and its geometry stays inside the 24 x 24 viewBox', () {
       for (final entry in icons.entries) {

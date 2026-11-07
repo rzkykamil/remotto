@@ -21,8 +21,11 @@ List<Path> _pathsOf(RIconData data) {
 /// Line icon drawn from SVG path data (`design/export/artboards/`).
 ///
 /// Strokes are round-capped and round-joined, and [strokeWidth] is in viewBox
-/// units, so it scales with [size] like the SVG does. The icon is decorative,
-/// so it is excluded from Semantics; the owning control carries the label.
+/// units, so it scales with [size] like the SVG does. With [filled] the shape
+/// is filled with [color] first, and stroked too when [strokeWidth] is above
+/// zero (a zero stroke is skipped, not drawn as a hairline). The icon is
+/// decorative, so it is excluded from Semantics; the owning control carries
+/// the label.
 final class RIcon extends StatelessWidget {
   const RIcon(
     this.data, {
@@ -30,12 +33,14 @@ final class RIcon extends StatelessWidget {
     required this.size,
     required this.color,
     this.strokeWidth = 2,
+    this.filled = false,
   });
 
   final RIconData data;
   final double size;
   final Color color;
   final double strokeWidth;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +52,7 @@ final class RIcon extends StatelessWidget {
             data: data,
             color: color,
             strokeWidth: strokeWidth,
+            filled: filled,
           ),
         ),
       ),
@@ -59,18 +65,24 @@ final class _RIconPainter extends CustomPainter {
     required this.data,
     required this.color,
     required this.strokeWidth,
+    required this.filled,
   });
 
   final RIconData data;
   final Color color;
   final double strokeWidth;
+  final bool filled;
 
   static const double _viewBox = 24;
 
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.width / _viewBox;
-    final paint = Paint()
+    final fillPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    final strokePaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
@@ -81,7 +93,8 @@ final class _RIconPainter extends CustomPainter {
     canvas.save();
     canvas.scale(scale, size.height / _viewBox);
     for (final path in _pathsOf(data)) {
-      canvas.drawPath(path, paint);
+      if (filled) canvas.drawPath(path, fillPaint);
+      if (strokeWidth > 0) canvas.drawPath(path, strokePaint);
     }
     canvas.restore();
   }
@@ -90,6 +103,7 @@ final class _RIconPainter extends CustomPainter {
   bool shouldRepaint(_RIconPainter oldDelegate) {
     return oldDelegate.data != data ||
         oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth;
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.filled != filled;
   }
 }

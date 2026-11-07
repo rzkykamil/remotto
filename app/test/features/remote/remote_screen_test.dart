@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'dart:ui' show Tristate;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -17,8 +20,13 @@ import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/theme/app_theme.dart';
 import 'package:remotto/core/theme/r_behavior.dart';
+import 'package:remotto/core/theme/tokens.g.dart';
 import 'package:remotto/core/strings/pairing_strings.dart';
+import 'package:remotto/core/strings/remote_strings.dart';
+import 'package:remotto/core/toast/toast_controller.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
+import 'package:remotto/features/remote/widgets/media_dock.dart';
+import 'package:remotto/ui/glass_toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_status_repository.dart';
@@ -280,6 +288,79 @@ void main() {
     expect(harness.scheduler.hasLivePeriodic, isFalse);
   });
 
+  testWidgets('dock tampil dan aktif saat online', (tester) async {
+    final handle = tester.ensureSemantics();
+    await _pumpApp(tester, repo: FakeStatusRepository([fakeStatusOk()]));
+
+    expect(find.byType(MediaDock), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RemoteStrings.mediaGroupLabel),
+      findsOneWidget,
+    );
+    expect(_isEnabled(tester, RemoteStrings.prevLabel), isTrue);
+    expect(_isEnabled(tester, RemoteStrings.nextLabel), isTrue);
+    expect(_isEnabled(tester, RemoteStrings.pauseLabel), isTrue);
+    handle.dispose();
+  });
+
+  testWidgets('dock nonaktif saat menyambung (S02)', (tester) async {
+    final handle = tester.ensureSemantics();
+    await _pumpApp(tester, repo: _GatedRepository());
+
+    expect(find.byType(MediaDock), findsOneWidget);
+    expect(_isEnabled(tester, RemoteStrings.prevLabel), isFalse);
+    expect(_isEnabled(tester, RemoteStrings.pauseLabel), isFalse);
+    expect(_isEnabled(tester, RemoteStrings.nextLabel), isFalse);
+    handle.dispose();
+  });
+
+  testWidgets('dock nonaktif saat offline (S10)', (tester) async {
+    final handle = tester.ensureSemantics();
+    final repo = _GatedRepository();
+    final harness = await _pumpApp(tester, repo: repo);
+
+    repo.requests.last.completeError(const TimeoutFailure());
+    await _settle(tester);
+    harness.scheduler.tick();
+    repo.requests.last.completeError(const UnreachableFailure());
+    await _settle(tester);
+    expect(find.text('Laptop nggak kejangkau'), findsOneWidget);
+
+    expect(_isEnabled(tester, RemoteStrings.prevLabel), isFalse);
+    expect(_isEnabled(tester, RemoteStrings.pauseLabel), isFalse);
+    expect(_isEnabled(tester, RemoteStrings.nextLabel), isFalse);
+    handle.dispose();
+  });
+
+  testWidgets('toast 12 dp di atas dock, inset kembali 0 saat layar ditutup', (
+    tester,
+  ) async {
+    final harness = await _pumpApp(
+      tester,
+      repo: FakeStatusRepository([fakeStatusOk()]),
+    );
+    expect(
+      harness.container.read(toastBottomInsetProvider),
+      MediaDock.heightFor(false) + RSpace.s6,
+    );
+
+    harness.container
+        .read(toastControllerProvider.notifier)
+        .show(const ToastMessage(text: 'Uji posisi'));
+    await _settle(tester);
+
+    final dockTop = tester.getTopLeft(find.byType(MediaDock)).dy;
+    final toastBottom = tester.getBottomLeft(find.byType(GlassToast)).dy;
+    expect(dockTop - toastBottom, closeTo(RSpace.s3, 0.01));
+
+    await tester.runAsync(() async {
+      harness.container.read(routerProvider).go('/pairing');
+    });
+    await _settle(tester);
+    expect(harness.container.read(toastBottomInsetProvider), 0);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in [360.0, 412.0]) {
     testWidgets('lebar $width, teks 130%: nama panjang tanpa overflow', (
       tester,
@@ -312,6 +393,14 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+}
+
+/// True when the semantics node with [label] is enabled.
+bool _isEnabled(WidgetTester tester, String label) {
+  final data = tester
+      .getSemantics(find.bySemanticsLabel(label))
+      .getSemanticsData();
+  return data.flagsCollection.isEnabled == Tristate.isTrue;
 }
 
 /// Remote without a router at width [width] and 130% text.

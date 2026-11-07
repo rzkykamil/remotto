@@ -26,7 +26,16 @@ enum GlassKeyVariant {
 
 /// Key size, mapped to the token scale. There is no 64 dp token, so the
 /// 64 dp size from C02 is not offered (decision K9).
-enum GlassKeySize { touch, power, control, action, media }
+enum GlassKeySize {
+  touch,
+  power,
+  control,
+  action,
+  media,
+  mediaCompact,
+  play,
+  playCompact,
+}
 
 double _heightOf(GlassKeySize size) => switch (size) {
   GlassKeySize.touch => RSize.touchMin,
@@ -34,6 +43,9 @@ double _heightOf(GlassKeySize size) => switch (size) {
   GlassKeySize.control => RSize.control,
   GlassKeySize.action => RSize.action,
   GlassKeySize.media => RSize.media,
+  GlassKeySize.mediaCompact => RSize.mediaCompact,
+  GlassKeySize.play => RSize.play,
+  GlassKeySize.playCompact => RSize.playCompact,
 };
 
 /// Accent key shadow: 0 10px 28px `accent.shadow` (C02 `.key.acc`).
