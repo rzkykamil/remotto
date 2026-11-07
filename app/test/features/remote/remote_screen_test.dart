@@ -8,7 +8,6 @@ import 'package:remotto/app.dart';
 import 'package:remotto/core/connection/connection_controller.dart';
 import 'package:remotto/core/connection/connection_providers.dart';
 import 'package:remotto/core/connection/connection_state.dart';
-import 'package:remotto/core/connection/mock_status_repository.dart';
 import 'package:remotto/core/connection/status_repository.dart';
 import 'package:remotto/core/network/agent_status.dart';
 import 'package:remotto/core/network/api_failure.dart';
@@ -22,6 +21,7 @@ import 'package:remotto/core/strings/pairing_strings.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../support/fake_status_repository.dart';
 import '../../support/fakes.dart';
 
 const _pairing = PairingData(
@@ -101,7 +101,7 @@ final class _GatedRepository implements StatusRepository {
     last.complete(
       parseStatusResponse(
         200,
-        mockStatusOk(name: name, uptimeSeconds: uptimeSeconds).body,
+        fakeStatusOk(name: name, uptimeSeconds: uptimeSeconds).body,
       ),
     );
   }
@@ -167,8 +167,8 @@ void main() {
     (tester) async {
       await _pumpApp(
         tester,
-        repo: MockStatusRepository([
-          mockStatusOk(name: 'Laptop-Kamil', uptimeSeconds: 3 * 3600 + 12 * 60),
+        repo: FakeStatusRepository([
+          fakeStatusOk(name: 'Laptop-Kamil', uptimeSeconds: 3 * 3600 + 12 * 60),
         ]),
       );
 
@@ -241,9 +241,9 @@ void main() {
   testWidgets(
     '401 dari layar Remote nyata: Q12, polling berhenti, data tetap',
     (tester) async {
-      final repo = MockStatusRepository([
-        mockStatusOk(),
-        mockErrorReply(401, 'unauthorized'),
+      final repo = FakeStatusRepository([
+        fakeStatusOk(),
+        fakeErrorReply(401, 'unauthorized'),
       ]);
       final harness = await _pumpApp(tester, repo: repo);
       expect(find.byType(RemoteScreen), findsOneWidget);
@@ -267,7 +267,7 @@ void main() {
   ) async {
     final harness = await _pumpApp(
       tester,
-      repo: MockStatusRepository([mockStatusOk()]),
+      repo: FakeStatusRepository([fakeStatusOk()]),
     );
     expect(harness.scheduler.hasLivePeriodic, isTrue);
 
@@ -287,8 +287,8 @@ void main() {
       await _pumpLayout(
         tester,
         width,
-        MockStatusRepository([
-          mockStatusOk(name: 'Laptop-Gaming-Kamil-ROG-Strix'),
+        FakeStatusRepository([
+          fakeStatusOk(name: 'Laptop-Gaming-Kamil-ROG-Strix'),
         ]),
         _ManualScheduler(),
       );
@@ -303,7 +303,7 @@ void main() {
       await _pumpLayout(
         tester,
         width,
-        MockStatusRepository([const MockTransportFailure(TimeoutFailure())]),
+        FakeStatusRepository([const FakeTransportFailure(TimeoutFailure())]),
         scheduler,
       );
       scheduler.tick();

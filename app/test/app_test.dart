@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remotto/app.dart';
 import 'package:remotto/core/connection/connection_controller.dart';
 import 'package:remotto/core/connection/connection_providers.dart';
-import 'package:remotto/core/connection/mock_status_repository.dart';
 import 'package:remotto/core/haptics/r_haptics.dart';
 import 'package:remotto/core/network/agent_status.dart';
 import 'package:remotto/core/network/network_providers.dart';
@@ -16,7 +15,6 @@ import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/strings/pairing_strings.dart';
 import 'package:remotto/core/strings/strings.dart';
 import 'package:remotto/features/pairing/data/camera_permission_service.dart';
-import 'package:remotto/features/pairing/data/mock_pairing_repository.dart';
 import 'package:remotto/features/pairing/data/pairing_repository.dart';
 import 'package:remotto/features/pairing/domain/pairing_target.dart';
 import 'package:remotto/features/pairing/pairing_screen.dart';
@@ -30,6 +28,8 @@ import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:remotto/ui/light_backdrop.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/fake_pairing_repository.dart';
+import 'support/fake_status_repository.dart';
 import 'support/fakes.dart';
 
 /// Scheduler without timers: the Remote poll does not run on its own in this test.
@@ -78,7 +78,7 @@ Future<ProviderContainer> _pump(
           InMemoryConnectionStorage(_pairing),
         ),
         statusRepositoryProvider.overrideWithValue(
-          MockStatusRepository([mockStatusOk()]),
+          FakeStatusRepository([fakeStatusOk()]),
         ),
         pollSchedulerProvider.overrideWithValue(_NoopScheduler()),
       ],
@@ -95,7 +95,7 @@ Brightness _brightness(WidgetTester tester) =>
 /// Pairing repository that can be held: the connection test waits for [release]
 /// before forwarding to the mock. Used so Q08 can be observed.
 final class _GateRepository implements PairingRepository {
-  final _inner = const MockPairingRepository(delay: Duration.zero);
+  final _inner = const FakePairingRepository(delay: Duration.zero);
   Completer<void>? _gate;
 
   void hold() => _gate = Completer<void>();
@@ -171,7 +171,7 @@ Future<_FlowEnv> _pumpFlow(
         initialPairingProvider.overrideWithValue(null),
         connectionStorageProvider.overrideWithValue(storage),
         statusRepositoryProvider.overrideWithValue(
-          MockStatusRepository([mockStatusOk()]),
+          FakeStatusRepository([fakeStatusOk()]),
         ),
         pollSchedulerProvider.overrideWithValue(_NoopScheduler()),
         cameraPermissionServiceProvider.overrideWithValue(permission),
@@ -303,7 +303,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(SuccessView), findsOneWidget);
       expect(
-        find.text(PairingStrings.successTitle(mockPairingLaptopName)),
+        find.text(PairingStrings.successTitle(fakePairingLaptopName)),
         findsOneWidget,
       );
 
@@ -317,7 +317,7 @@ void main() {
           host: '192.168.1.20',
           port: 8765,
           token: _validToken,
-          laptopName: mockPairingLaptopName,
+          laptopName: fakePairingLaptopName,
         ),
       );
     });
@@ -342,7 +342,7 @@ void main() {
 
       expect(env.path, AppRoutes.remote);
       expect(env.storage.data?.host, '192.168.1.20');
-      expect(env.storage.data?.laptopName, mockPairingLaptopName);
+      expect(env.storage.data?.laptopName, fakePairingLaptopName);
     });
 
     testWidgets('Q10: laptop tidak terjangkau, data tidak disimpan', (

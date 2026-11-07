@@ -8,7 +8,6 @@ import 'package:remotto/app.dart';
 import 'package:remotto/core/connection/connection_controller.dart';
 import 'package:remotto/core/connection/connection_providers.dart';
 import 'package:remotto/core/connection/connection_state.dart';
-import 'package:remotto/core/connection/mock_status_repository.dart';
 import 'package:remotto/core/connection/status_repository.dart';
 import 'package:remotto/core/network/api_failure.dart';
 import 'package:remotto/core/network/network_providers.dart';
@@ -22,6 +21,7 @@ import 'package:remotto/features/pairing/state/pairing_flow_state.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../support/fake_status_repository.dart';
 import '../../support/fakes.dart';
 
 const _pairing = PairingData(
@@ -72,7 +72,7 @@ Future<ProviderContainer> _pumpRouter(
         connectionStorageProvider.overrideWithValue(storage),
         // A poll from the Remote screen must not use a timer or the real mock.
         statusRepositoryProvider.overrideWithValue(
-          repo ?? MockStatusRepository([mockStatusOk()]),
+          repo ?? FakeStatusRepository([fakeStatusOk()]),
         ),
         pollSchedulerProvider.overrideWithValue(_SilentScheduler()),
         ...extra,
@@ -222,9 +222,9 @@ void main() {
   ) async {
     final storage = InMemoryConnectionStorage(_pairing);
     // The first poll (when the Remote screen opens) succeeds, later polls get 401.
-    final repo = MockStatusRepository([
-      mockStatusOk(),
-      mockErrorReply(401, 'unauthorized'),
+    final repo = FakeStatusRepository([
+      fakeStatusOk(),
+      fakeErrorReply(401, 'unauthorized'),
     ]);
     final container = await _pumpRouter(
       tester,
@@ -258,8 +258,8 @@ void main() {
   testWidgets('(i) gagal jaringan biasa tidak memindahkan ke Q12', (
     tester,
   ) async {
-    final repo = MockStatusRepository([
-      const MockTransportFailure(TimeoutFailure()),
+    final repo = FakeStatusRepository([
+      const FakeTransportFailure(TimeoutFailure()),
     ]);
     final container = await _pumpRouter(
       tester,

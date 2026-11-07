@@ -5,13 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remotto/core/connection/connection_controller.dart';
 import 'package:remotto/core/connection/connection_providers.dart';
 import 'package:remotto/core/connection/connection_state.dart';
-import 'package:remotto/core/connection/mock_status_repository.dart';
 import 'package:remotto/core/connection/status_repository.dart';
 import 'package:remotto/core/network/agent_status.dart';
 import 'package:remotto/core/network/api_failure.dart';
 import 'package:remotto/core/network/network_providers.dart';
 import 'package:remotto/core/theme/r_behavior.dart';
 import 'package:remotto/core/theme/tokens.g.dart';
+
+import '../../support/fake_status_repository.dart';
 
 final class _FakeJob implements ScheduledJob {
   _FakeJob(this.delay, this.callback, {required this.periodic});
@@ -139,17 +140,17 @@ _Harness _harness(StatusRepository repo, {DateTime? now}) {
   return harness;
 }
 
-MockHttpReply _ok({int uptime = 60, bool volumeUnavailable = false}) =>
-    mockStatusOk(uptimeSeconds: uptime, volumeUnavailable: volumeUnavailable);
+FakeHttpReply _ok({int uptime = 60, bool volumeUnavailable = false}) =>
+    fakeStatusOk(uptimeSeconds: uptime, volumeUnavailable: volumeUnavailable);
 
-const MockStatusStep _down = MockTransportFailure(UnreachableFailure());
+const FakeStatusStep _down = FakeTransportFailure(UnreachableFailure());
 
 void main() {
   group('start', () {
     test(
       'poll pertama 2 detik dan jadwal periodik 5 detik (BR-21, BR-8)',
       () async {
-        final h = _harness(MockStatusRepository([_ok()]));
+        final h = _harness(FakeStatusRepository([_ok()]));
 
         expect(h.phase, ConnectionPhase.connecting);
         await h.start();
@@ -167,7 +168,7 @@ void main() {
     );
 
     test('start saat sudah berjalan tidak menambah jadwal', () async {
-      final h = _harness(MockStatusRepository([_ok()]));
+      final h = _harness(FakeStatusRepository([_ok()]));
       await h.start();
       h.ctrl.start();
       await h.settle();
@@ -180,7 +181,7 @@ void main() {
     test(
       'Connecting: 1 gagal tetap Connecting, 2 gagal jadi Offline',
       () async {
-        final h = _harness(MockStatusRepository([_down, _down]));
+        final h = _harness(FakeStatusRepository([_down, _down]));
 
         await h.start();
         expect(h.phase, ConnectionPhase.connecting);
@@ -193,7 +194,7 @@ void main() {
     test(
       'Online: 1 gagal tetap Online, 2 gagal berturut jadi Offline (BR-8)',
       () async {
-        final h = _harness(MockStatusRepository([_ok(), _down, _down]));
+        final h = _harness(FakeStatusRepository([_ok(), _down, _down]));
         await h.start();
 
         await h.tick();
@@ -205,7 +206,7 @@ void main() {
     );
 
     test('sukses di antara kegagalan mereset hitungan gagal', () async {
-      final h = _harness(MockStatusRepository([_down, _ok(), _down, _down]));
+      final h = _harness(FakeStatusRepository([_down, _ok(), _down, _down]));
       await h.start();
       await h.tick();
       expect(h.phase, ConnectionPhase.online);
@@ -218,7 +219,7 @@ void main() {
     });
 
     test('Offline lalu sukses: Back, lalu Online setelah 2 detik', () async {
-      final h = _harness(MockStatusRepository([_down, _down, _ok()]));
+      final h = _harness(FakeStatusRepository([_down, _down, _ok()]));
       await h.start();
       await h.tick();
       expect(h.phase, ConnectionPhase.offline);
@@ -235,7 +236,7 @@ void main() {
       'Back: 2 gagal berturut jadi Offline dan timer Back dibatalkan',
       () async {
         final h = _harness(
-          MockStatusRepository([_down, _down, _ok(), _down, _down]),
+          FakeStatusRepository([_down, _down, _ok(), _down, _down]),
         );
         await h.start();
         await h.tick();
@@ -275,7 +276,7 @@ void main() {
   group('token ditolak (BR-9)', () {
     test('401 saat Connecting: TokenRejected dan polling berhenti', () async {
       final h = _harness(
-        MockStatusRepository([mockErrorReply(401, 'invalid_token')]),
+        FakeStatusRepository([fakeErrorReply(401, 'invalid_token')]),
       );
       await h.start();
 
@@ -285,10 +286,10 @@ void main() {
 
     test('401 saat Offline: TokenRejected', () async {
       final h = _harness(
-        MockStatusRepository([
+        FakeStatusRepository([
           _down,
           _down,
-          mockErrorReply(401, 'invalid_token'),
+          fakeErrorReply(401, 'invalid_token'),
         ]),
       );
       await h.start();
@@ -302,7 +303,7 @@ void main() {
     test(
       'reportUnauthorized saat Online: TokenRejected dan poll manual diabaikan',
       () async {
-        final repo = MockStatusRepository([_ok()]);
+        final repo = FakeStatusRepository([_ok()]);
         final h = _harness(repo);
         await h.start();
         expect(h.phase, ConnectionPhase.online);
@@ -322,7 +323,7 @@ void main() {
     test(
       'Offline dengan perintah daya kurang dari 10 menit jadi PoweredOff',
       () async {
-        final h = _harness(MockStatusRepository([_down, _down]));
+        final h = _harness(FakeStatusRepository([_down, _down]));
         h.container
             .read(lastPowerCommandProvider.notifier)
             .record(
@@ -343,7 +344,7 @@ void main() {
     );
 
     test('perintah daya lebih dari 10 menit lalu tetap Offline', () async {
-      final h = _harness(MockStatusRepository([_down, _down]));
+      final h = _harness(FakeStatusRepository([_down, _down]));
       h.container
           .read(lastPowerCommandProvider.notifier)
           .record(
@@ -359,7 +360,7 @@ void main() {
     });
 
     test('PoweredOff lalu sukses: Back dan perintah daya dihapus', () async {
-      final h = _harness(MockStatusRepository([_down, _down, _ok()]));
+      final h = _harness(FakeStatusRepository([_down, _down, _ok()]));
       final notifier = h.container.read(lastPowerCommandProvider.notifier)
         ..record(
           LastPowerCommand(
@@ -435,7 +436,7 @@ void main() {
       'volume null mempertahankan nilai terakhir, uptime ikut diperbarui',
       () async {
         final h = _harness(
-          MockStatusRepository([
+          FakeStatusRepository([
             _ok(uptime: 60),
             _ok(uptime: 120, volumeUnavailable: true),
           ]),
@@ -452,7 +453,7 @@ void main() {
 
   group('setFastPoll', () {
     test('2 detik saat aktif, kembali 5 detik saat nonaktif', () async {
-      final h = _harness(MockStatusRepository([_ok()]));
+      final h = _harness(FakeStatusRepository([_ok()]));
       await h.start();
       expect(h.sched.periodicJob?.delay, RMotion.poll);
 
