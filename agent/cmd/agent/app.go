@@ -2,20 +2,20 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"remotto/agent/internal/config"
 	"remotto/agent/internal/logging"
+	"remotto/agent/internal/pairing"
 	"remotto/agent/internal/server"
 )
 
@@ -25,7 +25,7 @@ Perintah:
   run                 jalankan agent
   version             cetak versi
   help                tampilkan bantuan
-  pair                pasangkan ponsel (belum tersedia)
+  pair                tampilkan QR dan teks pairing
   reset-token         buat ulang token (belum tersedia)
   install-startup     pasang autostart (belum tersedia)
   uninstall-startup   hapus autostart (belum tersedia)
@@ -33,11 +33,14 @@ Perintah:
 Opsi run:
   --config <path>     file config.json (default %APPDATA%\Remotto\config.json)
   --background        jalankan tanpa konsol (belum berefek)
+
+Opsi pair:
+  --config <path>     file config.json (default %APPDATA%\Remotto\config.json)
+  --host <ipv4>       alamat laptop di QR (default: adapter LAN terdeteksi)
 `
 
 // plannedCommands are subcommands reserved for later milestones (M1 and M6).
 var plannedCommands = map[string]bool{
-	"pair":              true,
 	"reset-token":       true,
 	"install-startup":   true,
 	"uninstall-startup": true,
@@ -58,6 +61,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "run":
 		return cmdRun(ctx, args[1:], stdout, stderr)
+	case "pair":
+		return cmdPair(args[1:], stdout, stderr)
 	}
 	if plannedCommands[args[0]] {
 		fmt.Fprintf(stderr, "perintah %q belum tersedia di versi ini\n", args[0])
@@ -66,6 +71,45 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintf(stderr, "perintah tidak dikenal: %s\n", args[0])
 	fmt.Fprint(stderr, usageText)
 	return 2
+}
+
+// defaultConfigPath returns path, or the default config.json when path is empty.
+func defaultConfigPath(path string) (string, error) {
+	if path != "" {
+		return path, nil
+	}
+	return config.DefaultPath()
+}
+
+// loadConfigFile creates, repairs, migrates or loads the config at path. It
+// secures the config folder and file with the platform permission checker
+// first. Errors never include the token value.
+func loadConfigFile(path string) (config.Config, []config.Event, error) {
+	perm, err := config.NewPermChecker()
+	if err != nil {
+		return config.Config{}, nil, err
+	}
+	hostname, _ := os.Hostname()
+	defaults := config.Default(hostname, time.Now())
+	return config.LoadOrInit(path, defaults, func() (string, error) {
+		return pairing.GenerateToken(rand.Reader)
+	}, perm, time.Now())
+}
+
+// logEvent writes one lifecycle event to the log. Events carry no token value.
+func logEvent(logger *slog.Logger, ev config.Event) {
+	switch ev.Kind {
+	case config.EventFirstRun:
+		logger.Info("config created", slog.String("event", string(ev.Kind)))
+	case config.EventCorruptReplaced:
+		logger.Warn("config was unreadable, moved aside and replaced", slog.String("event", string(ev.Kind)), slog.String("file", ev.Detail))
+	case config.EventMigrated:
+		logger.Info("config migrated", slog.String("event", string(ev.Kind)), slog.String("detail", ev.Detail))
+	case config.EventPermFixed:
+		logger.Warn("config permissions tightened", slog.String("event", string(ev.Kind)), slog.String("file", ev.Detail))
+	default:
+		logger.Info("config event", slog.String("event", string(ev.Kind)))
+	}
 }
 
 // cmdRun loads the config, opens the log, and serves HTTP until ctx is done.
@@ -87,29 +131,18 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	path := *configPath
-	if path == "" {
-		p, err := config.DefaultPath()
-		if err != nil {
-			fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
-			return 1
-		}
-		path = p
+	path, err := defaultConfigPath(*configPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
+		return 1
 	}
 
-	hostname, _ := os.Hostname()
-	defaults := config.Default(hostname, time.Now())
-	cfg, err := config.Load(path, defaults)
-	missing := false
+	// The config must be valid before the log and the listener exist, so a
+	// bad config leaves no logs folder and opens no port.
+	cfg, events, err := loadConfigFile(path)
 	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
-			return 1
-		}
-		// No config file yet. The file itself is created in M1, so run on
-		// in-memory defaults and write nothing.
-		cfg = defaults
-		missing = true
+		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
+		return 1
 	}
 
 	logger, closer, err := logging.New(logging.Options{
@@ -123,28 +156,40 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	defer func() { _ = closer.Close() }()
 
-	if missing {
-		logger.Warn("config file not found, using in-memory defaults", slog.String("path", path))
+	for _, ev := range events {
+		logEvent(logger, ev)
 	}
 
-	// M2 to M4 connect these controllers to the handlers. Until then nothing
-	// reads them, so they are only built here.
 	ctrl := newControllers()
-	_ = ctrl
+	status := server.StatusDeps{
+		Name:      cfg.LaptopName,
+		Version:   version,
+		StartedAt: time.Now(),
+		Now:       time.Now,
+		Audio:     ctrl.Audio,
+	}
 
-	router := server.NewRouter()
-	handler := server.NewHandler(router, logger)
-	addr := net.JoinHostPort(cfg.BindAddress, strconv.Itoa(cfg.Port))
+	addr := net.JoinHostPort(cfg.BindAddress, fmt.Sprint(cfg.Port))
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		logger.Error("listen failed", slog.String("addr", addr), slog.String("error", err.Error()))
 		fmt.Fprintf(stderr, "remotto-agent: gagal membuka %s: %v\n", addr, err)
 		return 1
 	}
-	if err := server.Serve(ctx, server.NewHTTPServer(addr, handler), ln, logger); err != nil {
+	if err := serveAgent(ctx, ln, logger, path, cfg, status); err != nil {
 		logger.Error("server failed", slog.String("error", err.Error()))
 		fmt.Fprintf(stderr, "remotto-agent: server berhenti dengan error: %v\n", err)
 		return 1
 	}
 	return 0
+}
+
+// serveAgent serves the API on ln until ctx is done. The token comes from the
+// config file at cfgPath, so a token reset takes effect without a restart
+// (BR-10). It returns nil on a normal stop.
+func serveAgent(ctx context.Context, ln net.Listener, logger *slog.Logger, cfgPath string, cfg config.Config, status server.StatusDeps) error {
+	tokens := server.NewConfigTokenSource(cfgPath, cfg.Token, logger)
+	handler := server.NewAPIHandler(logger, tokens, status)
+	srv := server.NewHTTPServer(ln.Addr().String(), handler)
+	return server.Serve(ctx, srv, ln, logger)
 }

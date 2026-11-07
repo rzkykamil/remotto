@@ -64,8 +64,8 @@ func TestUnknownSubcommandExits2(t *testing.T) {
 }
 
 func TestPlannedSubcommandsAreUnavailable(t *testing.T) {
-	// pair (M1), reset-token (M1), install-startup and uninstall-startup (M6).
-	for _, name := range []string{"pair", "reset-token", "install-startup", "uninstall-startup"} {
+	// reset-token (M5), install-startup and uninstall-startup (M6).
+	for _, name := range []string{"reset-token", "install-startup", "uninstall-startup"} {
 		t.Run(name, func(t *testing.T) {
 			code, _, stderr := runApp(t, name)
 			if code != 1 {
@@ -110,9 +110,9 @@ func TestRunInvalidConfigFailsBeforeLogAndListener(t *testing.T) {
 		content   string
 		wantField string
 	}{
-		{name: "port below range", content: `{"port": 80}`, wantField: `"port"`},
-		{name: "unknown log level", content: `{"logLevel": "loud"}`, wantField: `"logLevel"`},
-		{name: "malformed json", content: `{"port":`, wantField: "parse config"},
+		{name: "port below range", content: `{"configVersion": 1, "port": 80}`, wantField: `"port"`},
+		{name: "unknown log level", content: `{"configVersion": 1, "logLevel": "loud"}`, wantField: `"logLevel"`},
+		{name: "newer configVersion", content: `{"configVersion": 99}`, wantField: "newer"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
