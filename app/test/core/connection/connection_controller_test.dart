@@ -274,6 +274,24 @@ void main() {
   });
 
   group('token ditolak (BR-9)', () {
+    test(
+      '401 setelah sukses: data status terakhir tetap dipertahankan',
+      () async {
+        final h = _harness(
+          FakeStatusRepository([_ok(), fakeErrorReply(401, 'invalid_token')]),
+        );
+        await h.start();
+        expect(h.phase, ConnectionPhase.online);
+        expect(h.state.status?.name, 'Laptop-Kamil');
+        expect(h.state.status?.volume?.level, 35);
+
+        await h.poll();
+        expect(h.phase, ConnectionPhase.tokenRejected);
+        expect(h.state.status?.name, 'Laptop-Kamil');
+        expect(h.state.status?.volume?.level, 35);
+      },
+    );
+
     test('401 saat Connecting: TokenRejected dan polling berhenti', () async {
       final h = _harness(
         FakeStatusRepository([fakeErrorReply(401, 'invalid_token')]),
