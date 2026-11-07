@@ -44,6 +44,21 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: jalankan `flutter doctor --android-licenses` dan terima semua lisensi, lalu jalankan `flutter build apk --debug`. Unduhan NDK 28.2 bisa sangat lambat, jadi sabar atau ulangi.
   Harusnya: build berhasil dan muncul file APK debug di `app/build/app/outputs/`.
 
+- [ ] M0: Agent menyala dan berhenti bersih di laptop.
+  Buka: PowerShell di laptop, folder `agent` dari repo ini.
+  Lakukan: jalankan `go run ./cmd/agent run`, tunggu sebentar, lalu tekan Ctrl+C. Buka file `%APPDATA%\Remotto\logs\agent.log` lewat File Explorer.
+  Harusnya: konsol dan file log sama-sama berisi baris JSON "server started" dan "server stopped"; ada satu peringatan "config file not found" karena belum ada `config.json`. "server stopped" muncul dalam sekitar 3 detik setelah Ctrl+C. Folder dan file log dibuat otomatis. Belum ada endpoint, jadi membuka alamat agent di browser hanya menampilkan `not_found`.
+
+- [ ] M0: Build agent memakai Go 1.27 dan perintah `version` berjalan.
+  Buka: PowerShell di laptop, folder `agent` dari repo ini.
+  Lakukan: jalankan `go version`, lalu `go build -o bin/remotto-agent.exe ./cmd/agent`, lalu `bin\remotto-agent.exe version`.
+  Harusnya: `go version` menyebut go1.27.x (toolchain terunduh otomatis pertama kali), build berhasil, dan `version` mencetak `remotto-agent dev`.
+
+- [ ] M0: Job `agent-test` di GitHub Actions hijau setelah push.
+  Buka: browser, halaman repo Remotto di GitHub, tab Actions.
+  Lakukan: buka run terbaru untuk branch `team/m0-fondasi-proyek`, lalu lihat job `agent-test`, khususnya langkah cache `setup-go`.
+  Harusnya: job hijau. Cache `setup-go` memakai `agent/go.sum` yang kosong; kalau langkah itu gagal, catat pesannya.
+
 ## M1 Pairing & Koneksi
 
 - [ ] M1: Scan QR dengan kamera HP berhasil.

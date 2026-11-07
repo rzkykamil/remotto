@@ -4,7 +4,11 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M0 Fondasi Proyek
 
-Belum ada temuan.
+- `go test -race` belum bisa dijalankan lokal karena CGO mati dan gcc tidak ada. Jalankan di CI atau mesin ber-gcc (`agent/internal/oscontrol/fake`, `agent/internal/server`).
+- Ganti nama `TestLoggingNeverRecordsSecrets` (`agent/internal/server/middleware_test.go`) dan `TestNewRedactsSensitiveAttributes` (`agent/internal/logging/logging_test.go`) agar menyebut `BR-11` sesuai aturan testing.
+- `agent/config.example.json` berisi `"token": "replace-on-first-run"` yang ditolak `config.Validate`. M1 harus memastikan first run menimpanya, atau beri catatan di file contoh (`agent/internal/config`).
+- `Logging` mencatat `http.ErrAbortHandler` sebagai 500/`internal`, padahal abort itu disengaja. Kecualikan satu baris (`agent/internal/server/middleware.go`).
+- Subcommand `pair`, `reset-token`, `install-startup`, dan `uninstall-startup` masih stub yang mengembalikan "belum tersedia" (`agent/cmd/agent/app.go`). Dikerjakan M1 (`pair`), M5 (`reset-token`), dan M6 (startup).
 
 ## M1 Pairing & Koneksi
 

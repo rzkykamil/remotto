@@ -288,3 +288,59 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** `app/test/guards/ui_rules_test.dart` melarang pola Material default, UI kit, `Color(0x`, dan literal `EdgeInsets` di `lib/features/`.
 - **Alasan:** Test berjalan lewat `flutter test` dan CI, jadi pelanggaran tertangkap otomatis.
 - **Dampak:** Kode fitur yang memakai literal akan gagal test dan harus memakai token.
+
+## [Backend M0] Go 1.27.3 dan module path
+
+- **Konteks:** Spec menetapkan Go 1.27. Repo belum punya `go.mod`, dan module path tidak ditentukan dokumen.
+- **Keputusan:** `agent/go.mod` memakai `go 1.27.3` tanpa baris `toolchain`. Module path `remotto/agent`. Hanya stdlib di M0. Toolchain 1.27.3 diunduh otomatis lewat `GOTOOLCHAIN=auto` dan terverifikasi; fallback ke Go 1.25.5 tidak dipakai.
+- **Alasan:** Sesuai spec tanpa menurunkan versi. Module path tidak mengikat owner repo dan modul ini tidak di-`go get` orang lain. Tanpa dependency, M0 tidak butuh pihak ketiga.
+- **Dampak:** Mengganti module path cukup dengan `go mod edit` dan penyesuaian impor. Dependency pertama masuk di M1 (`qrterminal`) dan M2 (`x/sys`).
+
+## [Backend M0] Bentuk interface control dan error domain
+
+- **Konteks:** `docs/technical-spec.md` bagian 7 meminta port OS tipis. Clamp, langkah volume, unmute, dan delay daya adalah aturan bisnis.
+- **Keputusan:** `MediaController.Send(ctx, action)`, `AudioController` dengan `Volume`, `SetLevel`, `SetMuted`, dan `PowerController.Execute(ctx, action)`. Clamp, langkah, unmute, dan delay berada di domain M2 sampai M4. Error domain: sentinel `ErrUnsupported`, `ErrMedia`, `ErrAudio`, `ErrPower`. `control.Wrap` menyembunyikan cause dari `Error()`, tetapi `errors.Is` dan `errors.Unwrap` tetap bekerja.
+- **Alasan:** Logika bisnis dites dengan fake tanpa OS. Pesan error yang dikirim ke klien tidak membawa detail OS (COM, HRESULT), sementara detail tetap ada untuk log.
+- **Dampak:** Tanda tangan bisa disempurnakan di fase modulnya karena belum ada pemakai. Handler M2 sampai M4 memetakan sentinel ke kode `media_failed`, `audio_failed`, dan `power_failed`.
+
+## [Backend M0] Fake OS
+
+- **Konteks:** Domain harus dites tanpa efek OS nyata. Test tidak boleh menyentuh media, volume, atau daya laptop.
+- **Keputusan:** Paket `internal/oscontrol/fake` punya tipe `Media`, `Audio`, dan `Power`, masing-masing aman konkurensi. Field error tidak diekspor dan diset lewat `SetErr`. Setiap panggilan dicatat, termasuk yang gagal. `Power` hanya mencatat dan tidak menjalankan apa pun.
+- **Alasan:** Field error yang tidak diekspor mencegah test mengubah state tanpa lewat API. Pencatatan panggilan membuat urutan aksi bisa diassert.
+- **Dampak:** Semua test domain M2 sampai M4 memakai fake ini. Tidak ada test yang menjalankan efek OS.
+
+## [Backend M0] Logging
+
+- **Konteks:** `docs/data-design.md` bagian 4 meminta log JSON ke file dan konsol, tanpa token atau header sensitif.
+- **Keputusan:** Satu `slog.NewJSONHandler` dengan `io.MultiWriter` ke file dan konsol. `ReplaceAttr` mengganti nilai atribut `token`, `authorization`, dan `password` (tanpa membedakan huruf besar) menjadi `[redacted]`. Tanpa rotasi sampai M6.
+- **Alasan:** Satu handler menjaga format sama di file dan konsol. Penyaring di handler adalah jaring pengaman; pencegahan utama tetap tidak mencatat secret di kode pemanggil.
+- **Dampak:** Penyaring hanya berlaku untuk atribut bernama tersebut. Atribut bernama lain yang berisi secret tidak tertangkap, jadi pemanggil tetap bertanggung jawab.
+
+## [Backend M0] Config: validasi dan tulis atomik
+
+- **Konteks:** `docs/data-design.md` bagian 3 mengatur field, default, dan rentang. Token belum dibuat sebelum first run (M1).
+- **Keputusan:** Token kosong diizinkan di M0. Token yang tidak kosong harus 64 hex huruf kecil. `configVersion` selain 1 ditolak dengan pesan yang menyebut field, tanpa menyentuh file. Tulis atomik lewat file temp lalu `Rename`. `run` tanpa `config.json` memakai default di memori dan tidak menulis file.
+- **Alasan:** Token kosong adalah kondisi sebelum first run, dan middleware auth M1 wajib menolak semua request saat token kosong. Migrasi dan `.corrupt` ditunda ke M1 agar M0 tidak menulis config.
+- **Dampak:** M1 harus menolak request saat token kosong (acceptance di task auth). Dengan `config.json` belum ada, agent tidak menulis apa pun di `%APPDATA%`.
+
+## [Backend M0] Router, middleware, dan timeout server
+
+- **Konteks:** `docs/api-spec.md` meminta envelope error untuk setiap respons, termasuk 404 dan 405. `http.ServeMux` tidak memakai envelope dan perilakunya berubah antar versi Go.
+- **Keputusan:** Router buatan sendiri dengan pencocokan path persis. 404 `not_found`, 405 `method_not_allowed` dengan `Allow` terurut. Body maksimal 1 KiB dan field tak dikenal ditolak. Urutan middleware: Recover, lalu Logging, lalu router. Bila header sudah ditulis sebelum panic, log mencatat status yang sudah terkirim. Timeout 2s, 3s, 5s, 60s, header 8 KiB, shutdown 3 detik.
+- **Alasan:** Router sendiri memberi bentuk error yang konsisten. Urutan Recover di luar menjamin panic tetap berubah jadi 500 envelope dan tercatat.
+- **Dampak:** Route baru didaftarkan lewat `Handle`, dan pendaftaran ganda panic. Filter jaringan, rate limit, dan auth M1 masuk di antara Logging dan router.
+
+## [Backend M0] Perilaku subcommand dan run
+
+- **Konteks:** `run` membuka port dan menulis log. Subcommand `pair`, `reset-token`, `install-startup`, dan `uninstall-startup` belum ada.
+- **Keputusan:** `run` menolak argumen posisi dengan exit 2. `run -h` exit 0. Error `Serve` dicatat ke log dan dicetak ke stderr. `--config` ada untuk dev dan test. `--background` diterima tanpa efek sampai M6. Subcommand yang belum ada keluar dengan exit 1 dan pesan "belum tersedia".
+- **Alasan:** Exit code yang jelas membuat Task Scheduler dan skrip bisa membedakan salah pakai dari kegagalan. Flag `--background` diterima sejak awal supaya M6 tidak mengubah perintah startup.
+- **Dampak:** Opsi `--config` belum tercantum di `docs/`. Dokumentasi menyusul di `docs/technical-spec.md` bagian 3 atau `docs/release.md`.
+
+## [Backend M0] go.sum kosong dan postman tidak berubah
+
+- **Konteks:** M0 tidak punya dependency, sehingga `go mod` tidak membuat `go.sum`. CI `agent-test` memakai `cache-dependency-path: agent/go.sum`. M0 belum punya endpoint.
+- **Keputusan:** `agent/go.sum` kosong dibuat agar langkah cache `setup-go` tidak gagal. `postman/` tidak diubah di M0.
+- **Alasan:** Langkah cache dicek saat push pertama. File kosong membuat langkah itu aman tanpa mengubah `ci.yml`. Tidak ada endpoint, jadi tidak ada request yang perlu disinkronkan.
+- **Dampak:** Hasil job `agent-test` di GitHub Actions dicek lewat `docs/todo/waiting.md`. `postman/` disinkronkan mulai M1 bersama `GET /status`.

@@ -4,14 +4,14 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 
 ## M0 Fondasi Proyek
 
-- [ ] `go mod init` di `agent/` dengan Go 1.27
-- [ ] Kerangka subcommand di `cmd/agent` dan variabel `version`
-- [ ] `internal/logging`: slog JSON ke file + konsol, rotasi menyusul di M6
-- [ ] `internal/config`: path, default, baca, validasi, tulis atomik + test
-- [ ] Kerangka `internal/server`: router, envelope respons, recover, logging + test
-- [ ] Interface `MediaController`, `AudioController`, `PowerController` di `internal/control`
-- [ ] Implementasi `internal/oscontrol/fake`
-- [ ] Stub non-Windows di `cmd/agent`
+- [x] `go mod init` di `agent/` dengan Go 1.27
+- [x] Kerangka subcommand di `cmd/agent` dan variabel `version`
+- [x] `internal/logging`: slog JSON ke file + konsol, rotasi menyusul di M6
+- [x] `internal/config`: path, default, baca, validasi, tulis atomik + test
+- [x] Kerangka `internal/server`: router, envelope respons, recover, logging + test
+- [x] Interface `MediaController`, `AudioController`, `PowerController` di `internal/control`
+- [x] Implementasi `internal/oscontrol/fake`
+- [x] Stub non-Windows di `cmd/agent`
 
 ## M1 Pairing & Koneksi
 
