@@ -208,6 +208,21 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: tekan play, next, dan prev.
   Harusnya: getar terasa singkat tepat saat jari menyentuh.
 
+- [ ] M2 Frontend: Dock media di HP fisik mirip desain, lebar 412 dp dan 360 dp, terang dan gelap.
+  Buka: app Remotto di HP (layar Remote), dan file di `design/export/artboards/` di laptop sebagai pembanding: Remote-412-dark, Remote-360-light, dan States-light (S01, S03, S04, S10).
+  Lakukan: bandingkan dock media dengan artboard, lalu ganti tema HP ke terang dan gelap. Tombol media di app masih tiruan, jadi selalu berhasil.
+  Harusnya: susunan prev, play, dan next mirip artboard, warna cocok, tidak ada yang terpotong atau tumpang tindih.
+
+- [ ] M2 Frontend: Getar saat tombol media ditekan.
+  Buka: layar Remote di HP.
+  Lakukan: tekan play, prev, dan next, satu per satu.
+  Harusnya: tiap tekan terasa satu getaran singkat tepat saat jari menyentuh. Getar gagal belum bisa dicoba sekarang karena kegagalan kirim baru bisa terjadi setelah fase Integrasi; cek ulang nanti.
+
+- [ ] M2 Frontend: Kedip ikon, cincin proses, dan posisi toast.
+  Buka: layar Remote di HP.
+  Lakukan: tekan prev dan next, lihat ikonnya berkedip. Tekan play; cincin proses hanya muncul bila jawaban lebih dari sekitar 0,4 detik, dan tiruan biasanya lebih cepat, jadi cincin mungkin tidak terlihat sekarang. Toast "Perintah nggak sampai ke laptop" belum bisa dipicu sampai Integrasi; cek ulang nanti.
+  Harusnya: kedip ikon sekitar 240 ms (sekejap). Cincin berputar sekitar 0,4 detik setelah tekan bila jawaban lambat. Toast muncul 12 dp di atas dock.
+
 ## M3 Volume
 
 - [ ] M3: Volume laptop mengikuti slider.

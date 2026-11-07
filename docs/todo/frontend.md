@@ -39,13 +39,13 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 
 ## M2 Kontrol Media
 
-- [ ] Buat `MediaRepository` dan mock (200, 401, 500, timeout)
-- [ ] `PlayKey` dengan optimistic, cincin proses, tap ulang diabaikan
-- [ ] Dock media dengan prev/next, kedip ikon 240 ms
-- [ ] State S03 dan S04 dengan toast "Ulangi"
-- [ ] Kontrol nonaktif saat offline dan menyambung
-- [ ] Layout 360 dp dan 412 dp
-- [ ] Widget test + Semantics
+- [x] Buat `MediaRepository` dan mock (200, 401, 500, timeout)
+- [x] `PlayKey` dengan optimistic, cincin proses, tap ulang diabaikan
+- [x] Dock media dengan prev/next, kedip ikon 240 ms
+- [x] State S03 dan S04 dengan toast "Ulangi"
+- [x] Kontrol nonaktif saat offline dan menyambung
+- [x] Layout 360 dp dan 412 dp
+- [x] Widget test + Semantics
 
 ## M3 Volume
 

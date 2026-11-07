@@ -435,3 +435,38 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Skenario dibuktikan tes yang ada, ditambah satu tes BR-9 (401 setelah sukses mempertahankan data status terakhir) di `app/test/core/connection/connection_controller_test.dart`. Fase Fixing ditandai tidak relevan. Modul ditutup dengan `Selesai`, sementara skenario [M] tetap di `docs/todo/waiting.md`.
 - **Alasan:** Tidak ada bug yang perlu diperbaiki, sehingga Fixing tidak punya pekerjaan. Tes yang ada sudah menutup BR-1, BR-2, BR-8, BR-9, BR-11, dan BR-12.
 - **Dampak:** `go test -race` dan sisi log app BR-11 masuk backlog QA (`docs/todo/backlog/qa.md`).
+
+## [Frontend M2] Repository media mock sebagai default
+
+- **Konteks:** `docs/api-spec.md` bagian Media (`{"data":{"action":...}}`, 401 `invalid_token`, 500 `media_failed`, timeout). Pola `StatusRepository` dan fake di `test/support/`.
+- **Keputusan:** `MediaRepository.send(MediaAction)` melempar `ApiFailure`. `MockMediaRepository` di `lib/` menerima skrip langkah berurutan (langkah terakhir diulang), tiap langkah berupa balasan HTTP atau timeout. Balasan lewat `unwrapAgentResponse`, lalu `data['action']` harus cocok dengan aksi, selain itu `ServerFailure`. Default `mediaRepositoryProvider` memakai `MockMediaEcho` yang membalas sukses untuk aksi apa pun dengan delay 150 ms. Fase Integrasi menggantinya dengan HTTP.
+- **Alasan:** Skrip membuat 200, 401, 500, timeout, dan mismatch bisa diuji tanpa agent. Echo menjaga default tetap sukses untuk semua aksi.
+- **Dampak:** Tombol media di app selalu berhasil sampai Integrasi. Kegagalan nyata hanya diuji lewat tes dan `waiting.md`.
+
+## [Frontend M2] Status play, optimistic, dan tap ulang
+
+- **Konteks:** API Media tidak mengirim status play. Desain S01 memakai ikon jeda saat jalan. `docs/technical-spec.md` menyebut media tidak diulang otomatis dan timeout 3 dtk.
+- **Keputusan:** `playing` awal `true`. Tap play membalik ikon langsung (optimistic), lalu mengirim permintaan. Cincin proses muncul 400 ms setelah tap bila belum ada jawaban. Satu permintaan per tombol: tap ulang play diabaikan lewat flag `playProcessing`. Prev/next dibatasi dengan guard `_busy` privat per tombol, tombol lain tetap aktif. Tidak ada retry otomatis. Gagal (non-401) mengembalikan status, memunculkan toast "Ulangi", dan "Ulangi" pada play memanggil `togglePlay()` lagi. `mediaControllerProvider` tidak autoDispose agar status play bertahan.
+- **Alasan:** Optimistic membuat tombol terasa cepat. Satu permintaan per tombol mencegah aksi ganda ke laptop. Retry otomatis bisa memutar atau menghentikan lagu dua kali.
+- **Dampak:** Status play di app bisa berbeda dari laptop sampai status play asli ada (`docs/todo/backlog/frontend.md` M2).
+
+## [Frontend M2] Ikon media, ukuran key, dan konstanta lokal
+
+- **Konteks:** `design/components.md` C02, C03, C10. `RSize.mediaCompact` (72 dp) sudah ada, tetapi `SizedBox` tidak memperbesar kapsul `GlassKey`. `lib/ui` tidak boleh tahu domain.
+- **Keputusan:** `RIcon` punya opsi `filled`. Ikon prev, next, play, dan pause dipasang di `RIcons`. `GlassKeySize.play` (96 dp) dan `playCompact` (88 dp) ditambahkan. `PlayKey.processingHint` berupa String yang wajib dari pemanggil. Periode putar cincin 900 ms, inset cincin 7 dp, ukuran ikon 36 dp, dan opacity kedip 0,35 adalah konstanta privat bernama. Kedip 240 ms adalah satu siklus dan mati saat reduced motion. Ikon play digeser 4 dp ke kanan sesuai artboard.
+- **Alasan:** Ukuran baru menggantikan `SizedBox` yang tidak efektif. Teks hint dari pemanggil menjaga `lib/ui` bebas domain. Nilai yang hanya ada di artboard belum ada di token, jadi tetap konstanta privat sampai dicatat di backlog.
+- **Dampak:** Token ukuran ikon, periode cincin, dan inset masuk `design/tokens.json` nanti (`docs/todo/backlog/frontend.md` M2).
+
+## [Frontend M2] Gagal, 401, dan sumber haptic
+
+- **Konteks:** `docs/todo/frontend.md` M1 memakai `reportUnauthorized` untuk 401. `ToastController` punya satu toast aktif.
+- **Keputusan:** Semua kegagalan non-401 (timeout, 500, unreachable, dan lainnya) memakai toast yang sama. 401 memanggil `reportUnauthorized` tanpa toast. Haptic press berasal dari `Pressable` (saat jari turun). Haptic gagal berasal dari `MediaController` lewat `RHaptics.failure`, termasuk 401. Controller tidak memicu press.
+- **Alasan:** Satu sumber haptic mencegah getar ganda untuk satu tap. 401 ditangani di tingkat koneksi, jadi toast tidak perlu.
+- **Dampak:** Tap yang diabaikan (play sedang diproses) tetap bergetar karena press dari `Pressable` (`docs/todo/backlog/frontend.md` M2, cek rasa di `docs/todo/waiting.md`).
+
+## [Frontend M2] Dock nonaktif dan inset toast
+
+- **Konteks:** `design/scope-and-flows.md` (b), (d). Toast 12 dp di atas dock (`design/components.md` C07). `ToastHost` mengukur inset dari dasar layar.
+- **Keputusan:** Dock aktif hanya saat `online` dan `back`. Dinonaktifkan saat `connecting`, `offline`, `poweredOff`, dan `tokenRejected`, karena panel status sudah menjelaskan alasannya. `toastBottomInsetProvider` menjadi `NotifierProvider` (awal 0). Inset = `MediaDock.heightFor(compact)` + `RSpace.s6`. `RemoteScreen` mengisi inset setelah frame dan mengembalikan 0 saat layar ditutup, lewat `Future.microtask` dengan guard `ref.mounted`.
+- **Alasan:** Dock nonaktif memberi tahu pengguna bahwa perintah tidak akan sampai. Inset dihitung dari ukuran dock agar toast tidak menutupi tombol.
+- **Dampak:** Layout 360 dan 412 dp dan posisi toast perlu dicek di HP fisik (`docs/todo/waiting.md` M2).

@@ -34,7 +34,13 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M2 Kontrol Media
 
-Belum ada temuan.
+- [ ] Token ukuran ikon media 28 dp dan 36 dp belum ada di `design/tokens.json`; saat ini konstanta privat di `lib/ui/play_key.dart`. Lihat `[Frontend M2] Ikon media, ukuran key, dan konstanta lokal` di `docs/decision-log.md`.
+- [ ] Periode putar cincin proses (900 ms), inset cincin (7 dp), dan opacity kedip (0,35) masih konstanta privat; angkat ke `design/tokens.json`.
+- [ ] `HttpMediaRepository` dan `postMedia` ke `POST /api/v1/media` belum ada; dikerjakan di Integrasi M2. Lihat `[Frontend M2] Repository media mock sebagai default`.
+- [ ] Now playing (judul lagu) di layar Remote; masuk stretch.
+- [ ] Status play asli dari laptop belum ada di API; app menganggap lagu sedang jalan saat dibuka. Lihat `[Frontend M2] Status play, optimistic, dan tap ulang`.
+- [ ] Polling dan lifecycle app untuk dock media (berhenti saat background) dikerjakan di M6.
+- [ ] Haptic press tetap berbunyi saat tap diabaikan karena play sedang diproses (perilaku `Pressable` semua tombol). Cek rasanya di `docs/todo/waiting.md` M2; ubah bila terasa mengganggu.
 
 ## M3 Volume
 

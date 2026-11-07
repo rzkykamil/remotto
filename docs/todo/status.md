@@ -2,7 +2,7 @@
 |---|---|---|---|
 | 0 | M0 Fondasi Proyek | Selesai | — |
 | 1 | M1 Pairing & Koneksi | Selesai | Menunggu kamu: lihat waiting.md |
-| 2 | M2 Kontrol Media | Belum mulai | — |
+| 2 | M2 Kontrol Media | Backend | Menunggu kamu: lihat waiting.md |
 | 3 | M3 Volume | Belum mulai | — |
 | 4 | M4 Daya | Belum mulai | — |
 | 5 | M5 Pengaturan & Tema | Belum mulai | — |
