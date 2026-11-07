@@ -10,9 +10,9 @@ Tidak ada endpoint. Fase ini dicatat "tidak relevan" saat dijalankan.
 
 | Screen/Widget | Endpoint | Status | Catatan |
 |---|---|---|---|
-| `lib/features/pairing/` Q08 tes koneksi | `GET /status` | Belum | 200 → Q09; 401 → Q11; tidak terjangkau → Q10 |
-| `lib/core/connection/` polling | `GET /status` | Belum | Dua gagal → S10; 401 → Q12; satu polling berjalan |
-| `lib/features/remote/` `StatusPill` | `GET /status` | Belum | Uptime, nama laptop |
+| `lib/features/pairing/` Q08 tes koneksi | `GET /status` | Selesai | 200 → Q09; 401 → Q11; tidak terjangkau → Q10. Tes loopback; HP di `waiting.md` |
+| `lib/core/connection/` polling | `GET /status` | Selesai | Dua gagal → S10; 401 → Q12; satu polling berjalan. Tes loopback; HP di `waiting.md` |
+| `lib/features/remote/` `StatusPill` | `GET /status` | Selesai | Uptime, nama laptop dari respons agent asli. Pembuktian di HP di `waiting.md` |
 
 ## M2 Kontrol Media
 

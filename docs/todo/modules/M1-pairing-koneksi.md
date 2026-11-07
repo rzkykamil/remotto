@@ -17,3 +17,12 @@
 - Keputusan ada di `docs/decision-log.md` dengan tag `[Backend M1]`. Saran di `docs/todo/backlog/backend.md`.
 - Pembuktian di laptop dan HP (DACL nyata, reset token, `pair`, dan QR) ada di `docs/todo/waiting.md`.
 - Fase aktif pindah ke Integrasi karena DoD Backend terpenuhi.
+
+## Integrasi
+
+- Selesai dengan Reviewer LOLOS DENGAN SARAN, tanpa temuan WAJIB. 3 baris `docs/todo/integration.md` M1 berstatus Selesai.
+- Dibangun: `AgentHttpClient` (satu klien untuk pairing dan polling), `HttpStatusRepository`, dan `HttpPairingRepository`. Mock dipindah ke `test/support/` sebagai fake. Tes: 33 unit (MockClient), 10 server loopback Dart, dan 4 `ConnectionController` ke loopback.
+- Gerbang lolos: format dan analyze bersih, 429 test app lulus, dan `go test ./...` agent tetap hijau. Go dan `postman/` tidak berubah. Konfigurasi platform Android (cleartext) dan iOS (NSAllowsLocalNetworking) sudah ada dan tidak diubah.
+- Tidak ada mismatch kontrak dengan `docs/api-spec.md`. 409 tidak berlaku di M1 karena hanya endpoint daya yang memakainya.
+- Keputusan ada di `docs/decision-log.md` dengan tag `[Integrasi M1]`. Saran di `docs/todo/backlog/integration.md`. Pembuktian di HP dan laptop sungguhan di `docs/todo/waiting.md`.
+- Fase aktif pindah ke QA karena DoD Integrasi terpenuhi.

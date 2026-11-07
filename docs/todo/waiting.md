@@ -156,6 +156,36 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: jalankan `go run ./cmd/agent pair` tanpa `--host`, lalu bandingkan alamat yang tercetak dengan IP WiFi. Kalau ada WSL atau Hyper-V terpasang, pastikan alamatnya bukan IP adapter virtual. Scan QR-nya dari app di HP.
   Harusnya: alamat sama dengan IP WiFi, adapter WSL atau Hyper-V terlewati, dan QR terbaca sampai app menampilkan berhasil.
 
+- [ ] M1 Integrasi: Pairing manual dengan agent asli sampai layar berhasil.
+  Buka: terminal di laptop (agent jalan lewat `go run ./cmd/agent run`), dan layar Isi manual di app HP.
+  Lakukan: isi alamat IP WiFi laptop dan token dari `%APPDATA%\Remotto\config.json`, lalu tekan Sambungkan.
+  Harusnya: muncul layar berhasil dengan nama laptop yang benar, lalu layar Remote menampilkan nama dan uptime yang terus bertambah.
+
+- [ ] M1 Integrasi: Token salah menampilkan layar token ditolak.
+  Buka: layar Isi manual di app HP.
+  Lakukan: isi alamat IP laptop yang benar dan token 64 karakter yang salah (misalnya semua angka 1), lalu tekan Sambungkan.
+  Harusnya: muncul layar "Token ditolak" (Q11), bukan layar gagal jaringan.
+
+- [ ] M1 Integrasi: Ganti token saat app sudah tersambung, tanpa restart agent.
+  Buka: layar Remote di HP, dan Notepad untuk `%APPDATA%\Remotto\config.json` di laptop. Agent tetap jalan.
+  Lakukan: ganti isi `"token"` dengan 64 karakter lain, simpan, lalu tunggu sekitar 10 detik. Perintah `reset-token` belum tersedia (M5), jadi pakai cara ini.
+  Harusnya: app pindah ke layar "Token ditolak" (Q12) dan berhenti mencoba. Tanpa restart agent.
+
+- [ ] M1 Integrasi: IP laptop salah tidak bikin app menggantung.
+  Buka: layar Isi manual di app HP.
+  Lakukan: isi alamat IP yang salah (misalnya `192.168.99.99`) dengan token benar, lalu tekan Sambungkan. Catat berapa lama sampai muncul pesan.
+  Harusnya: sekitar 5 detik muncul layar "Nggak kejangkau" (Q10), tidak berputar terus.
+
+- [ ] M1 Integrasi: APK debug bisa bicara ke agent lewat HTTP di IP LAN (Android).
+  Buka: PowerShell di laptop, folder `app/`, dan HP Android.
+  Lakukan: jalankan `flutter build apk --debug`, pasang APK di HP, lalu pairing ke IP WiFi laptop.
+  Harusnya: pairing berhasil tanpa error koneksi karena HTTP biasa (cleartext) ke alamat LAN.
+
+- [ ] M1 Integrasi: iPhone bisa bicara ke agent lewat IP LAN dan Tailscale.
+  Buka: iPhone dengan app dari Xcode, laptop dengan agent jalan, dan Tailscale aktif di kedua perangkat.
+  Lakukan: pairing ke IP WiFi laptop, lalu pairing ke IP Tailscale laptop (alamat 100.x). Saat pertama kali, jawab izin jaringan lokal.
+  Harusnya: muncul pertanyaan izin "Jaringan Lokal". Setelah diizinkan, kedua alamat menampilkan "Nyambung".
+
 ## M2 Kontrol Media
 
 - [ ] M2: Play/pause mengenai Brave.
