@@ -4,20 +4,20 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 
 ## M0 Fondasi Proyek
 
-- [ ] Jalankan `flutter create` di `app/` dengan org dan nama Remotto, Android + iOS, portrait saja
-- [ ] Tambah package dari `docs/technical-spec.md` bagian 4
-- [ ] Buat `tool/generate_tokens.dart` dan hasilkan `lib/core/theme/tokens.g.dart`
-- [ ] Bundel Geist dan Geist Mono beserta file lisensinya
-- [ ] Render ikon app gelap dan terang dari SVG inline di `design/export/artboards/Logo.dc.html`
-- [ ] Buat `ThemeData` terang/gelap: `ColorScheme`, `TextTheme`, semua `ThemeExtension`, `NoSplash`
-- [ ] Buat `RSpace`, `RRadius`, `RSize`, `RMotion`, `RBehavior`
-- [ ] Buat helper reduced motion dan `GlassMode`
-- [ ] Buat `RHaptics` dan file string
-- [ ] Buat provider storage dan preferences (tema, haptic)
-- [ ] Buat `go_router` dengan rute Pairing, Remote, Pengaturan, dan rute awal berdasarkan data pairing
-- [ ] Atur perilaku tombol back sesuai `design/scope-and-flows.md`
-- [ ] Buat primitif `Pressable`, `GlassPanel`, `GlassKey` + widget test
-- [ ] Buat latar cahaya statis
+- [x] Jalankan `flutter create` di `app/` dengan org dan nama Remotto, Android + iOS, portrait saja
+- [x] Tambah package dari `docs/technical-spec.md` bagian 4
+- [x] Buat `tool/generate_tokens.dart` dan hasilkan `lib/core/theme/tokens.g.dart`
+- [x] Bundel Geist dan Geist Mono beserta file lisensinya
+- [x] Render ikon app gelap dan terang dari SVG inline di `design/export/artboards/Logo.dc.html`
+- [x] Buat `ThemeData` terang/gelap: `ColorScheme`, `TextTheme`, semua `ThemeExtension`, `NoSplash`
+- [x] Buat `RSpace`, `RRadius`, `RSize`, `RMotion`, `RBehavior`
+- [x] Buat helper reduced motion dan `GlassMode`
+- [x] Buat `RHaptics` dan file string
+- [x] Buat provider storage dan preferences (tema, haptic)
+- [x] Buat `go_router` dengan rute Pairing, Remote, Pengaturan, dan rute awal berdasarkan data pairing
+- [x] Atur perilaku tombol back sesuai `design/scope-and-flows.md`
+- [x] Buat primitif `Pressable`, `GlassPanel`, `GlassKey` + widget test
+- [x] Buat latar cahaya statis
 
 ## M1 Pairing & Koneksi
 

@@ -14,6 +14,36 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: pindah-pindah layar dan buka sheet beberapa kali.
   Harusnya: gerakan tetap mulus.
 
+- [ ] M0: Ikon Remotto di launcher HP terlihat benar.
+  Buka: layar utama HP (launcher), lalu lihat ikon Remotto.
+  Lakukan: lihat ikonnya di launcher, lalu perkecil ukuran ikon/tampilan di pengaturan HP kalau bisa (sekitar 48 dp).
+  Harusnya: bentuk ikon utuh (bulat atau kotak membulat sesuai HP), tidak terpotong, dan titik-titik kecilnya masih terbaca.
+
+- [ ] M0: Bobot font Geist terbaca berbeda.
+  Buka: app Remotto di HP.
+  Lakukan: lihat teks di layar placeholder. M0 hanya punya layar placeholder, jadi pengecekan ini terbatas; ulangi saat M1 sudah punya layar nyata.
+  Harusnya: teks tampil dengan font Geist, dan bobot Regular, Medium, SemiBold, Bold terlihat berbeda.
+
+- [ ] M0: Latar cahaya, kaca, ring fokus, dan skala tekan terlihat benar di HP terang dan gelap, tanpa jank.
+  Buka: app Remotto di HP, dalam mode terang lalu gelap.
+  Lakukan: tekan dan tahan elemen yang bisa ditekan, lalu pindah layar. Di M0 kaca dan tombol hanya ada di komponen uji, jadi ulangi saat M1 dan M2.
+  Harusnya: latar punya dua cahaya lembut, kaca tampak halus, ring fokus 3 dp terlihat, tombol mengecil sedikit saat ditekan, dan tidak ada patah-patah.
+
+- [ ] M0: Transisi layar dan tombol back sistem di placeholder. Boleh ditunda ke M2 atau M5.
+  Buka: app Remotto di HP.
+  Lakukan: pindah antar layar placeholder (lewat tombol di M2 atau M5 nanti) lalu tekan tombol back HP.
+  Harusnya: layar bergeser naik dengan fade, dan back dari Remote keluar app sementara back dari Pengaturan kembali ke Remote.
+
+- [ ] M0: Build iOS berhasil di Mac.
+  Buka: Mac dengan Xcode, folder `app/` dari repo ini.
+  Lakukan: jalankan `flutter build ios`, lalu tambahkan `PERMISSION_CAMERA=1` di `GCC_PREPROCESSOR_DEFINITIONS` pada `post_install` di Podfile.
+  Harusnya: build berhasil, app hanya mode potret, ikon AppIcon terpasang, dan izin kamera serta jaringan lokal punya teks penjelasan di Info.plist.
+
+- [ ] M0: Build APK debug berhasil di laptop ini.
+  Buka: PowerShell di laptop, folder `app/` dari repo ini.
+  Lakukan: jalankan `flutter doctor --android-licenses` dan terima semua lisensi, lalu jalankan `flutter build apk --debug`. Unduhan NDK 28.2 bisa sangat lambat, jadi sabar atau ulangi.
+  Harusnya: build berhasil dan muncul file APK debug di `app/build/app/outputs/`.
+
 ## M1 Pairing & Koneksi
 
 - [ ] M1: Scan QR dengan kamera HP berhasil.

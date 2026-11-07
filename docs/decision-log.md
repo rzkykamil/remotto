@@ -211,3 +211,80 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Langkah build agent membuat `dist/` lebih dulu, dan `.gitattributes` memakai `eol=lf`.
 - **Alasan:** Build butuh folder tujuan yang pasti ada. CRLF di runner Windows membuat cek `gofmt` gagal.
 - **Dampak:** Tidak ada secret atau langkah CGO tambahan.
+
+## [Frontend M0] Identitas app dan izin dasar
+
+- **Konteks:** `flutter create` butuh org dan nama app. App dipakai di HP pribadi lewat LAN dan punya layar pairing yang memakai kamera.
+- **Keputusan:** App ID `com.remotto.remotto` (org `com.remotto`). Izin INTERNET dan CAMERA di Android, network security config, dan key privasi iOS (`NSCameraUsageDescription`, `NSLocalNetworkUsageDescription`, `NSAllowsLocalNetworking`) dikerjakan di M0. `allowBackup=false`.
+- **Alasan:** Izin dan konfigurasi platform harus ada sejak awal supaya M1 tidak mengubahnya lagi. Backup dimatikan agar data pairing (token) tidak ikut ter-backup oleh OS. Agent memakai HTTP di LAN, jadi cleartext diizinkan di network security config; pembatasan ke alamat LAN dilakukan validasi app (BR-12).
+- **Dampak:** Konfigurasi iOS belum bisa diverifikasi di Windows; ada di `docs/todo/waiting.md`.
+
+## [Frontend M0] Dependensi dan UI kit
+
+- **Konteks:** `pubspec.yaml` harus bebas UI kit (technical-spec §11). Template Flutter membawa `cupertino_icons`.
+- **Keputusan:** `cupertino_icons` dihapus. Library Material dan Cupertino yang ikut sebagai dependensi transitif dari framework Flutter 3.47 diterima; bukan UI kit yang dipasang langsung. `minSdk` memakai default Flutter (24).
+- **Alasan:** Ikon digambar sendiri, jadi `cupertino_icons` tidak dipakai. Library transitif tidak bisa dihindari tanpa mengganti framework.
+- **Dampak:** Pemeriksaan DoD cukup melihat `pubspec.yaml` dan import langsung, bukan dependensi transitif.
+
+## [Frontend M0] Penamaan hasil generator token
+
+- **Konteks:** Kelas warna hasil generator dan `ThemeExtension` memakai nama dasar yang sama (`Bg`, `Glass`), sehingga bentrok.
+- **Keputusan:** Kelas warna hasil generator berakhiran `Set` (`BgSet`, `GlassSet`, dan seterusnya). Path sumber `../../design/tokens.json` relatif dari `app/tool/`. Generator menjalankan `dart format` lewat `Platform.resolvedExecutable`. Konstanta `RBehavior` ditulis tangan, tidak dihasilkan generator.
+- **Alasan:** Akhiran `Set` membedakan data token dari `ThemeExtension` `*Tokens`. `Platform.resolvedExecutable` tidak bergantung pada `dart` di PATH. `RBehavior` tidak punya padanan di `tokens.json`.
+- **Dampak:** Perubahan token tetap butuh menjalankan generator; nama di atas harus dipakai saat menambah kode.
+
+## [Frontend M0] Ikon app dari SVG inline
+
+- **Konteks:** Ikon app ada sebagai SVG inline di `design/export/artboards/Logo.dc.html`. Folder `design/export/logo/` tidak masuk repo (Gate 3).
+- **Keputusan:** Ikon dirender dari SVG inline lewat Edge headless (`app/tool/render_icons.ps1`) menjadi PNG. Hanya ikon gelap yang dipasang di launcher; ikon terang diarsipkan di `app/assets/icon/`. Adaptive icon ditunda.
+- **Alasan:** Sumber yang sama dengan artboard tanpa metadata asal-usul alat. Launcher default gelap (design-system §9), jadi ikon terang tidak perlu dipasang. Adaptive icon butuh pemeriksaan visual di HP dulu.
+- **Dampak:** Ikon launcher perlu dicek di HP (`docs/todo/waiting.md`); adaptive icon ada di `docs/todo/backlog/frontend.md`.
+
+## [Frontend M0] Font Geist
+
+- **Konteks:** File Geist tidak ada di disk. App butuh bobot sans dan mono sesuai tipografi desain.
+- **Keputusan:** Geist v1.9.2 TTF statis (SIL OFL 1.1) dari rilis resmi `vercel/geist-font`. Lisensi di `app/assets/fonts/OFL-Geist.txt`.
+- **Alasan:** Rilis resmi dengan TTF statis memberi bobot yang pasti, tanpa bergantung pada variable font. Font tidak diunduh saat runtime dan tidak memakai `google_fonts`.
+- **Dampak:** Bobot yang benar-benar terlihat dicek di HP (`docs/todo/waiting.md`).
+
+## [Frontend M0] Podfile iOS tidak dibuat di M0
+
+- **Konteks:** `Podfile` dihasilkan `flutter build ios` di macOS. Repo ini dikembangkan di Windows.
+- **Keputusan:** Podfile tidak dibuat di M0. Macro `PERMISSION_CAMERA=1` ditambahkan di Mac setelah `flutter build ios`.
+- **Alasan:** Podfile hasil tulis tangan di Windows bisa salah dan tidak bisa diuji.
+- **Dampak:** Build iOS belum terbukti sampai ada Mac; ada di `docs/todo/waiting.md`.
+
+## [Frontend M0] Tombol kaca dan ukuran
+
+- **Konteks:** `design/components.md` C02 menyebut ukuran 48, 52, 56, 64, dan 80, tapi token hanya punya `touch`, `power`, `control`, dan `media`.
+- **Keputusan:** `GlassKey` tanpa ukuran 64 dp. Empat ukuran: touch 48, power 52, control 56, media 80. Tombol `strong` yang disabled memakai `fg.disabled`. Tint tekan memakai `glass.chipPressed` di semua varian. Ukuran ikon tidak diatur `GlassKey`.
+- **Alasan:** Tidak ada token 64, dan menulis angka sendiri melanggar aturan token. Ukuran ikon ditentukan pemanggil karena ikon belum ada di M0.
+- **Dampak:** Ukuran ikon dan kebutuhan 64 dp dicek saat M1 (`docs/todo/backlog/frontend.md`).
+
+## [Frontend M0] GlassPanel: blur tanpa saturasi
+
+- **Konteks:** Desain memakai `blur(28px) saturate(170%)`. Rencana awal memakai `ImageFilter.compose` dengan color matrix untuk saturasi.
+- **Keputusan:** `GlassPanel` hanya memakai blur. Saturasi (token 1.7) tidak diterapkan. Mode solid memakai `glass.solid` untuk semua varian termasuk toast, tanpa bayangan blur. Bayangan luar 0/12 blur 32 dari artboard disimpan sebagai konstanta privat. Test memakai `glassForcedSolidProvider`.
+- **Alasan:** API `ImageFilter` Flutter 3.47 tidak mendukung color matrix pada backdrop (diverifikasi Reviewer).
+- **Dampak:** Warna kaca bisa sedikit berbeda dari artboard; tercatat di `docs/todo/backlog/frontend.md`.
+
+## [Frontend M0] Transisi layar dan router
+
+- **Konteks:** `design-system.md` §6 menyebut geser 24 dp + fade untuk transisi layar, tanpa menyebut arah. `design/scope-and-flows.md` mengatur tombol back.
+- **Keputusan:** Transisi geser vertikal naik 24 dp + fade. Reduced motion tanpa geser, durasi `fast`. Router: `/` redirect ke `/remote` atau `/pairing` sesuai data pairing; `/remote` jadi akar stack; `/settings` dibuka lewat push.
+- **Alasan:** Arah geser tidak ada di dokumen, jadi diambil dari keputusan developer. Akar `/remote` membuat back sistem keluar app, dan Pengaturan kembali ke Remote.
+- **Dampak:** Arah transisi ditinjau lagi di M2 saat ada layar nyata. Transisi dan back di HP ada di `docs/todo/waiting.md`.
+
+## [Frontend M0] Storage dan perilaku haptic
+
+- **Konteks:** `data-design.md` §6 mengatur perilaku saat data hilang atau rusak.
+- **Keputusan:** `read()` menganggap host atau token kosong, atau port di luar 1–65535, sebagai data hilang (`null`). Setter haptic memakai parameter bernama `enabled`. Harness test ada di `app/test/support/`, bukan `test/helpers`.
+- **Alasan:** Data rusak tidak boleh membuat app crash atau memakai port yang salah. Nama parameter eksplisit mencegah tertukar dengan nilai lain.
+- **Dampak:** Konsumen storage tidak perlu menangani nilai rusak sendiri.
+
+## [Frontend M0] Test guard aturan UI
+
+- **Konteks:** Aturan UI (rule frontend-ui, lokal) dan DoD melarang pola Material default, UI kit, dan nilai hardcode. Aturan yang hanya ada di dokumen mudah terlewat.
+- **Keputusan:** `app/test/guards/ui_rules_test.dart` melarang pola Material default, UI kit, `Color(0x`, dan literal `EdgeInsets` di `lib/features/`.
+- **Alasan:** Test berjalan lewat `flutter test` dan CI, jadi pelanggaran tertangkap otomatis.
+- **Dampak:** Kode fitur yang memakai literal akan gagal test dan harus memakai token.
