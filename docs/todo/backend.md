@@ -29,10 +29,10 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 
 ## M2 Kontrol Media
 
-- [ ] Domain media + test
-- [ ] `SendInput` di `internal/oswin`
-- [ ] `POST /media/play-pause`, `/media/next`, `/media/prev` + test
-  - [ ] Sinkronkan `postman/`
+- [x] Domain media + test
+- [x] `SendInput` di `internal/oswin`
+- [x] `POST /media/play-pause`, `/media/next`, `/media/prev` + test
+  - [x] Sinkronkan `postman/`
 
 ## M3 Volume
 

@@ -21,7 +21,10 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M2 Kontrol Media
 
-Belum ada temuan.
+- `SendInput` di `oswin/media_windows.go` belum memakai `runtime.KeepAlive(inputs)` setelah `proc.Call`; tambahkan agar pointer tidak dikumpulkan sebelum panggilan selesai.
+- `MediaService.Do` (`agent/internal/control/media.go`) mengambil mutex tanpa cek `ctx`. Dampak nol untuk sekarang.
+- SendInput yang diblokir UIPI memberi n=0 dengan Errno 0, sehingga log berbunyi "operation completed successfully" dan menyesatkan. Respons 500 `media_failed` sudah benar (`agent/internal/oswin/media_windows.go`).
+- `go test -race` untuk paket M2 belum bisa lokal (CGO mati). Dicek di CI (`agent/internal/control`, `agent/internal/oswin`, `agent/internal/server`).
 
 ## M3 Volume
 

@@ -470,3 +470,59 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Dock aktif hanya saat `online` dan `back`. Dinonaktifkan saat `connecting`, `offline`, `poweredOff`, dan `tokenRejected`, karena panel status sudah menjelaskan alasannya. `toastBottomInsetProvider` menjadi `NotifierProvider` (awal 0). Inset = `MediaDock.heightFor(compact)` + `RSpace.s6`. `RemoteScreen` mengisi inset setelah frame dan mengembalikan 0 saat layar ditutup, lewat `Future.microtask` dengan guard `ref.mounted`.
 - **Alasan:** Dock nonaktif memberi tahu pengguna bahwa perintah tidak akan sampai. Inset dihitung dari ukuran dock agar toast tidak menutupi tombol.
 - **Dampak:** Layout 360 dan 412 dp dan posisi toast perlu dicek di HP fisik (`docs/todo/waiting.md` M2).
+
+## [Backend M2] Opsi variadic WithMedia
+
+- **Konteks:** `docs/technical-spec.md` bagian 7, `NewAPIHandler` dipanggil di enam tempat test.
+- **Keputusan:** `NewAPIHandler(logger, tokens, status, opts ...APIOption)` dengan `WithMedia(c control.MediaController)`. Pemanggil lama tidak berubah.
+- **Alasan:** Signature tetap kompatibel. Pola opsi ini sama dengan `WithAudio` dan `WithPower` di M3 dan M4.
+- **Dampak:** Dependensi baru cukup menambah satu `APIOption`.
+
+## [Backend M2] Rute media selalu terdaftar, fail-closed
+
+- **Konteks:** `docs/api-spec.md` Media. `TestBR1AllAPIRoutesRequireToken` memuat rute media. Dependensi bisa nil bila wiring terlewat.
+- **Keputusan:** Tiga rute `POST /api/v1/media/*` selalu terdaftar. Bila controller nil, respons 500 `media_failed`.
+- **Alasan:** Rute tanpa controller tidak boleh diam-diam dianggap sukses.
+- **Dampak:** Tes BR-1 mencakup rute media sejak awal.
+
+## [Backend M2] MediaService di internal/control
+
+- **Konteks:** Validasi aksi, serialisasi, dan pembungkus error OS perlu satu tempat yang tidak bergantung pada OS.
+- **Keputusan:** `MediaService` menolak aksi tak dikenal dengan `ErrInvalidAction`, mengunci mutex selama pemanggilan, dan membungkus error OS menjadi `ErrMedia`. Pesan ke klien tetap "media control failed". Cause hanya dibuka lewat Unwrap untuk log.
+- **Alasan:** Detail OS tidak bocor ke respons. Mutex mencegah dua perintah media berjalan bersamaan.
+- **Dampak:** Handler tidak menyentuh OS secara langsung.
+
+## [Backend M2] Satu SendInput berisi tekan dan lepas
+
+- **Konteks:** Media key dikirim sebagai tekan lalu lepas. `docs/technical-spec.md` bagian 7.
+- **Keputusan:** Satu panggilan `SendInput` memuat key down dan key up, keduanya extended key. Jumlah event yang diterima selain 2 menghasilkan `media_failed`.
+- **Alasan:** Satu panggilan atomik, sehingga tidak ada tombol yang tertinggal tertekan bila pelepasan gagal.
+- **Dampak:** Event yang diblokir UIPI terdeteksi sebagai gagal. Catatan pesan log ada di `docs/todo/backlog/backend.md` M2.
+
+## [Backend M2] Handler mengabaikan body
+
+- **Konteks:** `docs/api-spec.md` Media tidak mendefinisikan body request.
+- **Keputusan:** Body request tidak dibaca. `{"x":1}` tetap 200.
+- **Alasan:** Sesuai spec, dan tidak ada validasi yang perlu dijaga.
+- **Dampak:** Klien boleh mengirim body apa pun tanpa efek.
+
+## [Backend M2] Tanpa timeout khusus di domain media
+
+- **Konteks:** `SendInput` sinkron dan cepat. `WriteTimeout` server 5 detik sudah cukup.
+- **Keputusan:** Tidak ada timeout tambahan di domain media. `ctx` tetap diteruskan. Tidak ada retry.
+- **Alasan:** Timeout tambahan tidak mengubah panggilan sinkron. Retry bisa memutar lagu dua kali.
+- **Dampak:** Bila `SendInput` macet, perlu ditinjau di M6.
+
+## [Backend M2] oswin/doc.go tanpa build tag
+
+- **Konteks:** CI menjalankan `go vet ./...` di Linux.
+- **Keputusan:** `internal/oswin/doc.go` berisi komentar paket tanpa build tag. Implementasi Windows ada di `media_windows.go`.
+- **Alasan:** Paket tetap ada di Linux, sehingga `go vet ./...` tidak gagal.
+- **Dampak:** Vet lintas OS tetap bisa dijalankan dengan `GOOS=linux`.
+
+## [Backend M2] Test SendInput tanpa menyentuh OS
+
+- **Konteks:** Aturan Remotto melarang media key sungguhan di test otomatis.
+- **Keputusan:** `Media` menerima `sendFunc` yang disuntik. Test memakai fake. `NewMedia()` hanya dipasang di `cmd/agent`.
+- **Alasan:** Test aman, cepat, dan tidak memengaruhi laptop.
+- **Dampak:** Pembuktian nyata hanya lewat `docs/todo/waiting.md`.

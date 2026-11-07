@@ -193,15 +193,15 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: tekan tombol play/pause di HP.
   Harusnya: video berhenti dalam sekejap, tekan lagi jalan lagi.
 
-- [ ] M2: Play/pause, next, dan prev mengenai Spotify.
-  Buka: Spotify di laptop, dan layar Remote di HP.
-  Lakukan: putar lagu, lalu tekan play/pause, next, dan prev.
-  Harusnya: lagu berhenti, pindah ke berikutnya, dan kembali.
+- [ ] M2: Play/pause, next, dan prev mengenai Spotify, langsung lewat agent.
+  Buka: Spotify di laptop yang sudah menjalankan agent hasil build, dan layar Remote di HP. Tombol HP masih tiruan sampai Integrasi, jadi bisa juga pakai Postman atau PowerShell dengan token pairing.
+  Lakukan: putar lagu, lalu tekan play/pause, next, dan prev di HP. Lewat Postman atau PowerShell: kirim POST ke `/api/v1/media/play-pause`, lalu `/api/v1/media/next` dan `/api/v1/media/prev`.
+  Harusnya: lagu berhenti, pindah ke berikutnya, dan kembali. Respons 200 berisi nama aksinya, misalnya `{"data":{"action":"next"}}`.
 
 - [ ] M2: Perilaku saat laptop terkunci sudah jelas.
-  Buka: lagu yang sedang jalan di laptop, dan layar Remote di HP.
-  Lakukan: kunci laptop dengan Win+L, lalu tekan play/pause di HP.
-  Harusnya: kalau lagu tidak berhenti, HP menampilkan pesan gagal, bukan diam saja.
+  Buka: lagu yang sedang jalan di laptop, dan layar Remote di HP. Atau Postman atau PowerShell dengan token pairing.
+  Lakukan: kunci laptop dengan Win+L, lalu tekan play/pause di HP, atau kirim POST `/api/v1/media/play-pause` lewat Postman atau PowerShell.
+  Harusnya: kalau lagu tidak berhenti, HP menampilkan pesan gagal, bukan diam saja. Lewat Postman atau PowerShell, respons harus 500 dengan kode `media_failed`, bukan 200.
 
 - [ ] M2: Getar terasa pas.
   Buka: layar Remote di HP.
