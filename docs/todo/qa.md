@@ -26,11 +26,11 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 
 ## M2 Kontrol Media
 
-- [ ] [O] Happy path tiga endpoint dengan fake OS
-- [ ] [O] `media_failed` → ikon kembali + toast
-- [ ] [O] Tap ulang selama proses diabaikan
-- [ ] [O] BR-7: kontrol nonaktif saat offline
-- [ ] [O] Tanpa retry otomatis
+- [x] [O] Happy path tiga endpoint dengan fake OS
+- [x] [O] `media_failed` → ikon kembali + toast
+- [x] [O] Tap ulang selama proses diabaikan
+- [x] [O] BR-7: kontrol nonaktif saat offline
+- [x] [O] Tanpa retry otomatis
 - [ ] [M] Brave, Spotify, layar terkunci
 
 ## M3 Volume

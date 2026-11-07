@@ -13,7 +13,7 @@ Belum ada temuan.
 
 ## M2 Kontrol Media
 
-Belum ada temuan.
+- `go test -race` belum bisa jalan lokal (CGO mati) untuk `agent/internal/control` dan `agent/internal/server`. CI belum menjalankan `-race` (`ci.yml` hanya `go test ./...`); tambahkan di CI atau jalankan di mesin ber-gcc, konsisten dengan M1.
 
 ## M3 Volume
 

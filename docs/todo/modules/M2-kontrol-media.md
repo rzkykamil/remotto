@@ -25,3 +25,10 @@
 - Keputusan ada di `docs/decision-log.md` dengan tag `[Integrasi M2]`. Saran di `docs/todo/backlog/integration.md`.
 - Pembuktian dengan agent asli dan HP sungguhan ada di `docs/todo/waiting.md`.
 - Fase aktif pindah ke QA karena DoD Integrasi terpenuhi.
+
+## QA
+
+- Lima skenario [O] tercakup test: happy path tiga endpoint lewat fake OS (`TestServeAgentMediaWithFakeOS`, `agent/internal/server/media_test.go`, `agent/internal/control/media_test.go`, `agent/internal/oswin/media_windows_test.go`); `media_failed`, tap ulang, BR-7, dan tanpa retry lewat `app/test/features/remote/` (`state/media_controller_test.dart`, `media_flow_test.dart`, `widgets/media_dock_test.dart`, `data/http_media_repository_test.dart`) dan `app/test/integration/media_http_flow_test.dart`.
+- Tidak ada bug. Fixing dilewati karena tidak ada temuan.
+- Pembuktian manual [M] ada di `docs/todo/waiting.md`.
+- `-race` belum dijalankan (lihat `docs/todo/backlog/qa.md`).
