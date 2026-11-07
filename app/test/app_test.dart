@@ -31,6 +31,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'support/fake_pairing_repository.dart';
 import 'support/fake_status_repository.dart';
 import 'support/fakes.dart';
+import 'support/volume_overrides.dart';
 
 /// Scheduler without timers: the Remote poll does not run on its own in this test.
 final class _NoopScheduler implements PollScheduler {
@@ -81,6 +82,7 @@ Future<ProviderContainer> _pump(
           FakeStatusRepository([fakeStatusOk()]),
         ),
         pollSchedulerProvider.overrideWithValue(_NoopScheduler()),
+        volumeOverride(),
       ],
       child: const RemottoApp(),
     ),
@@ -174,6 +176,7 @@ Future<_FlowEnv> _pumpFlow(
           FakeStatusRepository([fakeStatusOk()]),
         ),
         pollSchedulerProvider.overrideWithValue(_NoopScheduler()),
+        volumeOverride(),
         cameraPermissionServiceProvider.overrideWithValue(permission),
         qrScannerSourceProvider.overrideWithValue(scanner),
         mobileScannerControllerProvider.overrideWithValue(

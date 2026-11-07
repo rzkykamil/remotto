@@ -16,16 +16,16 @@ import '../../core/toast/toast_controller.dart';
 import '../../ui/glass_panel.dart';
 import '../../ui/status_pill.dart';
 import 'widgets/media_dock.dart';
-import 'widgets/offline_content.dart';
 import 'widgets/remote_header.dart';
+import 'widgets/volume_panel.dart';
 
 /// Widths below this use the compact margin (360 dp artboard).
 const double _compactWidth = 380;
 
 /// Remote screen SCR-010 (`design/components.md` C10, `States-light`).
 ///
-/// Header, status panel, and the media dock. Power and volume controls
-/// come later in M3-M4. Polling starts when the screen opens and stops when
+/// Header, the volume panel, and the media dock. Power controls come later
+/// in M4. Polling starts when the screen opens and stops when
 /// the screen closes.
 class RemoteScreen extends ConsumerStatefulWidget {
   const RemoteScreen({super.key});
@@ -130,7 +130,14 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
               Expanded(
                 child: GlassPanel(
                   padding: const EdgeInsets.all(RSpace.s5),
-                  child: Center(child: _panelContent(phase)),
+                  semanticsLabel: RemoteStrings.volumeGroupLabel,
+                  child: VolumePanel(
+                    phase: phase,
+                    onRetry: _retry,
+                    onRepair: _repair,
+                    retrying: _retrying,
+                    compact: compact,
+                  ),
                 ),
               ),
               const SizedBox(height: RSpace.s5),
@@ -140,31 +147,6 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
         ),
       ),
     );
-  }
-
-  Widget? _panelContent(ConnectionPhase phase) {
-    switch (phase) {
-      case ConnectionPhase.connecting:
-        return Text(
-          RemoteStrings.hintWaiting,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyLarge
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        );
-      case ConnectionPhase.offline:
-      case ConnectionPhase.poweredOff:
-        return OfflineContent(
-          onRetry: _retry,
-          onRepair: _repair,
-          retrying: _retrying,
-          poweredOff: phase == ConnectionPhase.poweredOff,
-        );
-      case ConnectionPhase.online:
-      case ConnectionPhase.back:
-      case ConnectionPhase.tokenRejected:
-        // The volume panel content does not exist yet in M1 (M3).
-        return null;
-    }
   }
 
   StatusPillVariant _pillVariant(ConnectionPhase phase) => switch (phase) {

@@ -43,4 +43,28 @@ abstract final class RemoteStrings {
   static const prevLabel = 'Lagu sebelumnya';
   static const nextLabel = 'Lagu berikutnya';
   static const mediaGroupLabel = 'Media';
+
+  // SCR-010 volume panel (C04, C05, C10)
+  static const volumeLabel = 'VOLUME';
+  static const volumeGroupLabel = 'Volume';
+  static const mutedBadge = 'BISU';
+  static const muteLabel = 'Mute';
+  static const unmuteLabel = 'Bunyikan';
+  static const volumeDownLabel = 'Volume turun 5';
+  static const volumeUpLabel = 'Volume naik 5';
+  static const hintIdle = 'Geser atau ketuk − / +';
+  static const hintDragging = 'Lagi ngatur…';
+  static const hintMin = 'Paling pelan';
+  static const hintMax = 'Paling kencang';
+  static const hintMuted = 'Suara laptop lagi dibisukan';
+
+  /// Semantics value of the slider, e.g. `35 persen`.
+  static String volumeValueA11y(int level) => '$level persen';
+
+  /// Semantics value of the slider while no volume is known yet.
+  static const volumeUnknownA11y = 'Belum ada nilai';
+
+  /// Toast S06. [level] is the value the laptop still has.
+  static String toastVolumeFailed(int level) =>
+      'Volume nggak kekirim, balik ke $level%';
 }

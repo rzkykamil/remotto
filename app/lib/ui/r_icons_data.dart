@@ -74,6 +74,24 @@ abstract final class RIcons {
   ]);
 
   /// Two rounded bars, x 6 and x 14, y 4.5, 4 x 15, rx 1.2.
+  /// Volume icons from States-light (mute key and badge). Speaker is the
+  /// artboard polygon as one path: 11,5 6,9 2,9 2,15 6,15 11,19 11,5.
+  static const volumeOn = RIconData([
+    'M11 5L6 9H2v6h4l5 4V5Z',
+    'M15.54 8.46a5 5 0 0 1 0 7.07',
+  ]);
+
+  static const volumeOff = RIconData([
+    'M11 5L6 9H2v6h4l5 4V5Z',
+    'M22 9L16 15',
+    'M16 9L22 15',
+  ]);
+
+  /// Minus and plus of the ±5 keys (`States-light.dc.html`).
+  static const minus = RIconData(['M5 12h14']);
+
+  static const plus = RIconData(['M5 12h14', 'M12 5v14']);
+
   static const pause = RIconData([
     'M7.2 4.5h1.6A1.2 1.2 0 0 1 10 5.7v11.1a1.2 1.2 0 0 1-1.2 1.2H7.2A1.2 1.2 0 0 1 6 16.8V5.7a1.2 1.2 0 0 1 1.2-1.2Z',
     'M15.2 4.5h1.6A1.2 1.2 0 0 1 18 5.7v11.1a1.2 1.2 0 0 1-1.2 1.2h-1.6a1.2 1.2 0 0 1-1.2-1.2V5.7a1.2 1.2 0 0 1 1.2-1.2Z',

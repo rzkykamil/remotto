@@ -31,6 +31,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_status_repository.dart';
 import '../../support/fakes.dart';
+import '../../support/volume_overrides.dart';
 
 const _pairing = PairingData(
   host: '192.168.1.10',
@@ -157,6 +158,7 @@ Future<_Harness> _pumpApp(
         connectionStorageProvider.overrideWithValue(storage),
         statusRepositoryProvider.overrideWithValue(repo),
         pollSchedulerProvider.overrideWithValue(scheduler),
+        volumeOverride(),
         ...extra,
       ],
       child: const RemottoApp(),
@@ -422,6 +424,7 @@ Future<void> _pumpLayout(
       overrides: [
         statusRepositoryProvider.overrideWithValue(repo),
         pollSchedulerProvider.overrideWithValue(scheduler),
+        volumeOverride(),
       ],
       child: MaterialApp(
         theme: AppTheme.light,

@@ -160,5 +160,21 @@ void main() {
       expect(libFiles, isNotEmpty);
       expect(_dartFiles(_featuresDir), isNotEmpty);
     });
+
+    test('the volume (M3) files are inside the scanned tree', () {
+      final scanned = libFiles.map(_rel).toSet();
+      for (final path in [
+        'lib/ui/volume_slider.dart',
+        'lib/ui/volume_readout.dart',
+        'lib/features/remote/widgets/volume_panel.dart',
+        'lib/features/remote/state/volume_controller.dart',
+      ]) {
+        expect(
+          scanned.any((p) => p.endsWith(path)),
+          isTrue,
+          reason: '$path is not scanned by the guards',
+        );
+      }
+    });
   });
 }

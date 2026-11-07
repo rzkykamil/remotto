@@ -23,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_status_repository.dart';
 import '../../support/fakes.dart';
+import '../../support/volume_overrides.dart';
 
 const _pairing = PairingData(
   host: '192.168.1.10',
@@ -75,6 +76,7 @@ Future<ProviderContainer> _pumpRouter(
           repo ?? FakeStatusRepository([fakeStatusOk()]),
         ),
         pollSchedulerProvider.overrideWithValue(_SilentScheduler()),
+        volumeOverride(),
         ...extra,
       ],
       child: const RemottoApp(),
