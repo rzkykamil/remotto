@@ -31,12 +31,19 @@ type APIOption func(*apiOptions)
 
 type apiOptions struct {
 	media control.MediaController
+	audio control.AudioController
 }
 
 // WithMedia sets the controller behind the /media routes. Without it the routes
 // still exist and answer 500 media_failed (fail-closed).
 func WithMedia(c control.MediaController) APIOption {
 	return func(o *apiOptions) { o.media = c }
+}
+
+// WithAudio sets the controller behind the /volume routes. Without it the routes
+// still exist and answer 500 audio_failed (fail-closed).
+func WithAudio(c control.AudioController) APIOption {
+	return func(o *apiOptions) { o.audio = c }
 }
 
 // NewAPIHandler returns the complete agent handler: the API routes wrapped in
@@ -56,6 +63,8 @@ func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps, o
 	router.Handle(http.MethodPost, APIPrefix+"/media/play-pause", newMediaHandler(control.MediaPlayPause, media, logger))
 	router.Handle(http.MethodPost, APIPrefix+"/media/next", newMediaHandler(control.MediaNext, media, logger))
 	router.Handle(http.MethodPost, APIPrefix+"/media/prev", newMediaHandler(control.MediaPrev, media, logger))
+	volume := control.NewVolumeService(o.audio)
+	registerVolumeRoutes(router, volume, logger)
 	// Rate limit (M6) goes here, between NetworkFilter and Auth.
 	return Chain(router,
 		Recover(logger),

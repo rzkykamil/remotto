@@ -110,7 +110,7 @@ func startAgentWith(t *testing.T, cfgPath string, cfg config.Config, status serv
 	ctx, cancel := context.WithCancel(context.Background())
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- serveAgent(ctx, ln, logger, cfgPath, cfg, status, media)
+		errCh <- serveAgent(ctx, ln, logger, cfgPath, cfg, status, media, status.Audio)
 	}()
 	stop := func() {
 		cancel()
@@ -446,6 +446,103 @@ func TestServeAgentMediaWithFakeOS(t *testing.T) {
 		}
 		if code, _ := postMedia(t, base, "play-pause", newToken); code != http.StatusOK {
 			t.Errorf("new token status = %d, want 200", code)
+		}
+	})
+}
+
+// volumeRequest calls method on /api/v1<path> with the bearer token. An empty
+// body sends no body and no Content-Type. It returns the HTTP status and the
+// decoded JSON body.
+func volumeRequest(t *testing.T, base, method, path, token, body string) (int, map[string]any) {
+	t.Helper()
+	var reader io.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	}
+	req, err := http.NewRequest(method, base+"/api/v1"+path, reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, path, err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatalf("body is not JSON: %v", err)
+	}
+	return resp.StatusCode, out
+}
+
+// TestServeAgentVolumeWithFakeOS covers /volume end to end with the fake audio
+// port: PUT /volume must be visible in GET /status, and mute/up must change the
+// same state.
+func TestServeAgentVolumeWithFakeOS(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, 8765, e2eToken)
+	cfg, _, err := loadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfigFile: %v", err)
+	}
+	audio := fake.NewAudio(40, false)
+	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: audio}
+	base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{})
+	defer stop()
+
+	// statusVolume reads data.volume from GET /status.
+	statusVolume := func(t *testing.T) (float64, bool) {
+		t.Helper()
+		code, body := getStatus(t, base, e2eToken)
+		if code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", code)
+		}
+		v, ok := body["data"].(map[string]any)["volume"].(map[string]any)
+		if !ok {
+			t.Fatalf("volume = %v, want object", body["data"])
+		}
+		return v["level"].(float64), v["muted"].(bool)
+	}
+
+	t.Run("PUT then status shows the same volume", func(t *testing.T) {
+		code, body := volumeRequest(t, base, http.MethodPut, "/volume", e2eToken, `{"level":35}`)
+		if code != http.StatusOK {
+			t.Fatalf("PUT status = %d, want 200", code)
+		}
+		data := body["data"].(map[string]any)
+		if data["level"] != float64(35) || data["muted"] != false {
+			t.Errorf("PUT data = %v, want level 35 muted false", data)
+		}
+		if level, muted := statusVolume(t); level != 35 || muted {
+			t.Errorf("status volume = %v/%v, want 35/false", level, muted)
+		}
+	})
+
+	t.Run("mute then up unmutes and steps by 5 (BR-15, BR-16)", func(t *testing.T) {
+		code, _ := volumeRequest(t, base, http.MethodPost, "/volume/mute", e2eToken, `{"muted":true}`)
+		if code != http.StatusOK {
+			t.Fatalf("mute status = %d, want 200", code)
+		}
+		if level, muted := statusVolume(t); level != 35 || !muted {
+			t.Fatalf("after mute status volume = %v/%v, want 35/true", level, muted)
+		}
+		code, body := volumeRequest(t, base, http.MethodPost, "/volume/up", e2eToken, "")
+		if code != http.StatusOK {
+			t.Fatalf("up status = %d, want 200", code)
+		}
+		data := body["data"].(map[string]any)
+		if data["level"] != float64(40) || data["muted"] != false {
+			t.Errorf("up data = %v, want level 40 muted false", data)
+		}
+		if level, muted := statusVolume(t); level != 40 || muted {
+			t.Errorf("status volume = %v/%v, want 40/false", level, muted)
 		}
 	})
 }
