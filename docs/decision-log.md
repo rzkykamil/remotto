@@ -428,3 +428,10 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Satu `AgentHttpClient` dipakai pairing dan polling. `HttpStatusRepository` membaca `pairingProvider` pada setiap panggilan, jadi pairing baru terbaca tanpa membangun ulang controller. Pairing null menghasilkan `UnreachableFailure`, bukan `UnauthorizedFailure`. Body non-UTF-8 menjadi `ServerFailure`. Timeout dua lapis: controller dan scheduler pairing di atas, klien di bawah. Mock dipindah ke `test/support/` sebagai fake, tidak dihapus. Tes integrasi memakai server loopback Dart, bukan agent Go. Konfigurasi platform tidak diubah. Tidak ada perubahan Go atau `postman/`.
 - **Alasan:** Satu klien mengurangi duplikasi penanganan error dan token. Membaca pairing per panggilan menghindari status palsu setelah pairing ulang. Fake di `test/support/` tetap dipakai tes dan tidak masuk build. Loopback Dart membuktikan kontrak HTTP tanpa menyalakan agent sungguhan di tes otomatis.
 - **Dampak:** Copy untuk 403 dan 429 saat pairing masih menunggu keputusan desain (`docs/todo/backlog/integration.md`). Pembuktian dengan agent dan HP sungguhan ada di `docs/todo/waiting.md`.
+
+## [QA M1] QA otomatis lulus, Fixing tidak relevan
+
+- **Konteks:** Sepuluh skenario [O] M1 di `docs/todo/qa.md` diperiksa terhadap tes yang sudah ada. Tidak ada bug produksi.
+- **Keputusan:** Skenario dibuktikan tes yang ada, ditambah satu tes BR-9 (401 setelah sukses mempertahankan data status terakhir) di `app/test/core/connection/connection_controller_test.dart`. Fase Fixing ditandai tidak relevan. Modul ditutup dengan `Selesai`, sementara skenario [M] tetap di `docs/todo/waiting.md`.
+- **Alasan:** Tidak ada bug yang perlu diperbaiki, sehingga Fixing tidak punya pekerjaan. Tes yang ada sudah menutup BR-1, BR-2, BR-8, BR-9, BR-11, dan BR-12.
+- **Dampak:** `go test -race` dan sisi log app BR-11 masuk backlog QA (`docs/todo/backlog/qa.md`).

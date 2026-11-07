@@ -26,3 +26,15 @@
 - Tidak ada mismatch kontrak dengan `docs/api-spec.md`. 409 tidak berlaku di M1 karena hanya endpoint daya yang memakainya.
 - Keputusan ada di `docs/decision-log.md` dengan tag `[Integrasi M1]`. Saran di `docs/todo/backlog/integration.md`. Pembuktian di HP dan laptop sungguhan di `docs/todo/waiting.md`.
 - Fase aktif pindah ke QA karena DoD Integrasi terpenuhi.
+
+## QA
+
+- Selesai dengan Reviewer LOLOS tanpa temuan. 10 skenario [O] M1 dicentang di `docs/todo/qa.md` dan dibuktikan tes yang ada (Go 130 test, app 430 test lulus, analyze dan format bersih).
+- Satu tes ditambah: BR-9 "401 setelah sukses" di `app/test/core/connection/connection_controller_test.dart`.
+- Tidak ada bug. Bagian Bugs Ditemukan tidak berubah.
+- Keputusan `[QA M1]` ada di `docs/decision-log.md`. Backlog: `go test -race` (butuh gcc) dan sisi log app BR-11 di `docs/todo/backlog/qa.md`.
+- Skenario [M] M1 (scan QR, firewall, offline ke online) tetap di `docs/todo/waiting.md`, bersama item pembuktian M1 lainnya.
+
+## Fixing
+
+Tidak relevan: QA tidak menemukan bug, jadi tidak ada yang perlu diperbaiki. Alasan dicatat di `docs/decision-log.md` `[QA M1]`.

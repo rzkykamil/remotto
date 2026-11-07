@@ -12,16 +12,16 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 
 ## M1 Pairing & Koneksi
 
-- [ ] [O] Token 64 hex dibuat saat first run
-- [ ] [O] BR-1: semua route menolak tanpa token
-- [ ] [O] BR-2: token salah format dan salah nilai → 401
-- [ ] [O] BR-11: token tidak ada di log dan respons
-- [ ] [O] BR-12: IP sumber publik → 403; app menolak host publik
-- [ ] [O] QR tidak valid: bukan JSON, `v` salah, token salah format, host publik
-- [ ] [O] Config rusak → config baru + cadangan; config lebih baru → agent menolak start
-- [ ] [O] BR-8: satu gagal tetap online, dua gagal offline
-- [ ] [O] BR-9: 401 → Q12, data lama dipertahankan
-- [ ] [O] Polling tidak menumpuk
+- [x] [O] Token 64 hex dibuat saat first run
+- [x] [O] BR-1: semua route menolak tanpa token
+- [x] [O] BR-2: token salah format dan salah nilai → 401
+- [x] [O] BR-11: token tidak ada di log dan respons
+- [x] [O] BR-12: IP sumber publik → 403; app menolak host publik
+- [x] [O] QR tidak valid: bukan JSON, `v` salah, token salah format, host publik
+- [x] [O] Config rusak → config baru + cadangan; config lebih baru → agent menolak start
+- [x] [O] BR-8: satu gagal tetap online, dua gagal offline
+- [x] [O] BR-9: 401 → Q12, data lama dipertahankan
+- [x] [O] Polling tidak menumpuk
 - [ ] [M] Scan QR, firewall, offline → online
 
 ## M2 Kontrol Media

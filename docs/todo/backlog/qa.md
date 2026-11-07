@@ -8,7 +8,8 @@ Belum ada temuan.
 
 ## M1 Pairing & Koneksi
 
-Belum ada temuan.
+- `go test -race` belum bisa dijalankan lokal karena gcc dan CGO tidak ada. Jalankan di CI atau mesin ber-gcc (`agent/internal/server`, `agent/internal/pairing`).
+- Sisi log app untuk BR-11 belum teruji karena app belum punya logger. Ditunda ke M6 (lihat `docs/todo/backlog/integration.md`).
 
 ## M2 Kontrol Media
 
