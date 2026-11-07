@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto D1 — Fondasi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#B5420F}a:hover{color:#8A320B}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1880px; box-sizing: border-box; padding: 64px; background: #F2EFEA; color: #1C1A17; font-family: Geist, system-ui, sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #6B645A">PERSONALITY</div>
+<div style="font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em">Kaca hangat di atas cahaya lampu kamar: lapisan bening yang tenang, satu bola oranye yang bilang "ini yang penting".</div>
+<div style="font-size: 14px; line-height: 1.55; color: #4A453E">Arah: <b>"Warm Liquid Glass"</b> (revisi atas permintaan, menggantikan "tombol berbobot"). Semua kontrol jadi kapsul kaca di atas latar netral hangat dengan dua sumber cahaya oranye/amber yang redup — bukan gradient ungu-biru. Tombol play = kaca ber-tint oranye. Angka volume mono raksasa jadi pusat layar. Aksen oranye dipilih karena hijau limau bentrok dengan hijau "online" dan oranye tetap hangat di kamar gelap.</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #6B645A">PRINSIP (BISA DIUJI)</div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45">
+<div><b>1 · Satu ketukan, satu hasil.</b> Media & volume nggak pernah butuh dialog atau scroll.</div>
+<div><b>2 · Jempol dulu.</b> Aksi tersering di 45% bawah layar; daya di atas, di luar jangkauan.</div>
+<div><b>3 · Oranye cuma satu tempat.</b> Maks satu elemen ber-aksen penuh per layar (play / CTA utama).</div>
+<div><b>4 · Bahaya muncul saat perlu.</b> Merah hanya di sheet konfirmasi & hitung mundur, nggak pernah di Remote.</div>
+<div><b>5 · Status nggak cuma warna.</b> Tiap state punya ikon + teks; disabled juga dijelaskan.</div>
+<div><b>6 · Kaca nggak boleh ngorbanin baca.</b> Teks di atas kaca lulus 4.5:1 di titik cahaya paling terang; ada fallback solid (reduce transparency / HP lemah).</div>
+<div><b>7 · Terasa ditekan.</b> Kapsul mengecil 6% + makin terang saat ditekan, haptic &lt;100 ms.</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #6B645A">ANTI-PATTERN</div>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45">
+<div>✕ Gradient ungu-biru, neon, blob warna-warni yang mencolok</div>
+<div>✕ Kaca di atas kaca di atas kaca (maks 1 lapis blur per area)</div>
+<div>✕ Teks tipis abu di atas kaca terang — wajib cek kontras</div>
+<div>✕ Tampilan Material default (FAB, ripple ungu, AppBar standar)</div>
+<div>✕ Skeuomorph 2010: tekstur logam/kulit, bevel mengkilap</div>
+<div>✕ Tombol shutdown di zona jempol atau di sebelah play</div>
+<div>✕ Merah di layar utama "biar keliatan bahaya"</div>
+<div>✕ Copy kaku ("Perangkat berhasil terautentikasi")</div>
+<div>✕ Spinner kosong tanpa teks; spacing/radius di luar skala</div>
+<div>✕ Putih murni di atas hitam murni di mode gelap</div>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 22px; font-weight: 600">Color tokens · semantic</h2><span style="font-size: 13px; color: #6B645A">Kontras = rasio WCAG dihitung dari hex terhadap bg.base (atau pasangan yang disebut). Belum diukur di perangkat.</span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 4px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #6B645A; margin-bottom: 8px">TERANG</div>
+<sc-for list="{{light}}" as="t" hint-placeholder-count="20">
+<div style="display: grid; grid-template-columns: 36px 190px 90px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 13px; padding: 3px 0">
+<span style="width: 36px; height: 24px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.12); background: {{t.hex}}"></span>
+<span style="font-family: 'Geist Mono', monospace">{{t.name}}</span>
+<span style="font-family: 'Geist Mono', monospace; color: #6B645A">{{t.hex}}</span>
+<span style="color: #4A453E">{{t.note}}</span>
+</div>
+</sc-for>
+</div>
+<div style="background: #1F1C19; border: 1px solid #36312B; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 4px; color: #ECE6DC">
+<div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #A39A8D; margin-bottom: 8px">GELAP</div>
+<sc-for list="{{dark}}" as="t" hint-placeholder-count="20">
+<div style="display: grid; grid-template-columns: 36px 190px 90px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 13px; padding: 3px 0">
+<span style="width: 36px; height: 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.14); background: {{t.hex}}"></span>
+<span style="font-family: 'Geist Mono', monospace">{{t.name}}</span>
+<span style="font-family: 'Geist Mono', monospace; color: #A39A8D">{{t.hex}}</span>
+<span style="color: #C9C1B5">{{t.note}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 600">Tipografi · Geist + Geist Mono</h2>
+<div style="font-size: 13px; color: #4A453E; line-height: 1.5">Geist untuk UI (lebar, tenang, bagus di ukuran kecil). Geist Mono untuk semua angka (volume, uptime, hitung mundur) — angka tabular, nggak goyang saat berubah. Fallback: Roboto / SF Pro, lalu monospace sistem. Lisensi SIL OFL 1.1 (perlu diverifikasi sebelum bundel).</div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 20px"><span style="width: 170px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A">display.countdown<br>Mono 120/600 · -3%</span><span style="font-family: 'Geist Mono', monospace; font-size: 120px; line-height: 1; font-weight: 600; letter-spacing: -0.03em">5</span><span style="width: 170px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A; margin-left: 40px">display.volume<br>Mono 72/600 · -3%</span><span style="font-family: 'Geist Mono', monospace; font-size: 72px; line-height: 1; font-weight: 600; letter-spacing: -0.03em">35<span style="font-size: 32px; color: #6B645A">%</span></span></div>
+<div style="display: flex; align-items: baseline; gap: 20px; border-top: 1px solid #E7E3DC; padding-top: 12px"><span style="width: 170px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A">title.lg · 24/30/600</span><span style="font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em">Yakin matiin laptop?</span></div>
+<div style="display: flex; align-items: baseline; gap: 20px"><span style="width: 170px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A">title.md · 18/24/600</span><span style="font-size: 18px; line-height: 24px; font-weight: 600">Laptop-Kamil</span></div>
+<div style="display: flex; align-items: baseline; gap: 20px"><span style="width: 170px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A">body · 16/24/400</span><span style="font-size: 16px; line-height: 24px">Laptop nggak kejangkau. Pastikan satu WiFi, lalu coba lagi.</span></div>
+<div style="display: flex; align-items: baseline; gap: 20px"><span style="width: 170px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A">label · 14/20/500</span><span style="font-size: 14px; line-height: 20px; font-weight: 500">Sleep · Matikan · Coba lagi</span></div>
+<div style="display: flex; align-items: baseline; gap: 20px"><span style="width: 170px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A">caption · Mono 12/16/500 · +6%</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.06em">NYAMBUNG · 3J 12M</span></div>
+</div>
+<div style="font-size: 13px; color: #4A453E; line-height: 1.5">Teks sistem diperbesar: semua teks ikut <span style="font-family: 'Geist Mono', monospace">textScaler</span>; display.volume & display.countdown dikunci maks 1,3× biar tata letak nggak pecah; label tombol boleh membungkus 2 baris.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 600">Bentuk & ukuran</h2>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; font-size: 13px">
+<div><div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A; margin-bottom: 8px">SPACING (dp) · basis 4</div>
+<div style="display: flex; align-items: flex-end; gap: 10px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 4px; height: 4px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">4</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 8px; height: 8px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">8</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 12px; height: 12px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">12</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 16px; height: 16px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">16</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 20px; height: 20px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">20</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 24px; height: 24px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">24</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 32px; height: 32px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">32</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 40px; height: 40px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">40</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 56px; height: 56px; background: #1C1A17"></span><span style="font-family: 'Geist Mono', monospace">56</span></div>
+</div></div>
+<div><div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A; margin-bottom: 8px">RADIUS (dp) · sengaja beda per peran</div>
+<div style="display: flex; gap: 14px; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 4px; align-items: center"><span style="width: 48px; height: 48px; border: 2px solid #1C1A17; border-radius: 6px"></span><span>xs 6 · chip</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; align-items: center"><span style="width: 48px; height: 48px; border: 2px solid #1C1A17; border-radius: 12px"></span><span>sm 12 · input</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; align-items: center"><span style="width: 48px; height: 48px; border: 2px solid #1C1A17; border-radius: 18px"></span><span>md 18 · tombol</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; align-items: center"><span style="width: 48px; height: 48px; border: 2px solid #1C1A17; border-radius: 28px 28px 6px 6px"></span><span>lg 28 · sheet</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; align-items: center"><span style="width: 48px; height: 48px; border: 2px solid #1C1A17; border-radius: 999px"></span><span>full · play</span></div>
+</div></div>
+<div><div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #6B645A; margin-bottom: 8px">LAPISAN KACA · di atas cahaya hangat</div>
+<div style="display: flex; gap: 14px; align-items: flex-end; padding: 16px; border-radius: 16px; background-color: #EDE7DF; background-image: radial-gradient(60% 90% at 85% 20%, rgba(255,106,43,0.30), transparent 70%), radial-gradient(60% 90% at 10% 90%, rgba(255,170,90,0.35), transparent 70%)">
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><span style="width: 64px; height: 44px; border-radius: 12px; background: rgba(28,26,23,0.07)"></span><span>g0 track</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><span style="width: 64px; height: 44px; border-radius: 999px; background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9)"></span><span>g1 chip</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><span style="width: 64px; height: 44px; border-radius: 16px; background: rgba(255,255,255,0.45); -webkit-backdrop-filter: blur(28px) saturate(170%); backdrop-filter: blur(28px) saturate(170%); border: 1px solid rgba(255,255,255,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 32px rgba(80,50,20,0.10)"></span><span>g2 kaca</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><span style="width: 64px; height: 44px; border-radius: 999px; background: linear-gradient(180deg, #FF9160, #FF6A2B); border: 1px solid rgba(255,255,255,0.35); box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.55), 0 10px 28px rgba(255,106,43,0.35)"></span><span>g3 tint aksen</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><span style="width: 64px; height: 44px; border-radius: 16px; background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 20px 48px rgba(80,50,20,0.18)"></span><span>g4 sheet</span></div>
+</div>
+<div style="margin-top: 8px; line-height: 1.5; color: #4A453E">Flutter: <span style="font-family: 'Geist Mono', monospace">BackdropFilter</span> + <span style="font-family: 'Geist Mono', monospace">ClipRRect</span> per panel, latar cahaya digambar statis. Maks ±6 area blur per layar. <b>Butuh pertimbangan implementasi</b>: uji performa di Android kelas bawah; fallback otomatis ke glass.solid.</div></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; line-height: 1.5; border-top: 1px solid #E7E3DC; padding-top: 12px">
+<span><b>Target</b> · play 96 · media 80 · kontrol 56 · daya 52 · min 48</span>
+<span><b>Margin layar</b> · 20 (≤360) · 24 (≥390)</span>
+<span><b>Zona jempol</b> · 45% bawah area aman</span>
+<span><b>Safe area</b> · konten di dalam padding sistem + 16 bawah</span>
+</div>
+</div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 600">Motion</h2>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; overflow: hidden; font-size: 13px">
+<sc-for list="{{motion}}" as="m" hint-placeholder-count="7">
+<div style="display: grid; grid-template-columns: 150px 110px minmax(0, 1fr); gap: 12px; padding: 9px 16px; border-bottom: 1px solid #E7E3DC"><span style="font-weight: 500">{{m.k}}</span><span style="font-family: 'Geist Mono', monospace">{{m.v}}</span><span style="color: #4A453E">{{m.n}}</span></div>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 600">Haptic</h2>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; overflow: hidden; font-size: 13px">
+<sc-for list="{{haptic}}" as="h" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: 200px 150px minmax(0, 1fr); gap: 12px; padding: 9px 16px; border-bottom: 1px solid #E7E3DC"><span style="font-weight: 500">{{h.k}}</span><span style="font-family: 'Geist Mono', monospace">{{h.v}}</span><span style="color: #4A453E">{{h.n}}</span></div>
+</sc-for>
+</div>
+<div style="font-size: 13px; color: #4A453E; line-height: 1.5">Ikon: set stroke 2 dp gaya Lucide (lisensi ISC, belum diverifikasi). Di prototype digambar inline sebagai referensi bentuk.</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1880}}'>
+class Component extends DCLogic {
+renderVals() {
+const light = [
+{ name: 'bg.base', hex: '#EDE7DF', note: 'latar di bawah kaca' },
+{ name: 'bg.glowA', hex: '#FF6A2B', note: 'cahaya kanan atas · alpha 22%' },
+{ name: 'bg.glowB', hex: '#FFAA5A', note: 'cahaya kiri bawah · alpha 30%' },
+{ name: 'glass.fill', hex: '#FFFFFF', note: 'alpha 45% · blur 28 · saturasi 170%' },
+{ name: 'glass.edge', hex: '#FFFFFF', note: 'alpha 75% · garis 1dp' },
+{ name: 'glass.chip', hex: '#FFFFFF', note: 'alpha 55% (tombol di dalam kaca, tanpa blur)' },
+{ name: 'glass.solid', hex: '#F7F3EE', note: 'fallback reduce transparency' },
+{ name: 'fg.primary', hex: '#1C1A17', note: '14.0:1 di kaca terburuk' },
+{ name: 'fg.secondary', hex: '#5A534A', note: '6.1:1 di kaca terburuk' },
+{ name: 'fg.disabled', hex: '#9C9489', note: '2.4:1 · selalu + teks penjelas' },
+{ name: 'slider.fill', hex: '#1C1A17', note: 'isi track volume' },
+{ name: 'accent.default', hex: '#FF6A2B', note: 'tint kaca tombol play' },
+{ name: 'accent.highlight', hex: '#FF9160', note: 'atas gradient play' },
+{ name: 'accent.on', hex: '#1C1A17', note: 'ikon di atas aksen · 6.1:1' },
+{ name: 'accent.text', hex: '#A33B0C', note: 'teks/link aksen · 5.3:1' },
+{ name: 'status.success', hex: '#246640', note: 'online · 5.6:1' },
+{ name: 'status.warning', hex: '#7A5200', note: 'menyambung · 5.6:1' },
+{ name: 'status.danger', hex: '#BF2A1B', note: 'hanya di konfirmasi (D2)' },
+{ name: 'status.onDanger', hex: '#FFFFFF', note: 'di atas danger · 5.9:1' }
+];
+const dark = [
+{ name: 'bg.base', hex: '#110F0D', note: 'bukan hitam murni' },
+{ name: 'bg.glowA', hex: '#F26A30', note: 'alpha 18% · redup buat kamar gelap' },
+{ name: 'bg.glowB', hex: '#AA501E', note: 'alpha 20%' },
+{ name: 'glass.fill', hex: '#FFFFFF', note: 'alpha 7% · blur 28 · saturasi 170%' },
+{ name: 'glass.edge', hex: '#FFFFFF', note: 'alpha 14% · garis 1dp' },
+{ name: 'glass.chip', hex: '#FFFFFF', note: 'alpha 8%' },
+{ name: 'glass.solid', hex: '#221E1B', note: 'fallback reduce transparency' },
+{ name: 'fg.primary', hex: '#F1EBE2', note: '10.4:1 di kaca terburuk' },
+{ name: 'fg.secondary', hex: '#BDB3A6', note: '6.0:1 di kaca terburuk' },
+{ name: 'fg.disabled', hex: '#6E665C', note: '2.2:1 · selalu + teks penjelas' },
+{ name: 'slider.fill', hex: '#E2D9CC', note: 'bukan putih murni · 8.8:1' },
+{ name: 'accent.default', hex: '#F26A30', note: 'tint kaca tombol play' },
+{ name: 'accent.highlight', hex: '#FF8A55', note: 'atas gradient play' },
+{ name: 'accent.on', hex: '#1A0F08', note: 'ikon di atas aksen · 6.2:1' },
+{ name: 'accent.text', hex: '#FF9A6A', note: 'teks/link aksen · 5.9:1' },
+{ name: 'status.success', hex: '#6FCB92', note: '6.2:1' },
+{ name: 'status.warning', hex: '#E8BE57', note: '7.0:1' },
+{ name: 'status.danger', hex: '#FF6F5E', note: 'hanya di konfirmasi (D2)' },
+{ name: 'status.onDanger', hex: '#1A0F08', note: 'di atas danger · 6.9:1' }
+];
+const motion = [
+{ k: 'press down', v: '90ms', n: 'easeOut · skala 0.94 + kaca makin opak' },
+{ k: 'press up', v: '180ms', n: 'spring ringan (overshoot kecil) · efek "cairan"' },
+{ k: 'slider', v: '0 / 120ms', n: 'ikuti jari langsung · snap balik bila gagal 120ms easeOut' },
+{ k: 'sheet open / close', v: '260 / 200ms', n: 'emphasizedDecelerate / accelerate' },
+{ k: 'push layar', v: '280ms', n: 'geser 24dp + fade, bukan slide penuh' },
+{ k: 'status pill', v: '180ms', n: 'crossfade label + warna titik' },
+{ k: 'hitung mundur', v: '5000ms', n: 'cincin linear, angka ganti tiap 1000ms' },
+{ k: 'reduced motion', v: '120ms fade', n: 'tanpa geser/skala; cincin jadi 5 segmen statis' },
+{ k: 'reduce transparency', v: '—', n: 'blur mati, kaca → glass.solid' }
+];
+const haptic = [
+{ k: 'Play / prev / next', v: 'lightImpact', n: 'saat jari turun' },
+{ k: 'Slider tiap 5%', v: 'selectionClick', n: 'detent terasa' },
+{ k: 'Slider di 0 / 100', v: 'mediumImpact', n: 'mentok' },
+{ k: 'Mute / −/+', v: 'lightImpact', n: '' },
+{ k: 'Tahan konfirmasi selesai', v: 'heavyImpact', n: 'pembeda kuat' },
+{ k: 'Gagal kirim', v: 'vibrate pendek', n: 'dibarengi snackbar' }
+];
+return { light, dark, motion, haptic };
+}
+}
+</script>
+</body>
+</html>

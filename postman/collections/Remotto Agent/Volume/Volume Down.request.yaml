@@ -1,0 +1,8 @@
+$kind: http-request
+name: Volume Down
+method: POST
+url: "{{baseUrl}}/volume/down"
+description: "Turun 5 poin dan mematikan mute. Tidak idempoten."
+order: 4000
+headers:
+  Authorization: Bearer {{token}}

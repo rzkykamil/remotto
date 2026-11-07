@@ -1,0 +1,8 @@
+name: Remotto Agent
+values:
+  - key: baseUrl
+    value: http://192.168.1.10:8765/api/v1
+    enabled: true
+  - key: token
+    value: ""
+    enabled: true

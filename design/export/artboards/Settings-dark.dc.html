@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto — Pengaturan gelap</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#FF9A6A}a:hover{color:#FFB48E}
+.glass{background:var(--gl);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);border:1px solid var(--glEdge);box-shadow:inset 0 1px 0 var(--glHi),inset 0 -1px 0 var(--glLo),0 12px 32px var(--glShadow)}
+.solid .glass{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--solid);box-shadow:none}
+.key{appearance:none;margin:0;padding:0 20px;font:inherit;color:var(--fg);background:var(--chip);border:1px solid var(--glEdge);box-shadow:inset 0 1px 0 var(--glHi);border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-size:16px;font-weight:600}
+.key.strong{background:var(--fg);color:var(--bg);border-color:transparent}
+.row{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 0}
+.cap{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--fg2);padding:0 4px}
+</style>
+</helmet>
+<div style="width: 1492px; box-sizing: border-box; padding: 64px; display: flex; flex-direction: column; gap: 48px; font-family: Geist, system-ui, sans-serif; background: {{c.page}}; color: {{c.pageFg}}; --bg: {{c.bg}}; --fg: {{c.fg}}; --fg2: {{c.fg2}}; --dis: {{c.dis}}; --gl: {{c.gl}}; --glEdge: {{c.glEdge}}; --glHi: {{c.glHi}}; --glLo: {{c.glLo}}; --glShadow: {{c.glShadow}}; --chip: {{c.chip}}; --solid: {{c.solid}}; --acc: {{c.acc}}; --onAcc: {{c.onAcc}}; --accText: {{c.accText}}; --ok: {{c.ok}}; --glowA: {{c.glowA}}; --glowB: {{c.glowB}}">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.08em; opacity: 0.7">D2 · BATCH 5 · SCR-020 / 021 PENGATURAN · {{themeLabel}} · 412 DP</div>
+<div style="font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Pengaturan: sedikit, jelas, nggak bikin bingung</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 64px">
+<sc-for list="{{states}}" as="it" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; min-height: 92px">
+<div style="display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600; color: {{c.pageAcc}}">{{it.id}}</span><span style="font-size: 18px; font-weight: 600">{{it.title}}</span></div>
+<div style="font-size: 13px; line-height: 1.45; opacity: 0.78">{{it.note}}</div>
+</div>
+
+<div class="{{it.cls}}" style="position: relative; width: 412px; height: 915px; border-radius: 44px; overflow: hidden; box-sizing: border-box; padding: 52px 24px 36px; display: flex; flex-direction: column; gap: 24px; color: var(--fg); background-color: var(--bg); background-image: {{it.bgImg}}; box-shadow: 0 0 0 1px {{c.frame}}">
+
+<div style="display: flex; align-items: center; gap: 12px"><button class="key glass" aria-label="Kembali ke remote" style="width: 48px; height: 48px; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span style="font-size: {{it.f.title}}px; font-weight: 600">Pengaturan</span></div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="cap">LAPTOP</span>
+<div class="glass" style="border-radius: 24px; padding: 4px 18px">
+<div class="row" style="align-items: flex-start; padding: 14px 0">
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: {{it.f.name}}px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere">{{it.name}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: {{it.f.small}}px; color: var(--fg2)">192.168.1.20:8765</span>
+</div>
+<span style="flex: 0 0 auto; display: flex; align-items: center; gap: 6px; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: {{it.statusCol}}; padding-top: 4px"><span style="width: 8px; height: 8px; border-radius: 999px; background: {{it.dotCol}}; border: {{it.dotBorder}}; box-sizing: border-box"></span>{{it.statusText}}</span>
+</div>
+<div class="row" style="border-top: {{c.line}}"><span style="flex: 1 1 auto; font-size: {{it.f.body}}px">Nyala sejak</span><span style="font-family: 'Geist Mono', monospace; font-size: {{it.f.body}}px; color: var(--fg2)">{{it.uptime}}</span></div>
+<div class="row" style="border-top: {{c.line}}"><button style="appearance: none; border: 0; background: none; padding: 0; font: inherit; flex: 1 1 auto; text-align: left; min-height: 48px; font-size: {{it.f.body}}px; font-weight: 600; color: var(--accText); cursor: pointer">Pairing ulang</button><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--fg2)"><path d="m9 18 6-6-6-6"/></svg></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="cap">TAMPILAN</span>
+<div class="glass" style="border-radius: 24px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: {{it.f.body}}px">Tema</span>
+<div role="radiogroup" aria-label="Tema" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: {{c.segTrack}}">
+<sc-for list="{{it.seg}}" as="s" hint-placeholder-count="3">
+<button role="radio" aria-checked="{{s.on}}" style="appearance: none; flex: 1 1 0; min-width: 0; min-height: 48px; border-radius: 999px; font: inherit; font-size: {{it.f.body}}px; font-weight: {{s.w}}; color: var(--fg); background: {{s.bg}}; border: {{s.border}}; box-shadow: {{s.shadow}}; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 4px 6px">
+<sc-if value="{{s.on}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></sc-if>{{s.t}}</button>
+</sc-for>
+</div>
+<div class="row" style="border-top: {{c.line}}; padding-top: 12px">
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px"><span style="font-size: {{it.f.body}}px">Getar saat ditekan</span><span style="font-size: {{it.f.small}}px; color: var(--fg2)">{{it.hapticNote}}</span></div>
+<button role="switch" aria-checked="{{it.haptic}}" aria-label="Getar saat ditekan" style="appearance: none; flex: 0 0 auto; position: relative; width: 60px; height: 36px; border-radius: 999px; padding: 0; cursor: pointer; background: {{it.swBg}}; border: 1px solid var(--glEdge)">
+<span style="position: absolute; top: 3px; left: {{it.swX}}px; width: 28px; height: 28px; border-radius: 999px; background: {{c.thumb}}; box-shadow: 0 2px 6px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; color: {{it.swIcon}}">
+<sc-if value="{{it.haptic}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></sc-if>
+<sc-if value="{{it.noHaptic}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></sc-if>
+</span>
+</button>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="cap">TENTANG</span>
+<div class="glass" style="border-radius: 24px; padding: 4px 18px">
+<div class="row"><span style="flex: 1 1 auto; font-size: {{it.f.body}}px">Versi</span><span style="font-family: 'Geist Mono', monospace; font-size: {{it.f.body}}px; color: var(--fg2)">1.0.0 (1)</span></div>
+<div class="row" style="border-top: {{c.line}}"><span style="flex: 1 1 auto; font-size: {{it.f.body}}px">Lisensi open source</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--fg2)"><path d="m9 18 6-6-6-6"/></svg></div>
+</div>
+</div>
+
+<sc-if value="{{it.sheet}}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: {{c.scrim}}"></div>
+<div role="dialog" aria-label="Pairing ulang?" style="position: absolute; left: 8px; right: 8px; bottom: 8px; border-radius: 36px; padding: 12px 24px 28px; background: {{c.sheet}}; -webkit-backdrop-filter: blur(32px); backdrop-filter: blur(32px); border: 1px solid var(--glEdge); box-shadow: inset 0 1px 0 var(--glHi); display: flex; flex-direction: column; gap: 20px">
+<div style="align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--fg2); opacity: 0.4"></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 24px; line-height: 30px; font-weight: 600">Pairing ulang?</div>
+<div style="font-size: 16px; line-height: 24px; color: var(--fg2)">Sambungan ke Laptop-Kamil bakal dihapus dari HP ini. Habis itu kamu perlu scan QR lagi.</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<button class="key strong" style="height: 56px">Hapus &amp; pairing ulang</button>
+<button class="key" style="height: 64px">Nggak jadi</button>
+</div>
+</div>
+</sc-if>
+
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":1492,"height":2400}}'>
+class Component extends DCLogic {
+renderVals() {
+const theme = this.props.theme ?? 'dark';
+const P = {
+light: { page: '#F2EFEA', pageFg: '#1C1A17', pageAcc: '#A33B0C', frame: 'rgba(28,26,23,0.12)', bg: '#EDE7DF', fg: '#1C1A17', fg2: '#5A534A', dis: '#9C9489', gl: 'rgba(255,255,255,0.45)', glEdge: 'rgba(255,255,255,0.75)', glHi: 'rgba(255,255,255,0.9)', glLo: 'rgba(60,40,20,0.06)', glShadow: 'rgba(80,50,20,0.10)', chip: 'rgba(255,255,255,0.6)', solid: '#F7F3EE', acc: '#FF6A2B', onAcc: '#1C1A17', accText: '#A33B0C', ok: '#246640', glowA: 'rgba(255,106,43,0.22)', glowB: 'rgba(255,170,90,0.30)', line: '1px solid rgba(28,26,23,0.08)', segTrack: 'rgba(28,26,23,0.06)', segOn: 'rgba(255,255,255,0.95)', thumb: '#FFFFFF', swOff: 'rgba(28,26,23,0.12)', scrim: 'rgba(28,20,14,0.38)', sheet: 'rgba(250,247,243,0.9)', solidBorder: '1px solid #D9D3C9' },
+dark: { page: '#0B0A09', pageFg: '#ECE6DC', pageAcc: '#FF9A6A', frame: 'rgba(255,255,255,0.10)', bg: '#110F0D', fg: '#F1EBE2', fg2: '#BDB3A6', dis: '#6E665C', gl: 'rgba(255,255,255,0.07)', glEdge: 'rgba(255,255,255,0.14)', glHi: 'rgba(255,255,255,0.20)', glLo: 'rgba(0,0,0,0.35)', glShadow: 'rgba(0,0,0,0.45)', chip: 'rgba(255,255,255,0.08)', solid: '#221E1B', acc: '#F26A30', onAcc: '#1A0F08', accText: '#FF9A6A', ok: '#6FCB92', glowA: 'rgba(242,106,48,0.18)', glowB: 'rgba(170,80,30,0.20)', line: '1px solid rgba(255,255,255,0.08)', segTrack: 'rgba(0,0,0,0.35)', segOn: 'rgba(255,255,255,0.16)', thumb: '#F1EBE2', swOff: 'rgba(255,255,255,0.12)', scrim: 'rgba(0,0,0,0.55)', sheet: 'rgba(34,30,27,0.88)', solidBorder: '1px solid #36312B' }
+};
+const c = P[theme] || P.dark;
+const glow = 'radial-gradient(90% 45% at 90% 18%, ' + c.glowA + ', transparent 70%), radial-gradient(90% 40% at 8% 92%, ' + c.glowB + ', transparent 70%)';
+const base = { name: 'Laptop-Kamil', themeSel: 'Sistem', haptic: true, scale: 1, offline: false, sheet: false, solid: false };
+const raw = [
+{ id: 'R01', title: 'Default', note: 'SCR-020. Push dari tombol pengaturan Remote; back = balik ke Remote. Tema default: Ikuti sistem. Perubahan langsung berlaku, tanpa tombol Simpan.' },
+{ id: 'R02', title: 'Tema gelap + getar mati', note: 'Segmented: yang aktif punya centang + tebal + permukaan terang (bukan cuma warna). Switch: posisi thumb + ikon centang/strip. Ganti tema = crossfade 200 ms.', themeSel: 'Gelap', haptic: false },
+{ id: 'R03', title: 'Teks 130% + nama panjang', note: 'Di sini nama laptop dibungkus penuh (bukan ellipsis). Baris tumbuh ke bawah; segmented tetap 3 kolom, label boleh 2 baris.', name: 'Laptop-Gaming-Kamil-ROG-Strix-G15', scale: 1.3 },
+{ id: 'R04', title: 'Konfirmasi pairing ulang', note: 'SCR-021. Sheet 1 tahap (data bisa didapat lagi lewat scan, jadi nggak pakai tahan). "Nggak jadi" paling besar. Lanjut → hapus token → Q01.', sheet: true },
+{ id: 'R05', title: 'Laptop offline', note: 'Info laptop tetap tampil dari data terakhir, status jelas. Semua pengaturan lokal tetap bisa dipakai. Pairing ulang tetap tersedia.', offline: true },
+{ id: 'R06', title: 'Reduce transparency', note: 'Setting aksesibilitas OS (atau HP lemah): semua kaca jadi permukaan solid glass.solid, latar cahaya dimatikan. Layout identik.', solid: true }
+];
+const opts = ['Terang', 'Gelap', 'Sistem'];
+const states = raw.map((o) => {
+const s = Object.assign({}, base, o);
+const k = s.scale;
+return Object.assign(s, {
+cls: s.solid ? 'solid' : '',
+bgImg: s.solid ? 'none' : glow,
+f: { title: Math.round(20 * k), name: Math.round(18 * k), body: Math.round(16 * k), small: Math.round(13 * k) },
+seg: opts.map((t) => { const on = t === s.themeSel; return { t, on, w: on ? 600 : 400, bg: on ? c.segOn : 'transparent', border: on ? (s.solid ? c.solidBorder : '1px solid ' + c.glEdge) : '1px solid transparent', shadow: on ? '0 2px 8px rgba(0,0,0,0.12)' : 'none' }; }),
+noHaptic: !s.haptic,
+hapticNote: s.haptic ? 'Nyala · kerasa saat tombol ditekan' : 'Mati',
+swBg: s.haptic ? c.acc : c.swOff,
+swX: s.haptic ? 27 : 3,
+swIcon: s.haptic ? c.acc : c.fg2,
+statusText: s.offline ? 'NGGAK KEJANGKAU' : 'NYAMBUNG',
+statusCol: s.offline ? c.fg2 : c.ok,
+dotCol: s.offline ? 'transparent' : c.ok,
+dotBorder: s.offline ? '2px solid ' + c.fg2 : 'none',
+uptime: s.offline ? '—' : '3j 12m'
+});
+});
+return { c, states, themeLabel: theme === 'dark' ? 'GELAP' : 'TERANG' };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+$kind: http-request
+name: Prev
+method: POST
+url: "{{baseUrl}}/media/prev"
+description: "Pindah ke lagu sebelumnya. Tidak idempoten."
+order: 3000
+headers:
+  Authorization: Bearer {{token}}

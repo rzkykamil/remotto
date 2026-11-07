@@ -1,0 +1,8 @@
+$kind: http-request
+name: Sleep
+method: POST
+url: "{{baseUrl}}/power/sleep"
+description: "PERINGATAN: akan benar-benar men-sleep laptop setelah 5 detik, panggil Cancel untuk batal."
+order: 1000
+headers:
+  Authorization: Bearer {{token}}

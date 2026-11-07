@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto D1 — Scope dan flow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#B5420F}a:hover{color:#8A320B}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1240px; box-sizing: border-box; padding: 64px; background: #F2EFEA; color: #1C1A17; font-family: Geist, system-ui, sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 12px; max-width: 760px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: #6B645A">REMOTTO · GATE D1 · DRAFT</div>
+<h1 style="margin: 0; font-size: 52px; line-height: 1.05; font-weight: 600; letter-spacing: -0.02em">Remote pribadi buat laptop Windows, dipakai sambil rebahan.</h1>
+<p style="margin: 0; font-size: 17px; line-height: 1.5; color: #4A453E">Satu pengguna, satu laptop, WiFi yang sama. HP kirim perintah ke agent kecil di laptop. Sukses = media dan volume bisa satu tangan, satu ketukan, tanpa baca; shutdown mustahil kepencet; status online/offline selalu jelas.</p>
+</div>
+<div style="display: flex; gap: 12px">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 16px 20px; width: 170px"><div style="font-family: 'Geist Mono', monospace; font-size: 28px; font-weight: 600; color: #B5420F">01</div><div style="font-size: 14px; margin-top: 4px">Play/pause + next/prev</div></div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 16px 20px; width: 170px"><div style="font-family: 'Geist Mono', monospace; font-size: 28px; font-weight: 600; color: #B5420F">02</div><div style="font-size: 14px; margin-top: 4px">Volume naik/turun + mute</div></div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 16px 20px; width: 170px"><div style="font-family: 'Geist Mono', monospace; font-size: 28px; font-weight: 600; color: #B5420F">03</div><div style="font-size: 14px; margin-top: 4px">Sleep / restart / shutdown aman</div></div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px">
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 600">Navigasi</h2>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 14px; font-size: 15px">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<span style="background: #E7E3DC; border-radius: 8px; padding: 6px 10px; font-weight: 500">Pairing (first-run)</span>
+<span style="color: #6B645A">→ berhasil →</span>
+<span style="background: #1C1A17; color: #F2EFEA; border-radius: 8px; padding: 6px 10px; font-weight: 600">Remote (home)</span>
+<span style="color: #6B645A">⇄ push ⇄</span>
+<span style="background: #E7E3DC; border-radius: 8px; padding: 6px 10px; font-weight: 500">Pengaturan</span>
+</div>
+<div style="color: #4A453E; line-height: 1.55">Di atas Remote: bottom sheet <b>Sleep</b>, sheet <b>Restart</b> / <b>Matikan</b> (tahap 1 → tahap 2), layar <b>Hitung mundur</b> (full-screen, modal). Snackbar untuk gagal kirim / dibatalkan.<br>Token ditolak (401) dari mana pun → balik ke Pairing dengan pesan. Back sistem di Remote = keluar app; di sheet = tutup sheet; di hitung mundur = <b>Batal</b>.</div>
+</div>
+
+<h2 style="margin: 8px 0 0; font-size: 22px; font-weight: 600">Flow utama + pemulihan</h2>
+<div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.5">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 16px 20px"><b>(a) Pairing pertama.</b> Buka app → minta izin kamera → scan QR dari agent → tes koneksi ("Lagi nyambung…") → simpan → Remote. <span style="color: #6B645A">Pulih: izin ditolak → tombol "Buka pengaturan" + "Isi manual"; QR bukan Remotto → "QR-nya bukan dari Remotto"; timeout → "Coba lagi"; token ditolak → scan ulang.</span></div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 16px 20px"><b>(b) Harian.</b> Buka → status pill "Nyambung" → tap play/pause, geser volume, tap mute. Tombol beri respons instan (pressed + haptic), angka volume update saat ditarik. <span style="color: #6B645A">Pulih: perintah gagal → snackbar "Gagal kirim" + "Ulangi"; slider gagal → nilai balik ke nilai laptop.</span></div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 16px 20px"><b>(c) Shutdown / Restart.</b> Tap "Matikan" atau "Restart" (atas, kecil) → sheet tahap 1 "Yakin matiin?" → tahap 2 tahan tombol 1,2 dtk → hitung mundur 5 dtk dengan "Batal" besar → terkirim. <span style="color: #6B645A">Pulih: Batal kapan pun dalam 5 dtk → "Nggak jadi dimatiin".</span></div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; padding: 16px 20px"><b>(d) Offline → online.</b> 2 polling gagal → pill "Nggak kejangkau", semua kontrol nonaktif, panel "Coba lagi" + "Pairing ulang". Polling jalan terus; begitu balik → pill "Nyambung lagi" 2 dtk → normal.</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 600">Inventaris screen</h2>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 14px; overflow: hidden; font-size: 13px">
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; background: #E7E3DC; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #4A453E"><span>ID</span><span>MODUL</span><span>STATE UTAMA</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-001</span><span>Pairing</span><span>Scan QR: izin belum, ditolak permanen, scanning, QR tidak valid</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-002</span><span>Pairing</span><span>Input manual IP + token: kosong, format salah, siap</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-003</span><span>Pairing</span><span>Tes koneksi: menyambung, berhasil, timeout, token ditolak</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC; background: #FFF1E9"><span style="font-family: 'Geist Mono', monospace; font-weight: 600">SCR-010</span><span style="font-weight: 600">Remote</span><span>online, menyambung, offline, perintah diproses, gagal kirim, mute, vol 0/100, slider ditarik <b>· draft di D1</b></span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-011</span><span>Konfirmasi daya</span><span>Sheet Sleep: konfirmasi, gagal</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-012</span><span>Konfirmasi daya</span><span>Sheet Matikan &amp; Restart: tahap 1, tahap 2 (tahan), dilepas terlalu cepat</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-013</span><span>Konfirmasi daya</span><span>Hitung mundur 5 dtk: berjalan, dibatalkan, terkirim, gagal (sleep, restart, shutdown)</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-020</span><span>Pengaturan</span><span>Info laptop, tema (Terang/Gelap/Sistem), haptic on/off, versi</span></div>
+<div style="display: grid; grid-template-columns: 84px 132px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-top: 1px solid #E7E3DC"><span style="font-family: 'Geist Mono', monospace">SCR-021</span><span>Pengaturan</span><span>Dialog pairing ulang: konfirmasi, batal</span></div>
+</div>
+
+<h2 style="margin: 8px 0 0; font-size: 22px; font-weight: 600">Keputusan terbuka</h2>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="display: flex; gap: 10px"><span style="font-family: 'Geist Mono', monospace; color: #B5420F; font-weight: 600">Q1</span><span>Tahap 2 shutdown: <b>tahan 1,2 dtk</b> (usulan) atau tap kedua? Tahan lebih aman di kasur, tapi butuh alternatif buat screen reader (double-tap lalu tahan ala TalkBack / aksi Semantics).</span></div>
+<div style="display: flex; gap: 10px"><span style="font-family: 'Geist Mono', monospace; color: #B5420F; font-weight: 600">Q2</span><span>Delay 5 dtk dipegang <b>agent</b> (app kirim "jadwalkan", bisa "batal") atau <b>app</b> (baru kirim setelah 5 dtk)? Asumsi: agent, supaya batal tetap jalan walau app ditutup. Butuh endpoint cancel.</span></div>
+<div style="display: flex; gap: 10px"><span style="font-family: 'Geist Mono', monospace; color: #B5420F; font-weight: 600">Q3</span><span>Ambang offline: asumsi 2 polling gagal (±10 dtk) biar pill nggak kedip-kedip. Di antaranya state "Menyambung…".</span></div>
+</div>
+
+<h2 style="margin: 8px 0 0; font-size: 22px; font-weight: 600">Asumsi (bisa direvisi)</h2>
+<div style="font-size: 14px; line-height: 1.6; color: #4A453E"><b style="color: #1C1A17">Penyimpangan dari brief (disetujui):</b> arah visual jadi Liquid Glass (brief awal: hindari glassmorphism); Restart masuk scope Konfirmasi daya, perlakuannya sama dengan shutdown. · Haptic default on · Uptime tampil kecil di pill status · Volume step −/+ = 5% · Sleep juga lewat hitung mundur 5 dtk (sesuai aturan bisnis), tapi cuma 1 konfirmasi · Kontrol media "fire and forget": nggak ada now-playing, jadi ikon play/pause = toggle, bukan status asli laptop.</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

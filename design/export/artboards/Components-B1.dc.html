@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto — Komponen batch 1</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#A33B0C}a:hover{color:#7E2D08}
+</style>
+</helmet>
+<div style="width: 1440px; box-sizing: border-box; padding: 64px; background: #F2EFEA; color: #1C1A17; font-family: Geist, system-ui, sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: #5A534A">D2 · BATCH 1 · KOMPONEN &amp; PERILAKU</div>
+<div style="font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Yang dipakai layar Remote, plus kontraknya</div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 32px">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 20px; font-weight: 600">Rencana batch D2</div>
+<sc-for list="{{batches}}" as="b" hint-placeholder-count="5">
+<div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 120px; gap: 12px; align-items: baseline; font-size: 14px; line-height: 1.45; padding: 6px 0; border-top: 1px solid #E7E3DC">
+<span style="font-family: 'Geist Mono', monospace; font-weight: 600; color: #A33B0C">{{b.id}}</span>
+<span><b>{{b.name}}</b> · {{b.scr}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #5A534A">{{b.status}}</span>
+</div>
+</sc-for>
+</div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 600">Matriks state SCR-010 · Remote</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 13px">
+<sc-for list="{{matrix}}" as="m" hint-placeholder-count="14">
+<div style="display: flex; gap: 8px; align-items: baseline; padding: 8px 10px; border-radius: 10px; background: #F2EFEA"><span style="font-family: 'Geist Mono', monospace; font-weight: 600">{{m.id}}</span><span style="flex: 1 1 auto">{{m.t}}</span></div>
+</sc-for>
+</div>
+<div style="font-size: 13px; line-height: 1.5; color: #5A534A">Semua S01–S12: <b style="color: #1C1A17">disetujui</b> · representasi: screen lengkap (statis) di terang &amp; gelap, 412 dp · versi interaktif: SCR-010 (D1, sudah diperbarui) · 360 dp: aturan layout di C10, artboard 360 di baris D1.</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="font-size: 22px; font-weight: 600">Spesifikasi komponen</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<sc-for list="{{comps}}" as="k" hint-placeholder-count="10">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap"><span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600; color: #A33B0C">{{k.id}}</span><span style="font-size: 18px; font-weight: 600">{{k.name}}</span><sc-if value="{{k.manual}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 6px; border: 1.5px solid #7A5200; color: #7A5200">A11Y MANUAL + UJI DEVICE</span></sc-if></div>
+<div style="font-size: 14px; line-height: 1.45; color: #3D3832">{{k.purpose}}</div>
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 6px 12px; font-size: 13px; line-height: 1.5">
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">ANATOMI</span><span>{{k.anatomy}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">VARIANT/UKURAN</span><span>{{k.variant}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">STATE</span><span>{{k.states}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">TOKEN</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px">{{k.tokens}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">PERILAKU</span><span>{{k.behavior}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">SEMANTICS</span><span>{{k.sem}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">FLUTTER</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px">{{k.flutter}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="font-size: 20px; font-weight: 600">Aturan koneksi (berlaku di semua layar)</div>
+<div>Polling status tiap 5 dtk · 1× gagal = tetap tampil terakhir · 2× gagal berturut = S10 Offline.</div>
+<div>Perintah: timeout 3 dtk → S04 / S06. Nggak ada retry otomatis untuk perintah media (biar lagu nggak ke-skip dua kali); volume boleh retry 1× diam-diam.</div>
+<div>401 token ditolak dari perintah apa pun → langsung ke Pairing dengan pesan "Token-nya udah nggak berlaku, pairing ulang ya" (dirancang di B3).</div>
+<div>App balik ke foreground → polling langsung sekali, state S02 maks 2 dtk.</div>
+</div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="font-size: 20px; font-weight: 600">Isu terbuka &amp; penyimpangan D1</div>
+<div><b>Penyimpangan (perlu oke):</b> ukuran play 104→96 dp dan dock media jadi satu kapsul kaca (sudah di D1 revisi glass). Belum ada perubahan lain.</div>
+<div><b>Diputuskan:</b> prev/next kedip ikon 1× (240 ms) + haptic sebagai umpan balik. Play 96 dp + dock kaca disetujui.</div>
+<div><b>Terbuka:</b> uptime di pill update tiap polling (5 dtk) — format "3j 12m", menit dibulatkan ke bawah.</div>
+<div><b>Belum diverifikasi:</b> kontras di atas kaca di HP nyata, performa blur Android, ukuran slider terasa di 360 dp.</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3000}}'>
+class Component extends DCLogic {
+renderVals() {
+const batches = [
+{ id: 'B1', name: 'Remote harian', scr: 'SCR-010 · S01–S12', status: 'DISETUJUI' },
+{ id: 'B2', name: 'Konfirmasi daya', scr: 'SCR-011/012/013 · sleep, restart, shutdown, hitung mundur', status: 'DISETUJUI' },
+{ id: 'B3', name: 'Pairing', scr: 'SCR-001/002/003 · kamera, QR, manual, tes koneksi', status: 'SIAP DIREVIEW' },
+{ id: 'B4', name: 'Offline & error lintas layar', scr: 'token ditolak, timeout pairing, izin kamera', status: 'SIAP DIREVIEW' },
+{ id: 'B5', name: 'Pengaturan', scr: 'SCR-020/021 · tema, haptic, pairing ulang', status: 'SIAP DIREVIEW' }
+];
+const matrix = [
+{ id: 'S01', t: 'Terhubung' }, { id: 'S02', t: 'Menyambung' }, { id: 'S03', t: 'Perintah diproses' },
+{ id: 'S04', t: 'Gagal kirim' }, { id: 'S05', t: 'Slider ditarik' }, { id: 'S06', t: 'Slider gagal' },
+{ id: 'S07', t: 'Mute aktif' }, { id: 'S08', t: 'Volume 0' }, { id: 'S09', t: 'Volume 100' },
+{ id: 'S10', t: 'Offline' }, { id: 'S11', t: 'Nyambung lagi' }, { id: 'S12', t: 'Teks 130% + nama panjang' }
+];
+const comps = [
+{ id: 'C01', name: 'GlassPanel', manual: false, purpose: 'Permukaan kaca untuk panel volume, dock media, pill, toast.', anatomy: 'clip radius → blur latar → isi tint → garis tepi 1 dp → highlight dalam atas → bayangan lembut.', variant: 'panel (radius 32), dock (full), pill (full, 28 tinggi), toast (radius 20, tint lebih opak).', states: 'default · reduce transparency (solid) · low-end fallback (solid, tanpa blur).', tokens: 'glass.fill · glass.edge · glass.highlight · glass.shadow · glass.solid · radius.panel', behavior: 'Maks 1 lapis blur per area; tombol di dalam panel pakai C02 chip (tanpa blur sendiri).', sem: 'Container (bukan tombol). Panel volume = grup "Volume", dock = grup "Media".', flutter: 'ClipRRect + BackdropFilter(ImageFilter.blur(28)) + DecoratedBox · ThemeExtension<GlassTokens>' },
+{ id: 'C02', name: 'GlassKey', manual: false, purpose: 'Tombol kapsul untuk daya, mute, −/+, pengaturan, prev/next.', anatomy: 'kapsul → ikon 17–22 → label opsional (Geist 14/500).', variant: 'glass (berdiri sendiri, blur) · chip (dalam panel) · ghost (dalam dock) · ukuran 48 / 52 / 56 / 80.', states: 'default · pressed (skala 0.94, tint lebih opak, 90 ms) · disabled (warna fg.disabled + alasan di layar) · focus (ring 3 dp accent.text).', tokens: 'glass.chip · glass.chipPressed · glass.chipDisabled · fg.* · motion.press', behavior: 'Trigger saat jari turun untuk haptic, aksi saat dilepas di dalam area. Label boleh 2 baris di teks besar.', sem: 'button + label aksi ("Volume naik 5"); mute = toggle (selected/pressed).', flutter: 'Custom widget atas GestureDetector + AnimatedScale; Semantics(button: true, toggled: …)' },
+{ id: 'C03', name: 'PlayKey', manual: true, purpose: 'Satu-satunya elemen aksen penuh. Play/pause toggle.', anatomy: 'lingkaran tint oranye (gradient atas→bawah) → ikon play/pause 36 → cincin proses (opsional).', variant: '96 dp (≥390) · 88 dp (360).', states: 'playing · paused · processing (cincin, >400 ms) · disabled · focus.', tokens: 'accent.default · accent.highlight · accent.on · accent.text (cincin) · size.play', behavior: 'Optimistic: ikon ganti saat tap; gagal → balik + toast. Tap kedua selama proses diabaikan. Haptic light.', sem: 'button "Putar" / "Jeda". Saat proses: hint "Ngirim ke laptop". Gagal diumumkan via toast.', flutter: 'Custom widget · state machine idle/sending/failed · HapticFeedback.lightImpact' },
+{ id: 'C04', name: 'VolumeSlider', manual: true, purpose: 'Atur volume 0–100 dengan satu tarikan, enak dipakai satu jempol.', anatomy: 'track kapsul 60 (68 saat ditarik) → isi slider.fill → handle 5×24 → tick tak terlihat tiap 5%.', variant: 'satu ukuran; lebar penuh panel.', states: 'idle · dragging · rollback (gagal) · muted (isi redup) · disabled (offline).', tokens: 'slider.fill · slider.track · fg.disabled · motion.slider · size.track', behavior: 'Tap di track = loncat ke nilai. Drag horizontal; drag vertikal diabaikan. Step 1, kirim throttle 100 ms + nilai akhir. Haptic selection tiap 5%, medium di 0/100. Geser saat mute = unmute. Offline saat drag: batalkan gesture, balik ke nilai terakhir.', sem: 'slider, value "35 persen", increase/decrease = ±5. Diumumkan hanya nilai akhir. Alternatif: tombol −/+ (C02).', flutter: 'Custom RenderBox / GestureDetector + Semantics(slider, onIncrease, onDecrease) — bukan Slider default' },
+{ id: 'C05', name: 'VolumeReadout', manual: false, purpose: 'Angka volume raksasa yang kebaca dari jauh di kamar gelap.', anatomy: 'angka Geist Mono 128/600 tabular → "%" 0.32× → hint 14.', variant: '128 (≥390) · 108 (360).', states: 'normal · dragging (accent.text) · muted/disabled (fg.secondary) · 0 / 100 dengan hint.', tokens: 'type.display.volume · fg.primary · fg.secondary · accent.text', behavior: 'textScaler dikunci maks 1.3 hanya untuk angka; hint ikut skala sistem.', sem: 'excludeSemantics (nilai sudah dibaca dari slider) supaya nggak dobel.', flutter: 'Text + FontFeature.tabularFigures() + MediaQuery.textScaler.clamp' },
+{ id: 'C06', name: 'StatusPill', manual: false, purpose: 'Status koneksi selalu kelihatan.', anatomy: 'kapsul kaca 28 → ikon/titik 8 → label caption mono.', variant: 'online (titik hijau + uptime) · back (centang, 2 dtk) · connecting (cincin kuning) · offline (ikon wifi coret, netral).', states: 'empat variant di atas; crossfade 180 ms.', tokens: 'status.success · status.warning · fg.secondary · type.caption', behavior: 'Bentuk ikon beda per state (nggak cuma warna). Offline sengaja nggak merah.', sem: 'liveRegion: umumkan saat berubah ("Laptop nggak kejangkau", "Laptop nyambung lagi"). Uptime nggak diumumkan.', flutter: 'AnimatedSwitcher · Semantics(liveRegion: true)' },
+{ id: 'C07', name: 'GlassToast', manual: true, purpose: 'Umpan balik singkat: gagal kirim, nyambung lagi.', anatomy: 'kaca radius 20 → ikon 18 → teks 14/500 → aksi teks opsional.', variant: 'error + aksi "Ulangi" (6 dtk) · info tanpa aksi (2,5 dtk).', states: 'masuk (fade+naik 8 dp, 200 ms) · diam · keluar · swipe-down untuk tutup.', tokens: 'glass.toast · accent.text · status.success · motion.toast', behavior: 'Satu toast sekaligus, yang baru mengganti. Posisi 12 dp di atas dock, nggak nutup kontrol utama. Waktu berhenti selama disentuh.', sem: 'liveRegion polite; aksi bisa difokus tapi fokus nggak dipindah otomatis.', flutter: 'Overlay custom (bukan SnackBar default) · Semantics(liveRegion)' },
+{ id: 'C08', name: 'OfflineContent', manual: false, purpose: 'Isi panel volume saat offline — layar nggak kosong dan jelas kenapa.', anatomy: 'ikon 40 → judul 20/600 → body 15 → "Coba lagi" (C02 chip) + "Pairing ulang" (link).', variant: 'satu.', states: 'default · sedang mencoba (tombol jadi "Nyoba…" + kontrol nonaktif).', tokens: 'fg.primary · fg.secondary · accent.text', behavior: '"Coba lagi" = polling langsung. "Pairing ulang" → dialog konfirmasi (B5) lalu Pairing.', sem: 'Judul = header; urutan fokus: judul → body → Coba lagi → Pairing ulang.', flutter: 'Column biasa dalam C01' },
+{ id: 'C09', name: 'PowerRow', manual: false, purpose: 'Masuk ke konfirmasi daya — sengaja di atas, jauh dari jempol.', anatomy: '3 × C02 glass 52 dp: Sleep · Restart · Matikan, jarak 10.', variant: 'satu.', states: 'default · disabled (offline/menyambung).', tokens: 'glass.* · fg.*', behavior: 'Tap = buka sheet (B2). Nggak ada aksi langsung; nggak ada warna bahaya di sini.', sem: 'button "Sleep laptop", "Restart laptop", "Matikan laptop".', flutter: 'Row + Expanded × 3' },
+{ id: 'C10', name: 'Layout Remote', manual: false, purpose: 'Aturan susunan supaya 360 dp & 412 dp sama-sama pas di jempol.', anatomy: 'header → PowerRow → GlassPanel volume (flex) → dock media.', variant: '360: margin 20, play 88, media 72, angka 108 · ≥390: margin 24, play 96, media 80, angka 128.', states: 'Tinggi layar pendek (<700): hint volume disembunyikan, angka turun ke 96.', tokens: 'space.screen · size.* · safeArea', behavior: 'Dock selalu di atas home indicator + 16 dp. Panel volume menyerap sisa tinggi, jadi tengah layar nggak pernah kosong.', sem: 'Urutan fokus: nama → status → pengaturan → daya → volume → media.', flutter: 'SafeArea + Column + Expanded(panel)' }
+];
+return { batches, matrix, comps };
+}
+}
+</script>
+</body>
+</html>

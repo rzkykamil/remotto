@@ -1,0 +1,8 @@
+$kind: http-request
+name: Next
+method: POST
+url: "{{baseUrl}}/media/next"
+description: "Pindah ke lagu berikutnya. Tidak idempoten."
+order: 2000
+headers:
+  Authorization: Bearer {{token}}

@@ -1,0 +1,8 @@
+$kind: http-request
+name: Get Status
+method: GET
+url: "{{baseUrl}}/status"
+description: "Membaca nama, versi, uptime, volume, dan jadwal daya (pending). Dipakai polling dan tes koneksi."
+order: 1000
+headers:
+  Authorization: Bearer {{token}}

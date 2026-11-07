@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto — Konfirmasi daya gelap</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#FF9A6A}a:hover{color:#FFB48E}
+.glass{background:var(--gl);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);border:1px solid var(--glEdge);box-shadow:inset 0 1px 0 var(--glHi),inset 0 -1px 0 var(--glLo),0 12px 32px var(--glShadow)}
+.key{appearance:none;margin:0;padding:0 20px;font:inherit;color:var(--fg);background:var(--chip);border:1px solid var(--glEdge);box-shadow:inset 0 1px 0 var(--glHi);border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-size:16px;font-weight:600}
+.key.strong{background:var(--fg);color:var(--bg);border-color:transparent}
+.key.danger{background:var(--danger);color:var(--onDanger);border-color:transparent}
+.key.dangerOutline{background:transparent;color:var(--dangerText);border:1.5px solid var(--dangerText);box-shadow:none}
+.ghostblk{background:var(--gl);border:1px solid var(--glEdge)}
+</style>
+</helmet>
+<div style="width: 1840px; box-sizing: border-box; padding: 64px; display: flex; flex-direction: column; gap: 48px; font-family: Geist, system-ui, sans-serif; background: {{c.page}}; color: {{c.pageFg}}; --bg: {{c.bg}}; --fg: {{c.fg}}; --fg2: {{c.fg2}}; --gl: {{c.gl}}; --glEdge: {{c.glEdge}}; --glHi: {{c.glHi}}; --glLo: {{c.glLo}}; --glShadow: {{c.glShadow}}; --chip: {{c.chip}}; --sheet: {{c.sheet}}; --track: {{c.track}}; --accText: {{c.accText}}; --ok: {{c.ok}}; --danger: {{c.danger}}; --onDanger: {{c.onDanger}}; --dangerText: {{c.dangerText}}; --dangerSoft: {{c.dangerSoft}}; --glowA: {{c.glowA}}; --glowB: {{c.glowB}}">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.08em; opacity: 0.7">D2 · BATCH 2 · SCR-011 / 012 / 013 KONFIRMASI DAYA · {{themeLabel}} · 412 DP</div>
+<div style="font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Sleep, restart, matikan — nggak mungkin kepencet</div>
+</div>
+<div style="font-size: 14px; line-height: 1.5; max-width: 600px; opacity: 0.8">Sleep: 1 konfirmasi → hitung mundur. Restart &amp; Matikan: tahap 1 (tap) → tahap 2 (tahan 1,2 dtk) → hitung mundur 5 dtk dengan Batal besar. Merah hanya muncul mulai tahap 2. Alur bisa dimainkan di artboard "Prototype daya".</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 64px">
+<sc-for list="{{states}}" as="it" hint-placeholder-count="12">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; min-height: 92px">
+<div style="display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600; color: {{c.pageAcc}}">{{it.id}}</span><span style="font-size: 18px; font-weight: 600">{{it.title}}</span></div>
+<div style="font-size: 13px; line-height: 1.45; opacity: 0.78">{{it.note}}</div>
+</div>
+
+<div style="position: relative; width: 412px; height: 915px; border-radius: 44px; overflow: hidden; color: var(--fg); background-color: var(--bg); background-image: radial-gradient(90% 45% at 90% 18%, var(--glowA), transparent 70%), radial-gradient(90% 40% at 8% 92%, var(--glowB), transparent 70%); box-shadow: 0 0 0 1px {{c.frame}}">
+
+<sc-if value="{{it.showGhost}}" hint-placeholder-val="{{ true }}">
+<div aria-hidden="true" style="position: absolute; inset: 0; padding: 52px 24px 36px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+<div style="display: flex; justify-content: space-between"><div style="display: flex; flex-direction: column; gap: 8px"><div style="font-size: 22px; font-weight: 600">Laptop-Kamil</div><div class="ghostblk" style="width: 170px; height: 28px; border-radius: 999px"></div></div><div class="ghostblk" style="width: 48px; height: 48px; border-radius: 999px"></div></div>
+<div style="display: flex; gap: 10px"><div class="ghostblk" style="flex: 1; height: 52px; border-radius: 999px"></div><div class="ghostblk" style="flex: 1; height: 52px; border-radius: 999px"></div><div class="ghostblk" style="flex: 1; height: 52px; border-radius: 999px"></div></div>
+<div class="ghostblk" style="flex: 1; border-radius: 32px; display: flex; align-items: center; justify-content: center"><span style="font-family: 'Geist Mono', monospace; font-size: 128px; font-weight: 600; letter-spacing: -0.04em; opacity: 0.9">35<span style="font-size: 0.32em">%</span></span></div>
+<div class="ghostblk" style="height: 112px; border-radius: 999px"></div>
+</div>
+</sc-if>
+<sc-if value="{{it.scrim}}" hint-placeholder-val="{{ true }}"><div style="position: absolute; inset: 0; background: {{c.scrim}}"></div></sc-if>
+
+<sc-if value="{{it.isSheet}}" hint-placeholder-val="{{ true }}">
+<div role="dialog" aria-label="{{it.s.title}}" style="position: absolute; left: 8px; right: 8px; bottom: 8px; border-radius: 36px; padding: 12px 24px 28px; background: var(--sheet); -webkit-backdrop-filter: blur(32px) saturate(170%); backdrop-filter: blur(32px) saturate(170%); border: 1px solid var(--glEdge); box-shadow: inset 0 1px 0 var(--glHi), 0 -20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 20px">
+<div style="align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--fg2); opacity: 0.4"></div>
+<div style="display: flex; justify-content: space-between; align-items: center">
+<div style="width: 56px; height: 56px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: {{it.s.iconBg}}; color: {{it.s.iconFg}}"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.s.icon}}"/><path d="{{it.s.icon2}}"/></svg></div>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--fg2)">{{it.s.step}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em">{{it.s.title}}</div>
+<div style="font-size: 16px; line-height: 24px; color: var(--fg2)">{{it.s.body}}</div>
+</div>
+
+<sc-if value="{{it.s.isTwo}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px">
+<button class="key {{it.s.topCls}}" style="height: 56px">{{it.s.top}}</button>
+<button class="key" style="height: 64px">Nggak jadi</button>
+</div>
+</sc-if>
+
+<sc-if value="{{it.s.isHold}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px">
+<button class="key" aria-label="{{it.s.holdLabel}}, tahan 1,2 detik" style="position: relative; height: 72px; overflow: hidden; background: var(--dangerSoft); color: var(--dangerText); border: 1.5px solid var(--dangerText); box-shadow: none">
+<span aria-hidden="true" style="position: absolute; left: 0; top: 0; bottom: 0; width: {{it.s.pct}}%; background: var(--danger)"></span>
+<span style="position: relative; display: flex; align-items: center; gap: 10px; color: {{it.s.holdFg}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>{{it.s.holdLabel}}</span>
+</button>
+<div style="text-align: center; font-size: 14px; line-height: 20px; font-weight: {{it.s.hintW}}; color: {{it.s.hintColor}}">{{it.s.hint}}</div>
+<button class="key" style="height: 56px">Nggak jadi</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{it.isCount}}" hint-placeholder-val="{{ false }}">
+<div role="alertdialog" aria-label="{{it.k.label}}" style="position: absolute; inset: 0; padding: 72px 24px 36px; display: flex; flex-direction: column; align-items: center; gap: 24px; box-sizing: border-box; background: {{c.countBg}}">
+<div style="font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--fg2)">LAPTOP-KAMIL</div>
+<div style="font-size: 24px; line-height: 30px; font-weight: 600; text-align: center">{{it.k.label}}</div>
+<div style="flex: 1 1 auto; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{it.k.ring}}" hint-placeholder-val="{{ true }}">
+<div style="width: 260px; height: 260px; border-radius: 999px; background: conic-gradient(var(--danger) {{it.k.deg}}deg, var(--track) 0); display: flex; align-items: center; justify-content: center">
+<div style="width: 236px; height: 236px; border-radius: 999px; background: {{c.countInner}}; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 120px; font-weight: 600; letter-spacing: -0.03em">{{it.k.n}}</div>
+</div>
+</sc-if>
+<sc-if value="{{it.k.seg}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 24px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 120px; line-height: 1; font-weight: 600; letter-spacing: -0.03em">{{it.k.n}}</div>
+<div style="display: flex; gap: 8px"><sc-for list="{{it.k.segs}}" as="g" hint-placeholder-count="5"><span style="width: 40px; height: 8px; border-radius: 4px; background: {{g.col}}"></span></sc-for></div>
+</div>
+</sc-if>
+</div>
+<sc-if value="{{it.k.warn}}" hint-placeholder-val="{{ false }}">
+<div style="width: 100%; box-sizing: border-box; border-radius: 20px; padding: 14px 16px; background: var(--dangerSoft); border: 1.5px solid var(--dangerText); font-size: 15px; line-height: 22px; font-weight: 500; color: var(--fg)">Batal nggak sampai ke laptop. Tekan lagi sekarang.</div>
+</sc-if>
+<div style="font-size: 15px; line-height: 22px; color: var(--fg2); text-align: center">{{it.k.sub}}</div>
+<button class="key strong" style="width: 100%; height: 80px; font-size: 20px">{{it.k.cancel}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{it.isDone}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; padding: 72px 24px 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; box-sizing: border-box; text-align: center; background: {{c.countBg}}">
+<div style="width: 80px; height: 80px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: {{it.d.iconBg}}; color: {{it.d.iconFg}}"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{it.d.icon}}"/></svg></div>
+<div style="font-size: 24px; line-height: 30px; font-weight: 600">{{it.d.title}}</div>
+<div style="font-size: 16px; line-height: 24px; color: var(--fg2); max-width: 300px">{{it.d.body}}</div>
+<div style="flex: 0 0 24px"></div>
+<button class="key {{it.d.primaryCls}}" style="width: 100%; height: 64px">{{it.d.primary}}</button>
+<sc-if value="{{it.d.hasSecondary}}" hint-placeholder-val="{{ false }}"><button class="key" style="width: 100%; height: 56px">Tutup</button></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{it.hasToast}}" hint-placeholder-val="{{ false }}">
+<div class="glass" role="status" style="position: absolute; left: 24px; right: 24px; bottom: 164px; min-height: 56px; border-radius: 20px; padding: 4px 16px; display: flex; align-items: center; gap: 10px; background: {{c.toast}}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--ok)"><path d="M20 6 9 17l-5-5"/></svg>
+<span style="font-size: 14px; line-height: 20px; font-weight: 500">{{it.toast}}</span>
+</div>
+</sc-if>
+
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":1840,"height":3480}}'>
+class Component extends DCLogic {
+renderVals() {
+const theme = this.props.theme ?? 'dark';
+const P = {
+light: { page: '#F2EFEA', pageFg: '#1C1A17', pageAcc: '#A33B0C', frame: 'rgba(28,26,23,0.12)', toast: 'rgba(255,255,255,0.8)', scrim: 'rgba(28,20,14,0.38)', sheet: 'rgba(250,247,243,0.88)', countBg: 'rgba(237,231,223,0.94)', countInner: '#F3EEE8', bg: '#EDE7DF', fg: '#1C1A17', fg2: '#5A534A', gl: 'rgba(255,255,255,0.45)', glEdge: 'rgba(255,255,255,0.75)', glHi: 'rgba(255,255,255,0.9)', glLo: 'rgba(60,40,20,0.06)', glShadow: 'rgba(80,50,20,0.10)', chip: 'rgba(255,255,255,0.6)', track: 'rgba(28,26,23,0.10)', accText: '#A33B0C', ok: '#246640', danger: '#BF2A1B', onDanger: '#FFFFFF', dangerText: '#A82416', dangerSoft: 'rgba(191,42,27,0.08)', neutralIcon: 'rgba(28,26,23,0.08)', glowA: 'rgba(255,106,43,0.22)', glowB: 'rgba(255,170,90,0.30)' },
+dark: { page: '#0B0A09', pageFg: '#ECE6DC', pageAcc: '#FF9A6A', frame: 'rgba(255,255,255,0.10)', toast: 'rgba(40,35,31,0.82)', scrim: 'rgba(0,0,0,0.55)', sheet: 'rgba(34,30,27,0.86)', countBg: 'rgba(17,15,13,0.94)', countInner: '#171412', bg: '#110F0D', fg: '#F1EBE2', fg2: '#BDB3A6', gl: 'rgba(255,255,255,0.07)', glEdge: 'rgba(255,255,255,0.14)', glHi: 'rgba(255,255,255,0.20)', glLo: 'rgba(0,0,0,0.35)', glShadow: 'rgba(0,0,0,0.45)', chip: 'rgba(255,255,255,0.10)', track: 'rgba(255,255,255,0.08)', accText: '#FF9A6A', ok: '#6FCB92', danger: '#FF6F5E', onDanger: '#1A0F08', dangerText: '#FF8A7C', dangerSoft: 'rgba(255,111,94,0.10)', neutralIcon: 'rgba(255,255,255,0.10)', glowA: 'rgba(242,106,48,0.18)', glowB: 'rgba(170,80,30,0.20)' }
+};
+const c = P[theme] || P.dark;
+const I = {
+moon: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
+p1: 'M12 2v10', p2: 'M18.4 6.6a9 9 0 1 1-12.77.04',
+r1: 'M3 12a9 9 0 1 0 3-6.7L3 8', r2: 'M3 3v5h5',
+ok: 'M20 6 9 17l-5-5',
+fail: 'M12 8v5M12 16.5h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'
+};
+const neutral = { iconBg: c.neutralIcon, iconFg: c.fg };
+const red = { iconBg: c.dangerSoft, iconFg: c.dangerText };
+const two = (o) => Object.assign({ isTwo: true, isHold: false, topCls: 'strong', icon2: '' }, o);
+const hold = (o) => Object.assign({ isTwo: false, isHold: true, pct: 0, hint: 'Tahan sampai penuh, sekitar 1 detik', hintColor: c.fg2, hintW: 400, holdFg: c.dangerText, icon2: '' }, o);
+const count = (o) => Object.assign({ ring: true, seg: false, warn: false, cancel: 'Batal', segs: [] }, o);
+const raw = [
+{ id: 'P01', title: 'Sleep · konfirmasi', note: 'SCR-011. Satu konfirmasi, netral (sleep nggak destruktif). "Nggak jadi" paling bawah & paling besar — paling dekat jempol.', view: 'sheet', s: two(Object.assign({ step: 'SLEEP', icon: I.moon, title: 'Sleep-in laptop?', body: 'Laptop-Kamil bakal tidur 5 detik lagi. Masih bisa dibatalin.', top: 'Sleep-in' }, neutral)) },
+{ id: 'P02', title: 'Matikan · tahap 1', note: 'SCR-012. Tap "Matikan" di Remote. Masih netral; tombol lanjut berbentuk garis merah tipis, bukan isi penuh.', view: 'sheet', s: two(Object.assign({ step: '1 / 2', icon: I.p1, icon2: I.p2, title: 'Yakin matiin laptop?', body: 'Kerjaan yang belum disimpan di Laptop-Kamil bisa hilang.', top: 'Lanjut', topCls: 'dangerOutline' }, neutral)) },
+{ id: 'P03', title: 'Matikan · tahap 2 (tahan)', note: 'Merah mulai di sini. Tombol 72 dp harus ditahan 1,2 dtk; tap biasa nggak ngapa-ngapain. Screen reader: double-tap-tahan, atau aksi Semantics "Matikan sekarang".', view: 'sheet', s: hold(Object.assign({ step: '2 / 2', icon: I.p1, icon2: I.p2, title: 'Tahan buat matiin', body: 'Habis itu masih ada 5 detik buat batal.', holdLabel: 'Tahan buat matiin' }, red)) },
+{ id: 'P04', title: 'Lagi ditahan (60%)', note: 'Isi merah jalan linear 1200 ms. Haptic selection di 50%, heavy saat penuh. Jari geser keluar tombol = batal.', view: 'sheet', s: hold(Object.assign({ step: '2 / 2', icon: I.p1, icon2: I.p2, title: 'Tahan buat matiin', body: 'Habis itu masih ada 5 detik buat batal.', holdLabel: 'Tahan buat matiin', pct: 60, hint: 'Terus tahan…', holdFg: c.onDanger }, red)) },
+{ id: 'P05', title: 'Dilepas terlalu cepat', note: 'Isi mundur ke 0 dalam 200 ms. Hint jadi tebal (bukan cuma warna). Nggak ada error, sheet tetap terbuka.', view: 'sheet', s: hold(Object.assign({ step: '2 / 2', icon: I.p1, icon2: I.p2, title: 'Tahan buat matiin', body: 'Habis itu masih ada 5 detik buat batal.', holdLabel: 'Tahan buat matiin', hint: 'Kelepasan. Tahan sampai penuh ya.', hintColor: c.fg, hintW: 600 }, red)) },
+{ id: 'P06', title: 'Restart · tahap 2', note: 'Restart = alur sama dengan Matikan, beda ikon & copy. Tahap 1 restart: "Yakin restart laptop?".', view: 'sheet', s: hold(Object.assign({ step: '2 / 2', icon: I.r1, icon2: I.r2, title: 'Tahan buat restart', body: 'Laptop nyala lagi sendiri. Masih ada 5 detik buat batal.', holdLabel: 'Tahan buat restart' }, red)) },
+{ id: 'P07', title: 'Hitung mundur · berjalan', note: 'SCR-013. Full-screen modal. App kirim "jadwalkan" ke agent saat mulai (asumsi Q2). Batal 80 dp di zona jempol. Back sistem = Batal. Diumumkan: "Laptop mati dalam 5 detik".', view: 'count', k: count({ label: 'Laptop mati dalam', n: 3, deg: 216, sub: 'Mau berhenti? Tekan Batal kapan aja.' }) },
+{ id: 'P08', title: 'Dibatalkan', note: 'Agent konfirmasi batal → balik ke Remote + toast. Diumumkan: "Nggak jadi dimatiin".', view: 'ghost', toast: 'Nggak jadi dimatiin' },
+{ id: 'P09', title: 'Terkirim · matikan', note: 'Di 0: agent eksekusi. Status berikutnya pasti offline, jadi layar ini menggantikan S10 sampai app ditutup. Restart: "Lagi restart, nanti nyambung sendiri" + polling lanjut.', view: 'done', d: { icon: I.ok, iconBg: c.neutralIcon, iconFg: c.ok, title: 'Laptop lagi dimatiin', body: 'Laptop-Kamil udah dapet perintahnya. Sampai besok!', primary: 'Oke', primaryCls: 'strong', hasSecondary: false } },
+{ id: 'P10', title: 'Gagal dijadwalkan', note: 'Agent nggak jawab saat mulai hitung mundur → hitung mundur nggak jalan, laptop aman. Coba lagi = mulai dari tahap 2.', view: 'done', d: { icon: I.fail, iconBg: c.dangerSoft, iconFg: c.dangerText, title: 'Perintah nggak sampai', body: 'Laptop masih nyala. Cek WiFi, lalu coba lagi.', primary: 'Coba lagi', primaryCls: 'strong', hasSecondary: true } },
+{ id: 'P11', title: 'Batal gagal sampai', note: 'Kasus paling kritis: Batal ditekan tapi agent nggak jawab. Angka tetap jalan, peringatan muncul, tombol jadi "Batal lagi". Haptic error + diumumkan assertive.', view: 'count', k: count({ label: 'Laptop mati dalam', n: 2, deg: 144, warn: true, sub: 'Kalau tetap gagal, laptop bakal mati.', cancel: 'Batal lagi' }) },
+{ id: 'P12', title: 'Hitung mundur · reduced motion', note: 'Sleep, reduce motion aktif (sleep pakai oranye, bukan merah): cincin diganti 5 segmen statis, angka ganti tanpa animasi.', view: 'count', k: count({ label: 'Laptop tidur dalam', n: 4, ring: false, seg: true, sub: 'Mau berhenti? Tekan Batal kapan aja.', segs: [1,2,3,4,5].map((i) => ({ col: i <= 4 ? c.accText : c.track })) }) }
+];
+const states = raw.map((o) => Object.assign({}, o, {
+showGhost: o.view === 'sheet' || o.view === 'ghost',
+scrim: o.view === 'sheet',
+isSheet: o.view === 'sheet',
+isCount: o.view === 'count',
+isDone: o.view === 'done',
+hasToast: !!o.toast,
+s: o.s || { title: '' }, k: o.k || { label: '' }, d: o.d || {}
+}));
+return { c, states, themeLabel: theme === 'dark' ? 'GELAP' : 'TERANG' };
+}
+}
+</script>
+</body>
+</html>

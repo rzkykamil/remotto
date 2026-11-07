@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto — SCR-010 state terang</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#A33B0C}a:hover{color:#7E2D08}
+.glass{background:var(--gl);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);border:1px solid var(--glEdge);box-shadow:inset 0 1px 0 var(--glHi),inset 0 -1px 0 var(--glLo),0 12px 32px var(--glShadow)}
+.key{appearance:none;margin:0;padding:0;font:inherit;color:var(--fg);background:var(--chip);border:1px solid var(--glEdge);box-shadow:inset 0 1px 0 var(--glHi);border-radius:999px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.key.glass{background:var(--gl)}
+.key:disabled{color:var(--dis);background:var(--chipDis);box-shadow:none;cursor:not-allowed}
+.key.acc{background:linear-gradient(180deg,var(--accHi),var(--acc));color:var(--onAcc);border-color:rgba(255,255,255,.35);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -2px 6px rgba(0,0,0,.12),0 10px 28px var(--accShadow)}
+.key.acc:disabled{background:var(--chipDis);color:var(--dis);box-shadow:none}
+.key.ghost{background:transparent;border-color:transparent;box-shadow:none}
+.key.ghost:disabled{background:transparent}
+.link{appearance:none;border:0;background:none;font:inherit;color:var(--accText);font-weight:600;padding:0 12px;min-height:48px;cursor:pointer}
+@media (prefers-reduced-transparency: reduce){.glass,.key{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--solid)}}
+</style>
+</helmet>
+<div style="width: 1840px; box-sizing: border-box; padding: 64px; display: flex; flex-direction: column; gap: 48px; font-family: Geist, system-ui, sans-serif; background: {{c.page}}; color: {{c.pageFg}}; --bg: {{c.bg}}; --fg: {{c.fg}}; --fg2: {{c.fg2}}; --dis: {{c.dis}}; --gl: {{c.gl}}; --glEdge: {{c.glEdge}}; --glHi: {{c.glHi}}; --glLo: {{c.glLo}}; --glShadow: {{c.glShadow}}; --chip: {{c.chip}}; --chipDis: {{c.chipDis}}; --solid: {{c.solid}}; --track: {{c.track}}; --acc: {{c.acc}}; --accHi: {{c.accHi}}; --accShadow: {{c.accShadow}}; --onAcc: {{c.onAcc}}; --accText: {{c.accText}}; --ok: {{c.ok}}; --warn: {{c.warn}}; --glowA: {{c.glowA}}; --glowB: {{c.glowB}}">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.08em; opacity: 0.7">D2 · BATCH 1 · SCR-010 REMOTE · {{themeLabel}} · 412 DP</div>
+<div style="font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Pakai harian: semua state layar Remote</div>
+</div>
+<div style="font-size: 14px; line-height: 1.5; max-width: 560px; opacity: 0.8">Snapshot statis per state. Versi yang bisa dimainkan ada di artboard SCR-010 baris atas. Aturan tiap state ada di catatan di bawah judulnya; perilaku lengkap di "Komponen & perilaku".</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 64px">
+<sc-for list="{{states}}" as="it" hint-placeholder-count="12">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; min-height: 92px">
+<div style="display: flex; gap: 10px; align-items: baseline"><span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600; color: {{c.pageAcc}}">{{it.id}}</span><span style="font-size: 18px; font-weight: 600">{{it.title}}</span></div>
+<div style="font-size: 13px; line-height: 1.45; opacity: 0.78">{{it.note}}</div>
+</div>
+
+<div style="position: relative; width: 412px; height: 915px; border-radius: 44px; overflow: hidden; box-sizing: border-box; padding: 52px 24px 36px; display: flex; flex-direction: column; gap: 20px; color: var(--fg); background-color: var(--bg); background-image: radial-gradient(90% 45% at 90% 18%, var(--glowA), transparent 70%), radial-gradient(90% 40% at 8% 92%, var(--glowB), transparent 70%); box-shadow: 0 0 0 1px {{c.frame}}">
+
+<header style="display: flex; align-items: center; gap: 12px">
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; align-items: flex-start">
+<div style="max-width: 100%; font-size: {{it.f.name}}px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.name}}</div>
+<div class="glass" role="status" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 2px 12px; border-radius: 999px; font-family: 'Geist Mono', monospace; font-size: {{it.f.cap}}px; font-weight: 500; letter-spacing: 0.06em; color: var(--fg2)">
+<sc-if value="{{it.p.online}}" hint-placeholder-val="{{ true }}"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--ok)"></span><span>NYAMBUNG · 3J 12M</span></sc-if>
+<sc-if value="{{it.p.back}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--ok)"><path d="M20 6 9 17l-5-5"/></svg><span style="color: var(--ok)">NYAMBUNG LAGI</span></sc-if>
+<sc-if value="{{it.p.connecting}}" hint-placeholder-val="{{ false }}"><span style="width: 5px; height: 5px; border-radius: 999px; border: 2px solid var(--warn)"></span><span style="color: var(--warn)">MENYAMBUNG…</span></sc-if>
+<sc-if value="{{it.p.offline}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 20h.01"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.8"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="m2 2 20 20"/></svg><span>NGGAK KEJANGKAU</span></sc-if>
+</div>
+</div>
+<button class="key glass" aria-label="Pengaturan" style="width: 48px; height: 48px; flex: 0 0 auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></button>
+</header>
+
+<section aria-label="Daya" style="display: flex; gap: 10px">
+<button class="key glass" disabled="{{it.dis}}" style="flex: 1 1 0; min-width: 0; min-height: 52px; padding: 4px 6px; font-size: {{it.f.label}}px; font-weight: 500"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Sleep</button>
+<button class="key glass" disabled="{{it.dis}}" style="flex: 1 1 0; min-width: 0; min-height: 52px; padding: 4px 6px; font-size: {{it.f.label}}px; font-weight: 500"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Restart</button>
+<button class="key glass" disabled="{{it.dis}}" style="flex: 1 1 0; min-width: 0; min-height: 52px; padding: 4px 6px; font-size: {{it.f.label}}px; font-weight: 500"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>Matikan</button>
+</section>
+
+<section class="glass" aria-label="Volume" style="flex: 1 1 auto; min-height: 0; border-radius: 32px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; min-height: 28px">
+<span style="font-family: 'Geist Mono', monospace; font-size: {{it.f.cap}}px; font-weight: 500; letter-spacing: 0.06em; color: var(--fg2)">VOLUME</span>
+<sc-if value="{{it.muted}}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; font-family: 'Geist Mono', monospace; font-size: {{it.f.cap}}px; font-weight: 600; letter-spacing: 0.06em; height: 28px; padding: 0 10px; border-radius: 999px; background: var(--chip); border: 1px solid var(--glEdge)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>BISU</span></sc-if>
+</div>
+
+<sc-if value="{{it.offline}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="color: var(--fg2)"><path d="M12 20h.01"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.8"/><path d="M19 12.9a10 10 0 0 0-2.9-2"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M22 8.8a15 15 0 0 0-11.3-3.8"/><path d="m2 2 20 20"/></svg>
+<div style="font-size: 20px; line-height: 26px; font-weight: 600">Laptop nggak kejangkau</div>
+<div style="font-size: 15px; line-height: 22px; color: var(--fg2); max-width: 260px">Pastikan HP dan laptop satu WiFi, dan laptop lagi nyala.</div>
+<div style="display: flex; gap: 4px; align-items: center; margin-top: 4px">
+<button class="key" style="height: 48px; padding: 0 22px; font-size: 14px; font-weight: 600">Coba lagi</button>
+<button class="link" style="font-size: 14px">Pairing ulang</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{it.notOffline}}" hint-placeholder-val="{{ true }}">
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center">
+<div style="font-family: 'Geist Mono', monospace; font-size: 128px; line-height: 1; font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: {{it.numColor}}">{{it.vol}}<span style="font-size: 0.32em; letter-spacing: 0; color: var(--fg2)">%</span></div>
+<div style="font-size: {{it.f.hint}}px; line-height: 1.4; color: var(--fg2)">{{it.hint}}</div>
+</div>
+</sc-if>
+
+<div style="position: relative; height: {{it.trackH}}px; margin: {{it.trackM}}px 0; border-radius: 999px; background: var(--track); box-shadow: inset 0 1px 2px var(--glLo); overflow: hidden">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{it.vol}}%; background: {{it.fillColor}}; border-radius: 999px"></div>
+<div style="position: absolute; top: 18px; bottom: 18px; left: calc({{it.vol}}% - 14px); width: 5px; border-radius: 3px; background: var(--bg); opacity: {{it.handle}}"></div>
+</div>
+<div style="display: flex; gap: 10px">
+<button class="key" disabled="{{it.dis}}" aria-pressed="{{it.muted}}" style="min-height: 56px; padding: 4px 18px; font-size: {{it.f.label}}px; font-weight: 500; flex: 1 1 auto">
+<sc-if value="{{it.muted}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Bunyikan</sc-if>
+<sc-if value="{{it.unmuted}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>Mute</sc-if>
+</button>
+<button class="key" disabled="{{it.minusDis}}" aria-label="Volume turun 5" style="width: 72px; height: 56px; flex: 0 0 auto"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+<button class="key" disabled="{{it.plusDis}}" aria-label="Volume naik 5" style="width: 72px; height: 56px; flex: 0 0 auto"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+</div>
+</section>
+
+<section class="glass" aria-label="Media" style="border-radius: 999px; padding: 8px; display: flex; align-items: center; justify-content: space-between">
+<button class="key ghost" disabled="{{it.dis}}" aria-label="Lagu sebelumnya" style="width: 80px; height: 80px"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+<div style="position: relative; width: 96px; height: 96px">
+<button class="key acc" disabled="{{it.dis}}" aria-label="{{it.playLabel}}" style="width: 96px; height: 96px">
+<sc-if value="{{it.playing}}" hint-placeholder-val="{{ true }}"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg></sc-if>
+<sc-if value="{{it.paused}}" hint-placeholder-val="{{ false }}"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="margin-left: 4px"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.5-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8Z"/></svg></sc-if>
+</button>
+<sc-if value="{{it.processing}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; inset: -7px; border-radius: 999px; border: 3px solid var(--accText); border-right-color: transparent; border-bottom-color: transparent; transform: rotate(20deg); pointer-events: none"></span></sc-if>
+</div>
+<button class="key ghost" disabled="{{it.dis}}" aria-label="Lagu berikutnya" style="width: 80px; height: 80px"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+</section>
+
+<sc-if value="{{it.hasToast}}" hint-placeholder-val="{{ false }}">
+<div class="glass" role="status" style="position: absolute; left: 24px; right: 24px; bottom: 164px; min-height: 56px; border-radius: 20px; padding: 4px 4px 4px 16px; display: flex; align-items: center; gap: 10px; background: {{c.toast}}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; color: {{it.toastIconColor}}"><path d="{{it.toastIcon}}"/></svg>
+<span style="flex: 1 1 auto; font-size: 14px; line-height: 20px; font-weight: 500">{{it.toastText}}</span>
+<sc-if value="{{it.toastAction}}" hint-placeholder-val="{{ true }}"><button class="link" style="font-size: 14px">Ulangi</button></sc-if>
+</div>
+</sc-if>
+
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1840,"height":3480}}'>
+class Component extends DCLogic {
+renderVals() {
+const theme = this.props.theme ?? 'light';
+const P = {
+light: { page: '#F2EFEA', pageFg: '#1C1A17', pageAcc: '#A33B0C', frame: 'rgba(28,26,23,0.12)', toast: 'rgba(255,255,255,0.78)', bg: '#EDE7DF', fg: '#1C1A17', fg2: '#5A534A', dis: '#9C9489', gl: 'rgba(255,255,255,0.45)', glEdge: 'rgba(255,255,255,0.75)', glHi: 'rgba(255,255,255,0.9)', glLo: 'rgba(60,40,20,0.06)', glShadow: 'rgba(80,50,20,0.10)', chip: 'rgba(255,255,255,0.55)', chipDis: 'rgba(255,255,255,0.22)', solid: '#F7F3EE', track: 'rgba(28,26,23,0.07)', acc: '#FF6A2B', accHi: '#FF9160', accShadow: 'rgba(255,106,43,0.35)', onAcc: '#1C1A17', accText: '#A33B0C', ok: '#246640', warn: '#7A5200', glowA: 'rgba(255,106,43,0.22)', glowB: 'rgba(255,170,90,0.30)', fill: '#1C1A17' },
+dark: { page: '#0B0A09', pageFg: '#ECE6DC', pageAcc: '#FF9A6A', frame: 'rgba(255,255,255,0.10)', toast: 'rgba(40,35,31,0.82)', bg: '#110F0D', fg: '#F1EBE2', fg2: '#BDB3A6', dis: '#6E665C', gl: 'rgba(255,255,255,0.07)', glEdge: 'rgba(255,255,255,0.14)', glHi: 'rgba(255,255,255,0.20)', glLo: 'rgba(0,0,0,0.35)', glShadow: 'rgba(0,0,0,0.45)', chip: 'rgba(255,255,255,0.08)', chipDis: 'rgba(255,255,255,0.03)', solid: '#221E1B', track: 'rgba(0,0,0,0.35)', acc: '#F26A30', accHi: '#FF8A55', accShadow: 'rgba(242,106,48,0.30)', onAcc: '#1A0F08', accText: '#FF9A6A', ok: '#6FCB92', warn: '#E8BE57', glowA: 'rgba(242,106,48,0.18)', glowB: 'rgba(170,80,30,0.20)', fill: '#E2D9CC' }
+};
+const c = P[theme] || P.dark;
+const ICON = { fail: 'M12 8v5M12 16.5h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z', ok: 'M20 6 9 17l-5-5' };
+const base = { name: 'Laptop-Kamil', pill: 'online', vol: 35, muted: false, playing: true, processing: false, dragging: false, offline: false, dis: false, toast: null, scale: 1, hint: 'Geser atau ketuk − / +' };
+const raw = [
+{ id: 'S01', title: 'Terhubung', note: 'Default. Semua kontrol aktif, uptime di pill. Lagu diputar → ikon jeda.' },
+{ id: 'S02', title: 'Menyambung', note: 'Buka app / polling pertama. Kontrol nonaktif + teks penjelas, bukan spinner kosong. Maks 2 polling (±10 dtk) sebelum S10.', pill: 'connecting', dis: true, hint: 'Nunggu jawaban dari laptop…' },
+{ id: 'S03', title: 'Perintah diproses', note: 'Ikon langsung berubah (optimistic) + haptic. Cincin muncul hanya kalau >400 ms tanpa jawaban. Tombol lain tetap aktif; tap ulang diabaikan sampai jawaban/timeout 3 dtk.', playing: false, processing: true },
+{ id: 'S04', title: 'Gagal kirim', note: 'Timeout 3 dtk / error. Ikon balik ke kondisi sebelumnya, toast 6 dtk + "Ulangi". Haptic error. Fokus nggak dipindah; toast diumumkan screen reader.', toast: { text: 'Perintah nggak sampai ke laptop', icon: 'fail', action: true } },
+{ id: 'S05', title: 'Slider ditarik', note: 'Track menebal 60→68, angka ikut jari & jadi aksen. Nilai dikirim tiap 100 ms (throttle) + nilai akhir saat dilepas. Haptic klik tiap 5%.', vol: 62, dragging: true, hint: 'Lagi ngatur…' },
+{ id: 'S06', title: 'Slider gagal', note: 'Nilai akhir nggak terkonfirmasi → angka & isi track animasi balik (120 ms) ke nilai laptop terakhir.', toast: { text: 'Volume nggak kekirim, balik ke 35%', icon: 'fail', action: true } },
+{ id: 'S07', title: 'Mute aktif', note: 'Badge BISU + ikon + label tombol berubah (bukan cuma warna). Angka & isi track jadi redup; geser slider = otomatis unmute.', muted: true, hint: 'Suara laptop lagi dibisukan' },
+{ id: 'S08', title: 'Volume 0', note: 'Tombol − nonaktif, haptic medium saat mentok. Handle disembunyikan di bawah 7%. Beda dengan mute: 0 bukan BISU.', vol: 0, hint: 'Paling pelan' },
+{ id: 'S09', title: 'Volume 100', note: 'Tombol + nonaktif, haptic medium saat mentok.', vol: 100, hint: 'Paling kencang' },
+{ id: 'S10', title: 'Offline', note: '2 polling gagal. Semua kontrol nonaktif, isi panel jadi penjelasan + Coba lagi / Pairing ulang. Kalau terjadi saat slider ditarik: gesture dibatalkan, slider balik ke nilai terakhir.', pill: 'offline', dis: true, offline: true },
+{ id: 'S11', title: 'Nyambung lagi', note: 'Polling berhasil lagi → pill "Nyambung lagi" 2 dtk lalu normal, toast singkat tanpa aksi. Nilai volume disinkron dari laptop.', pill: 'back', vol: 40, toast: { text: 'Laptop nyambung lagi', icon: 'ok', action: false } },
+{ id: 'S12', title: 'Teks 130% + nama panjang', note: 'Nama di-ellipsis 1 baris (nama lengkap di Semantics & Pengaturan). Label boleh 2 baris, tinggi tombol ikut. Angka volume dikunci 128.', name: 'Laptop-Gaming-Kamil-ROG-Strix', scale: 1.3 }
+];
+const states = raw.map((o) => {
+const s = Object.assign({}, base, o);
+const k = s.scale;
+const toast = s.toast;
+return Object.assign(s, {
+f: { name: Math.round(22 * k), cap: Math.round(12 * Math.min(k, 1.15)), label: Math.round(14 * k), hint: Math.round(14 * k) },
+p: { online: s.pill === 'online', back: s.pill === 'back', connecting: s.pill === 'connecting', offline: s.pill === 'offline' },
+notOffline: !s.offline,
+unmuted: !s.muted,
+paused: !s.playing,
+playLabel: s.playing ? 'Jeda' : 'Putar',
+numColor: s.dragging ? c.accText : ((s.muted || s.dis) ? c.fg2 : c.fg),
+fillColor: (s.muted || s.dis) ? c.dis : c.fill,
+handle: s.vol > 6 ? 1 : 0,
+trackH: s.dragging ? 68 : 60,
+trackM: s.dragging ? -4 : 0,
+minusDis: s.dis || s.vol === 0,
+plusDis: s.dis || s.vol === 100,
+hasToast: !!toast,
+toastText: toast ? toast.text : '',
+toastIcon: toast ? ICON[toast.icon] : '',
+toastIconColor: toast && toast.icon === 'ok' ? c.ok : c.accText,
+toastAction: toast ? toast.action : false
+});
+});
+return { c, states, themeLabel: theme === 'dark' ? 'GELAP' : 'TERANG' };
+}
+}
+</script>
+</body>
+</html>

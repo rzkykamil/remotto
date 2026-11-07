@@ -1,0 +1,8 @@
+$kind: http-request
+name: Restart
+method: POST
+url: "{{baseUrl}}/power/restart"
+description: "PERINGATAN: akan benar-benar me-restart laptop setelah 5 detik, panggil Cancel untuk batal."
+order: 2000
+headers:
+  Authorization: Bearer {{token}}

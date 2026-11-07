@@ -1,0 +1,13 @@
+$kind: http-request
+name: Set Mute
+method: POST
+url: "{{baseUrl}}/volume/mute"
+description: "Mengatur mute secara eksplisit. Idempoten."
+order: 5000
+headers:
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    { "muted": true }

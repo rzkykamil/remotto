@@ -1,0 +1,8 @@
+$kind: http-request
+name: Cancel
+method: POST
+url: "{{baseUrl}}/power/cancel"
+description: "Membatalkan jadwal daya aktif. 409 kalau tidak ada jadwal atau sudah dieksekusi."
+order: 4000
+headers:
+  Authorization: Bearer {{token}}

@@ -1,0 +1,32 @@
+# Go
+agent/bin/
+*.exe
+dist/
+*.test
+coverage.out
+*.cover
+
+# Flutter / Dart
+app/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+app/android/key.properties
+*.jks
+*.keystore
+app/ios/Pods/
+*.iml
+.idea/
+
+# Local agent config
+config.json
+!config.example.json
+
+# Local logo exports; the app icon is rendered from design/export/artboards/Logo.dc.html
+design/export/logo/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/

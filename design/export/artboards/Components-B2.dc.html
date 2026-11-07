@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto — Komponen batch 2</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#A33B0C}a:hover{color:#7E2D08}
+</style>
+</helmet>
+<div style="width: 1440px; box-sizing: border-box; padding: 64px; background: #F2EFEA; color: #1C1A17; font-family: Geist, system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: #5A534A">D2 · BATCH 2 · KOMPONEN &amp; PERILAKU DAYA</div>
+<div style="font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Lapisan pengaman sebelum laptop mati</div>
+</div>
+
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 20px; font-weight: 600">Alur &amp; lapisan pengaman</div>
+<div style="display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; font-size: 14px; line-height: 1.4">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+<div style="flex: 1 1 200px; border-radius: 12px; padding: 14px; background: {{s.bg}}; border: 1px solid #D9D3C9; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; color: {{s.col}}">{{s.k}}</span>
+<span style="font-weight: 600">{{s.t}}</span>
+<span style="color: #5A534A">{{s.d}}</span>
+</div>
+</sc-for>
+</div>
+<div style="font-size: 13px; line-height: 1.5; color: #5A534A">Sleep melewati tahap 2 (langsung hitung mundur). Peluang salah tekan: posisi atas layar (di luar zona jempol) → sheet → tahan 1,2 dtk → 5 dtk bisa batal. Butuh 3 aksi sengaja + waktu.</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<sc-for list="{{comps}}" as="k" hint-placeholder-count="4">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap"><span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600; color: #A33B0C">{{k.id}}</span><span style="font-size: 18px; font-weight: 600">{{k.name}}</span><sc-if value="{{k.manual}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 6px; border: 1.5px solid #7A5200; color: #7A5200">A11Y MANUAL + UJI DEVICE</span></sc-if></div>
+<div style="font-size: 14px; line-height: 1.45; color: #3D3832">{{k.purpose}}</div>
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 6px 12px; font-size: 13px; line-height: 1.5">
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">ANATOMI</span><span>{{k.anatomy}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">STATE</span><span>{{k.states}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">TOKEN</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px">{{k.tokens}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">PERILAKU</span><span>{{k.behavior}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">SEMANTICS</span><span>{{k.sem}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">FLUTTER</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px">{{k.flutter}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="font-size: 20px; font-weight: 600">Matriks state B2</div>
+<div><b>P01–P12 siap direview</b> · screen lengkap statis, terang &amp; gelap, 412 dp.</div>
+<div><b>Prototype daya (gelap)</b> · berfungsi: buka sheet Sleep/Restart/Matikan, Nggak jadi, Lanjut, tahan 1,2 dtk (lepas cepat = reset), hitung mundur 5 dtk asli, Batal → toast, selesai → ulang. <b>Disimulasikan</b>: jawaban agent selalu berhasil. <b>Hanya anotasi</b>: P10, P11 (gagal), haptic, screen reader.</div>
+<div><b>360 dp</b>: sheet margin 8, padding 20; tombol tetap tinggi sama; cincin 220 dp.</div>
+</div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="font-size: 20px; font-weight: 600">Isu terbuka &amp; penyimpangan</div>
+<div><b>Diputuskan (Q2):</b> delay dipegang agent. <b>Butuh dari agent:</b> endpoint jadwalkan (sleep/restart/shutdown, delay 5 dtk) + batal + konfirmasi. Kalau ternyata delay dipegang app, P11 hilang tapi tutup app = perintah nggak terkirim.</div>
+<div><b>Diputuskan:</b> setelah "Laptop lagi dimatiin", Oke balik ke Remote dalam status offline (S10) dengan judul "Laptop lagi mati".</div>
+<div><b>Penyimpangan D1:</b> nggak ada. Merah tetap cuma muncul mulai tahap 2.</div>
+<div><b>Belum diverifikasi:</b> rasa tahan 1,2 dtk di kasur, kontras merah di atas sheet kaca terang.</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+renderVals() {
+const steps = [
+{ k: '0 · REMOTE', t: 'Tombol di atas', d: 'Kecil, netral, jauh dari jempol.', bg: '#FBFAF7', col: '#5A534A' },
+{ k: '1 · SHEET', t: 'Yakin?', d: 'Tap "Lanjut" (garis merah). "Nggak jadi" paling besar.', bg: '#FBFAF7', col: '#5A534A' },
+{ k: '2 · TAHAN', t: 'Tahan 1,2 dtk', d: 'Tap biasa nggak cukup. Lepas = reset.', bg: '#FBF0EE', col: '#A82416' },
+{ k: '3 · HITUNG MUNDUR', t: '5 detik', d: 'Batal 80 dp di zona jempol; back = batal.', bg: '#FBF0EE', col: '#A82416' },
+{ k: '4 · HASIL', t: 'Terkirim / batal / gagal', d: 'Selalu ada pesan jelas, nggak diam.', bg: '#FBFAF7', col: '#5A534A' }
+];
+const comps = [
+{ id: 'C11', name: 'ConfirmSheet', manual: true, purpose: 'Bottom sheet kaca untuk Sleep (1 tahap) dan Restart/Matikan (2 tahap).', anatomy: 'scrim → sheet radius 36 (margin 8) → handle → ikon 56 + label tahap → judul 24 → body 16 → aksi (atas: lanjut 56 / tahan 72; bawah: Nggak jadi 56–64).', states: 'tahap 1 · tahap 2 · tahan berjalan · dilepas cepat · keluar.', tokens: 'glass.sheet · scrim · status.danger(Soft/Text) · radius.sheet · motion.sheet', behavior: 'Tap scrim / swipe-down / back = Nggak jadi. Tahap 1→2 ganti isi di sheet yang sama (crossfade 180 ms), bukan sheet baru. Haptic light saat buka.', sem: 'Dialog modal; fokus ke judul saat buka; kembali ke tombol pemicu saat tutup. Urutan: judul → body → aksi utama → Nggak jadi.', flutter: 'showModalBottomSheet kustom (isScrollControlled, backgroundColor transparan) + BackdropFilter' },
+{ id: 'C12', name: 'HoldToConfirm', manual: true, purpose: 'Tahap 2 — mencegah tap nggak sengaja.', anatomy: 'kapsul 72 dp garis merah → isi merah dari kiri → ikon + label → hint di bawah.', states: 'idle · holding (0–100%) · released early · complete.', tokens: 'status.danger · status.dangerSoft · status.dangerText · status.onDanger · motion.hold(1200, linear) · motion.holdRewind(200)', behavior: 'Jari turun = mulai; jari keluar area/terangkat = reset + hint tebal. Haptic selection di 50%, heavy di 100%. Label berubah warna saat isi lewat tengah.', sem: 'button "Tahan buat matiin". TalkBack/VoiceOver: double-tap-tahan didukung; plus custom action "Matikan sekarang" yang langsung ke hitung mundur (hitung mundur tetap jadi pengaman).', flutter: 'GestureDetector(onTapDown/onTapUp/onTapCancel) + AnimationController 1200 ms · Semantics(customSemanticsActions)' },
+{ id: 'C13', name: 'CountdownScreen', manual: true, purpose: 'Jendela 5 dtk terakhir untuk batal.', anatomy: 'overlay penuh → nama laptop → judul → cincin 260 (angka 120 mono) → teks bantu → Batal 80 dp.', states: 'berjalan · batal terkirim · batal gagal (peringatan + "Batal lagi") · reduced motion (5 segmen).', tokens: 'status.danger (restart/shutdown) · accent.text (sleep) · type.display.countdown · size.cancel(80)', behavior: 'Angka ganti tiap 1000 ms, cincin linear. Back sistem = Batal. Layar dijaga tetap nyala (wakelock) selama hitung mundur.', sem: 'alertdialog; umumkan di awal "Laptop mati dalam 5 detik", lalu hanya di 3 dan 1 (nggak tiap detik). Fokus langsung ke Batal.', flutter: 'Navigator full-screen route (opaque: false) · TweenAnimationBuilder · PopScope → batal' },
+{ id: 'C14', name: 'ResultScreen', manual: false, purpose: 'Penutup alur: berhasil atau gagal, nggak pernah diam.', anatomy: 'ikon 80 dalam lingkaran → judul 24 → body 16 → aksi utama 64 (+ Tutup 56).', states: 'terkirim (sleep / restart / matikan) · gagal dijadwalkan.', tokens: 'status.success · status.danger(Soft/Text) · fg.*', behavior: 'Terkirim matikan/sleep → Oke ke Remote (offline). Restart → Oke ke Remote, polling cepat 2 dtk sampai nyambung lagi. Gagal → Coba lagi mulai dari tahap 2.', sem: 'Judul diumumkan (liveRegion); fokus ke aksi utama.', flutter: 'Bagian dari route C13 (ganti isi), bukan route baru' }
+];
+return { steps, comps };
+}
+}
+</script>
+</body>
+</html>

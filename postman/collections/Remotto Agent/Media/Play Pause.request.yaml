@@ -1,0 +1,8 @@
+$kind: http-request
+name: Play Pause
+method: POST
+url: "{{baseUrl}}/media/play-pause"
+description: "Mengirim media key play/pause ke sesi media aktif Windows. Tidak idempoten. Gagal saat layar terkunci."
+order: 1000
+headers:
+  Authorization: Bearer {{token}}

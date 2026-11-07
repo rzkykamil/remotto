@@ -1,0 +1,8 @@
+$kind: http-request
+name: Shutdown
+method: POST
+url: "{{baseUrl}}/power/shutdown"
+description: "PERINGATAN: akan benar-benar mematikan laptop setelah 5 detik, panggil Cancel untuk batal."
+order: 3000
+headers:
+  Authorization: Bearer {{token}}

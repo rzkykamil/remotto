@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Remotto — Komponen batch 3 sampai 5</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#A33B0C}a:hover{color:#7E2D08}
+</style>
+</helmet>
+<div style="width: 1440px; box-sizing: border-box; padding: 64px; background: #F2EFEA; color: #1C1A17; font-family: Geist, system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.08em; color: #5A534A">D2 · BATCH 3–5 · KOMPONEN, ERROR LINTAS LAYAR &amp; MATRIKS AKHIR</div>
+<div style="font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em">Sisa komponen + status semua screen D2</div>
+</div>
+
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 600">Matriks screen D2 (lengkap)</div>
+<div style="display: grid; grid-template-columns: 90px 150px minmax(0, 1fr) 210px 140px; gap: 12px; padding: 8px 12px; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #5A534A; background: #E7E3DC; border-radius: 8px"><span>ID</span><span>MODUL</span><span>STATE</span><span>REPRESENTASI</span><span>STATUS</span></div>
+<sc-for list="{{matrix}}" as="m" hint-placeholder-count="10">
+<div style="display: grid; grid-template-columns: 90px 150px minmax(0, 1fr) 210px 140px; gap: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.45; border-bottom: 1px solid #E7E3DC">
+<span style="font-family: 'Geist Mono', monospace; font-weight: 600">{{m.id}}</span><span>{{m.mod}}</span><span>{{m.states}}</span><span>{{m.rep}}</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; color: {{m.col}}">{{m.status}}</span>
+</div>
+</sc-for>
+<div style="font-size: 13px; line-height: 1.5; color: #5A534A">Semua screen dalam scope sudah punya representasi. Di luar scope (sesuai brief): now playing, Wake-on-LAN, widget, multi-laptop, tablet/landscape, tampilan agent di laptop.</div>
+</div>
+
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="font-size: 20px; font-weight: 600">B4 · Aturan error lintas layar</div>
+<sc-for list="{{errors}}" as="e" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: 240px minmax(0, 1fr) 160px; gap: 16px; padding: 8px 0; border-top: 1px solid #E7E3DC"><b>{{e.k}}</b><span>{{e.d}}</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #5A534A">{{e.ref}}</span></div>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<sc-for list="{{comps}}" as="k" hint-placeholder-count="8">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap"><span style="font-family: 'Geist Mono', monospace; font-size: 13px; font-weight: 600; color: #A33B0C">{{k.id}}</span><span style="font-size: 18px; font-weight: 600">{{k.name}}</span><sc-if value="{{k.manual}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 6px; border: 1.5px solid #7A5200; color: #7A5200">A11Y MANUAL + UJI DEVICE</span></sc-if></div>
+<div style="font-size: 14px; line-height: 1.45; color: #3D3832">{{k.purpose}}</div>
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 6px 12px; font-size: 13px; line-height: 1.5">
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">ANATOMI</span><span>{{k.anatomy}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">STATE</span><span>{{k.states}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">TOKEN</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px">{{k.tokens}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">PERILAKU</span><span>{{k.behavior}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">SEMANTICS</span><span>{{k.sem}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #5A534A; padding-top: 2px">FLUTTER</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px">{{k.flutter}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="font-size: 20px; font-weight: 600">Prototype yang tersedia</div>
+<div><b>SCR-010 Remote</b> (4 ukuran/tema) · berfungsi: play/pause, slider, mute, −/+. Simulasi: status lewat tweak.</div>
+<div><b>Prototype daya</b> · berfungsi: sheet, tahan 1,2 dtk, hitung mundur, batal. Simulasi: agent selalu sukses.</div>
+<div><b>Prototype pairing</b> · berfungsi: intro → izin → scan → tes → berhasil → link ke Remote; isi manual dengan validasi alamat. Simulasi: tombol DEMO untuk QR; 10.0.0.1 = timeout, token 000000 = ditolak.</div>
+<div><b>Hanya anotasi:</b> dialog izin OS, kamera asli, haptic, screen reader, transisi antar layar.</div>
+</div>
+<div style="background: #FBFAF7; border: 1px solid #D9D3C9; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5">
+<div style="font-size: 20px; font-weight: 600">Isu terbuka &amp; penyimpangan</div>
+<div><b>Penyimpangan D1:</b> error validasi form pakai oranye (accent.text) + ikon, bukan merah — konsisten dengan prinsip "merah cuma untuk bahaya".</div>
+<div><b>Terbuka:</b> port default agent 8765 — angka ini asumsi, harus disamakan dengan agent Go.</div>
+<div><b>Terbuka:</b> format QR (mis. remotto://192.168.1.20:8765?t=K7QF2M) ditentukan saat scaffold; desain cuma butuh: alamat, token, nama laptop.</div>
+<div><b>Belum diverifikasi:</b> kontras teks di atas viewfinder kamera asli, keterbacaan token mono di 360 dp, perilaku izin kamera iOS vs Android.</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2900}}'>
+class Component extends DCLogic {
+renderVals() {
+const OK = '#246640', REV = '#A33B0C';
+const matrix = [
+{ id: 'SCR-001', mod: 'Pairing', states: 'Q01 intro · Q02 izin kamera · Q03 scan · Q04 QR tidak valid · Q05 izin ditolak permanen', rep: 'screen lengkap · terang/gelap · prototype', status: 'SIAP DIREVIEW', col: REV },
+{ id: 'SCR-002', mod: 'Pairing', states: 'Q06 kosong · Q07 format salah (siap = di prototype)', rep: 'screen lengkap · terang/gelap · prototype', status: 'SIAP DIREVIEW', col: REV },
+{ id: 'SCR-003', mod: 'Pairing', states: 'Q08 menyambung · Q09 berhasil · Q10 timeout · Q11 token ditolak', rep: 'screen lengkap · terang/gelap · prototype', status: 'SIAP DIREVIEW', col: REV },
+{ id: 'SCR-010', mod: 'Remote', states: 'S01–S12', rep: 'screen lengkap · terang/gelap · 412 + 360 · prototype', status: 'DISETUJUI', col: OK },
+{ id: 'SCR-011', mod: 'Konfirmasi daya', states: 'P01 sleep', rep: 'screen lengkap · terang/gelap · prototype', status: 'DISETUJUI', col: OK },
+{ id: 'SCR-012', mod: 'Konfirmasi daya', states: 'P02–P06 tahap 1, tahan, lepas cepat, restart', rep: 'screen lengkap · terang/gelap · prototype', status: 'DISETUJUI', col: OK },
+{ id: 'SCR-013', mod: 'Konfirmasi daya', states: 'P07–P12 hitung mundur, batal, terkirim, gagal, batal gagal, reduced motion', rep: 'screen lengkap · terang/gelap · prototype', status: 'DISETUJUI', col: OK },
+{ id: 'SCR-020', mod: 'Pengaturan', states: 'R01 default · R02 gelap + getar mati · R03 teks besar · R05 offline · R06 reduce transparency', rep: 'screen lengkap · terang/gelap', status: 'SIAP DIREVIEW', col: REV },
+{ id: 'SCR-021', mod: 'Pengaturan', states: 'R04 konfirmasi pairing ulang', rep: 'screen lengkap · terang/gelap', status: 'SIAP DIREVIEW', col: REV },
+{ id: 'B4', mod: 'Error lintas layar', states: 'Q12 token kedaluwarsa · S04/S06/S10 · P10/P11 · Q10/Q11', rep: 'screen lengkap + aturan di bawah', status: 'SIAP DIREVIEW', col: REV }
+];
+const errors = [
+{ k: 'Laptop nggak kejangkau', d: '2 polling gagal → S10 di Remote; R05 di Pengaturan. Pairing: Q10 dengan tips.', ref: 'S10 · R05 · Q10' },
+{ k: 'Perintah timeout (3 dtk)', d: 'Media/volume: toast + Ulangi, nilai balik. Daya: P10, laptop dijamin nggak mati.', ref: 'S04 · S06 · P10' },
+{ k: 'Token ditolak (401)', d: 'Saat pairing: Q11. Saat dipakai: Q12, token lama dihapus, semua layar lain ditutup.', ref: 'Q11 · Q12' },
+{ k: 'Izin kamera', d: 'Belum ditanya: Q02. Ditolak sekali: balik ke Q02. Permanen: Q05 → pengaturan HP. Manual selalu tersedia.', ref: 'Q02 · Q05' },
+{ k: 'Batal daya gagal', d: 'Kasus paling kritis: P11, peringatan + "Batal lagi", diumumkan assertive.', ref: 'P11' },
+{ k: 'Prinsip umum', d: 'Tiap error: apa yang terjadi + satu aksi utama + jalur alternatif. Nggak ada kode error mentah di UI (kode masuk log).', ref: '—' }
+];
+const comps = [
+{ id: 'C15', name: 'PairingScaffold', manual: false, purpose: 'Kerangka semua layar pairing & blok error (intro, izin, hasil).', anatomy: 'back opsional → ikon 80 / mark → kicker mono → judul 28 → body 16 → tips opsional → aksi utama 64 (aksen) + link.', variant: 'intro · izin · hasil sukses · hasil error.', states: 'default · teks besar (judul membungkus).', tokens: 'glass.* · accent.* · type.title.xl · space.screen', behavior: 'Aksi utama selalu di bawah (zona jempol). Satu aksi aksen per layar.', sem: 'Judul = header + diumumkan saat layar muncul. Fokus awal ke judul.', flutter: 'Scaffold + SafeArea + Column(Spacer)' },
+{ id: 'C16', name: 'QrViewfinder', manual: true, purpose: 'Scan QR dari layar laptop dengan satu gerakan.', anatomy: 'preview kamera penuh → bingkai 4 sudut 248 dp → hint → banner error → back, senter, "Isi manual".', variant: 'satu (selalu gelap di dua tema).', states: 'scanning · QR tidak valid (bingkai oranye + banner 3 dtk) · terbaca (haptic medium → tes).', tokens: 'camera.overlay · accent.text · glass.toast', behavior: 'Auto-detect, tanpa tombol jepret. QR yang sama nggak diproses 2× dalam 2 dtk. Senter toggle.', sem: 'Hint diumumkan; banner liveRegion. Tombol "Isi manual" selalu bisa difokus.', flutter: 'mobile_scanner (atau setara; lisensi belum diverifikasi) + CustomPaint bingkai' },
+{ id: 'C17', name: 'GlassTextField', manual: false, purpose: 'Input alamat & token di pairing manual.', anatomy: 'label 14 di atas → field 56 radius 16 (mono) → aksi kanan opsional (lihat token) → pesan bantuan/error.', variant: 'alamat (keyboard url) · token (tanpa autocorrect, huruf kapital otomatis).', states: 'kosong · fokus (garis aksen) · terisi · error (garis + ikon + pesan oranye) · nonaktif.', tokens: 'glass.chip · glass.edge · accent.text · type.mono', behavior: 'Validasi saat field ditinggal / submit. Token boleh ditempel.', sem: 'Label terhubung ke field; error dibacakan bersama label.', flutter: 'TextField + InputDecoration kustom (bukan default Material)' },
+{ id: 'C18', name: 'StepProgressList', manual: false, purpose: 'Tes koneksi yang jujur: langkah apa yang lagi jalan.', anatomy: 'grup kaca → baris 56: ikon status (centang / cincin / titik) + teks.', variant: 'satu.', states: 'todo · active · done · gagal (pindah ke layar hasil).', tokens: 'status.success · status.warning · fg.disabled', behavior: 'Tiap langkah maks 5 dtk. Bentuk ikon beda per state.', sem: 'liveRegion: umumkan langkah aktif ("Cek token").', flutter: 'Column + AnimatedSwitcher per ikon' },
+{ id: 'C19', name: 'SettingsGroup + Row', manual: false, purpose: 'Daftar pengaturan berkelompok.', anatomy: 'caption mono di atas → grup kaca radius 24 → baris ≥56 (label, nilai/aksi kanan, chevron).', variant: 'info · aksi (teks aksen) · navigasi (chevron) · dengan switch.', states: 'default · pressed · teks besar (baris tumbuh).', tokens: 'glass.* · fg.* · accent.text · space.row', behavior: 'Seluruh baris bisa ditekan untuk baris aksi/navigasi.', sem: 'Baris = satu node Semantics (label + nilai).', flutter: 'Custom ListTile-like widget' },
+{ id: 'C20', name: 'ThemeSegmented', manual: false, purpose: 'Pilih Terang / Gelap / Sistem.', anatomy: 'track kapsul → 3 segmen ≥48 dp → segmen aktif: permukaan terang + centang + tebal.', variant: 'satu.', states: 'aktif · tidak aktif · pressed.', tokens: 'seg.track · seg.on · fg.primary', behavior: 'Langsung berlaku (ThemeMode), crossfade 200 ms; reduced motion = instan.', sem: 'radiogroup "Tema"; tiap segmen radio dengan checked.', flutter: 'Custom (bukan SegmentedButton default) · ThemeMode.system/light/dark' },
+{ id: 'C21', name: 'GlassSwitch', manual: false, purpose: 'Getar saat ditekan on/off.', anatomy: 'track 60×36 → thumb 28 dengan ikon centang/strip.', variant: 'satu.', states: 'on (track aksen) · off · pressed · disabled.', tokens: 'accent.default · switch.off · switch.thumb', behavior: 'Tap di mana saja di baris = toggle. Mematikan haptic berlaku untuk semua komponen.', sem: 'switch "Getar saat ditekan", status nyala/mati.', flutter: 'Custom atau Switch.adaptive dengan theme override' },
+{ id: 'C22', name: 'SimpleConfirmSheet', manual: false, purpose: 'Konfirmasi 1 tahap non-destruktif-keras (pairing ulang).', anatomy: 'turunan C11: tanpa ikon, judul → body → aksi strong 56 + Nggak jadi 64.', variant: 'satu.', states: 'default · memproses (aksi jadi "Ngehapus…").', tokens: 'glass.sheet · fg.*', behavior: 'Setelah hapus → ganti stack navigasi ke Q01 (nggak bisa back ke Remote).', sem: 'Dialog; fokus ke judul; balik ke baris "Pairing ulang" saat batal.', flutter: 'Pakai ulang C11 dengan konfigurasi 1 tahap' }
+];
+return { matrix, errors, comps };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Components-B1.dc.html": {
+      "h": 3000,
+      "title": "B1 · Komponen & perilaku",
+      "w": 1440,
+      "x": 3840,
+      "y": 3560
+    },
+    "Components-B2.dc.html": {
+      "h": 1900,
+      "title": "B2 · Komponen & perilaku",
+      "w": 1440,
+      "x": 4332,
+      "y": 7420
+    },
+    "Foundations.dc.html": {
+      "h": 1880,
+      "title": "D1 · Arah visual & fondasi token",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 1240,
+      "title": "D1 · Scope, navigasi, inventaris & flow",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Power-dark.dc.html": {
+      "h": 3480,
+      "title": "B2 · Konfirmasi daya · gelap",
+      "w": 1840,
+      "x": 0,
+      "y": 7420
+    },
+    "Power-light.dc.html": {
+      "h": 3480,
+      "title": "B2 · Konfirmasi daya · terang",
+      "w": 1840,
+      "x": 1920,
+      "y": 7420
+    },
+    "Power-proto.dc.html": {
+      "h": 915,
+      "is_interactive": true,
+      "title": "B2 · Prototype daya (main)",
+      "w": 412,
+      "x": 3840,
+      "y": 7420
+    },
+    "Remote-360-dark.dc.html": {
+      "h": 800,
+      "is_interactive": true,
+      "title": "SCR-010 Remote · 360 · gelap",
+      "w": 360,
+      "x": 1424,
+      "y": 2280
+    },
+    "Remote-360-light.dc.html": {
+      "h": 800,
+      "is_interactive": true,
+      "title": "SCR-010 Remote · 360 · terang",
+      "w": 360,
+      "x": 984,
+      "y": 2280
+    },
+    "Remote-412-dark.dc.html": {
+      "h": 915,
+      "is_interactive": true,
+      "title": "SCR-010 Remote · 412 · gelap",
+      "w": 412,
+      "x": 492,
+      "y": 2280
+    },
+    "Remote.dc.html": {
+      "h": 915,
+      "is_interactive": true,
+      "title": "SCR-010 Remote · 412 · terang",
+      "w": 412,
+      "x": 0,
+      "y": 2280
+    },
+    "States-dark.dc.html": {
+      "h": 3480,
+      "title": "B1 · SCR-010 state · gelap",
+      "w": 1840,
+      "x": 0,
+      "y": 3560
+    },
+    "States-light.dc.html": {
+      "h": 3480,
+      "title": "B1 · SCR-010 state · terang",
+      "w": 1840,
+      "x": 1920,
+      "y": 3560
+    },
+    "Pairing-dark.dc.html": {
+      "x": 0,
+      "y": 11280,
+      "w": 1840,
+      "h": 3480,
+      "title": "B3+B4 · Pairing & error · gelap"
+    },
+    "Pairing-light.dc.html": {
+      "x": 1920,
+      "y": 11280,
+      "w": 1840,
+      "h": 3480,
+      "title": "B3+B4 · Pairing & error · terang"
+    },
+    "Pairing-proto.dc.html": {
+      "x": 3840,
+      "y": 11280,
+      "w": 412,
+      "h": 915,
+      "title": "B3 · Prototype pairing (main)",
+      "is_interactive": true
+    },
+    "Settings-dark.dc.html": {
+      "x": 0,
+      "y": 15140,
+      "w": 1492,
+      "h": 2400,
+      "title": "B5 · Pengaturan · gelap"
+    },
+    "Settings-light.dc.html": {
+      "x": 1572,
+      "y": 15140,
+      "w": 1492,
+      "h": 2400,
+      "title": "B5 · Pengaturan · terang"
+    },
+    "Components-B3-5.dc.html": {
+      "x": 3144,
+      "y": 15140,
+      "w": 1440,
+      "h": 2900,
+      "title": "B3–B5 · Komponen, error & matriks D2"
+    },
+    "Logo.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "D3 · Logo & ikon app"
+    },
+    "Power-resume.dc.html": {
+      "x": 4332,
+      "y": 9440,
+      "w": 1492,
+      "h": 2950,
+      "title": "B2 revisi · Buka app saat hitung mundur (P13–P15)"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-07T09:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "noteOrder": [
+    "t1",
+    "t2",
+    "n1",
+    "n2",
+    "t3",
+    "t4",
+    "n3",
+    "t5",
+    "t6",
+    "n4"
+  ],
+  "notes": {
+    "n1": {
+      "fill": "orange",
+      "size": 24,
+      "text": "Zona jempol + Liquid Glass\n\nBawah = dock kaca media (prev / play / next).\nTengah = panel kaca volume: angka raksasa, slider, mute, −/+. Panel ini mengisi ruang tengah; saat offline isinya diganti pesan + Coba lagi.\nAtas = daya (Sleep, Restart, Matikan) — di luar jangkauan jempol, netral. Merah baru muncul di konfirmasi (D2).\n\nCoba: tap play, geser slider, mute, −/+. Tweak 'status' buat lihat menyambung/offline.",
+      "w": 380,
+      "x": 1864,
+      "y": 2280
+    },
+    "n2": {
+      "fill": "gray",
+      "size": 24,
+      "text": "Haptic (rencana)\n\nPlay/prev/next: light impact saat tekan.\nSlider: selection click tiap 5%, medium di 0 & 100.\nMute: light.\nKonfirmasi daya: heavy saat tahan selesai.\n\nPrototype HTML tidak bisa getar — ini anotasi.",
+      "w": 380,
+      "x": 1864,
+      "y": 2840
+    },
+    "n3": {
+      "fill": "orange",
+      "size": 24,
+      "text": "Coba prototype:\nTap Matikan → Lanjut → tahan tombol merah sampai penuh (lepas cepat = reset) → hitung mundur → Batal.\nSleep langsung ke hitung mundur.",
+      "w": 412,
+      "x": 3840,
+      "y": 8380
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Remotto · D1 — Scope, alur, fondasi + logo",
+      "w": 240,
+      "x": 0,
+      "y": -280
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 1784,
+      "text": "D1 · Layar Remote (SCR-010) — terang & gelap, 412 dp & 360 dp",
+      "w": 240,
+      "x": 0,
+      "y": 2020
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 5280,
+      "text": "D2 · Batch 1 — Remote harian (S01–S12) + komponen",
+      "w": 240,
+      "x": 0,
+      "y": 3300
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 5772,
+      "text": "D2 · Batch 2 — Konfirmasi daya (Sleep, Restart, Matikan)",
+      "w": 240,
+      "x": 0,
+      "y": 7160
+    },
+    "t5": {
+      "x": 0,
+      "y": 11020,
+      "text": "D2 · Batch 3 + 4 — Pairing & error lintas layar",
+      "kind": "title1",
+      "maxW": 4252
+    },
+    "t6": {
+      "x": 0,
+      "y": 14880,
+      "text": "D2 · Batch 5 — Pengaturan + matriks akhir D2",
+      "kind": "title1",
+      "maxW": 4584
+    },
+    "n4": {
+      "x": 3840,
+      "y": 12240,
+      "w": 412,
+      "fill": "orange",
+      "size": 24,
+      "text": "Coba prototype:\nScan QR → Izinkan kamera → DEMO: QR kebaca → tes koneksi → Mulai pakai (lompat ke Remote gelap).\nIsi manual: alamat 10.0.0.1 = timeout, token 000000 = ditolak, selain itu berhasil."
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Foundations.dc.html",
+    "Remote.dc.html",
+    "Remote-412-dark.dc.html",
+    "Remote-360-light.dc.html",
+    "Remote-360-dark.dc.html",
+    "States-dark.dc.html",
+    "States-light.dc.html",
+    "Components-B1.dc.html",
+    "Power-dark.dc.html",
+    "Power-light.dc.html",
+    "Power-proto.dc.html",
+    "Components-B2.dc.html",
+    "Pairing-dark.dc.html",
+    "Pairing-light.dc.html",
+    "Pairing-proto.dc.html",
+    "Settings-dark.dc.html",
+    "Settings-light.dc.html",
+    "Components-B3-5.dc.html",
+    "Logo.dc.html",
+    "Power-resume.dc.html"
+  ],
+  "pages": [],
+  "title": "Remotto"
+}

@@ -1,0 +1,13 @@
+$kind: http-request
+name: Set Volume
+method: PUT
+url: "{{baseUrl}}/volume"
+description: "Mengubah level 0-100 dan mematikan mute. Idempoten. Di luar rentang menghasilkan 400."
+order: 2000
+headers:
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    { "level": 35 }

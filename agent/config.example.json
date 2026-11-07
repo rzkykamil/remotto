@@ -1,0 +1,15 @@
+{
+  "configVersion": 1,
+  "laptopName": "Laptop-Kamar",
+  "port": 8765,
+  "bindAddress": "0.0.0.0",
+  "token": "replace-on-first-run",
+  "tokenCreatedAt": "2026-01-01T00:00:00+07:00",
+  "createdAt": "2026-01-01T00:00:00+07:00",
+  "powerDelaySeconds": 5,
+  "rateLimit": {
+    "requestsPerSecond": 20,
+    "burst": 40
+  },
+  "logLevel": "info"
+}

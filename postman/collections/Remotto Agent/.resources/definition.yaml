@@ -1,0 +1,6 @@
+$kind: collection
+name: Remotto Agent
+description: |-
+  API agent Remotto. Sumber kontrak: docs/api-spec.md.
+  Sukses berbentuk { "data": ... }, error berbentuk { "error": { "code", "message" } }.
+  Semua request memakai Authorization: Bearer {{token}}.

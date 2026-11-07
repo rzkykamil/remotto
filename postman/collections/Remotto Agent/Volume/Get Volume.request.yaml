@@ -1,0 +1,8 @@
+$kind: http-request
+name: Get Volume
+method: GET
+url: "{{baseUrl}}/volume"
+description: "Membaca level dan status mute."
+order: 1000
+headers:
+  Authorization: Bearer {{token}}
