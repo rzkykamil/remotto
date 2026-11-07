@@ -149,7 +149,7 @@ func TestLoggingErrorCodeFromWriteError(t *testing.T) {
 	}
 }
 
-func TestLoggingNeverRecordsSecrets(t *testing.T) {
+func TestBR11_LoggingNeverRecordsSecrets(t *testing.T) {
 	var buf bytes.Buffer
 	h := Chain(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		WriteError(w, http.StatusUnauthorized, CodeInvalidToken, "invalid token")

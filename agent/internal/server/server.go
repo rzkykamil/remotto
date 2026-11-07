@@ -21,6 +21,25 @@ func NewHandler(router http.Handler, logger *slog.Logger) http.Handler {
 	return Chain(router, Recover(logger), Logging(logger))
 }
 
+// APIPrefix is the base path of every API route (docs/api-spec.md).
+const APIPrefix = "/api/v1"
+
+// NewAPIHandler returns the complete agent handler: the API routes wrapped in
+// the global middleware. The order is Recover, Logging, NetworkFilter, then
+// the rate limit slot (M6), then Auth, so a request from outside the LAN gets
+// 403 before any token check and unknown routes still need a valid token.
+func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps) http.Handler {
+	router := NewRouter()
+	router.Handle(http.MethodGet, APIPrefix+"/status", newStatusHandler(status))
+	// Rate limit (M6) goes here, between NetworkFilter and Auth.
+	return Chain(router,
+		Recover(logger),
+		Logging(logger),
+		NetworkFilter(logger),
+		Auth(tokens),
+	)
+}
+
 // NewHTTPServer returns an http.Server with the timeouts from the tech spec.
 func NewHTTPServer(addr string, h http.Handler) *http.Server {
 	return &http.Server{

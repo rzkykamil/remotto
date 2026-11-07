@@ -121,7 +121,7 @@ func TestNewLevelFilters(t *testing.T) {
 	}
 }
 
-func TestNewRedactsSensitiveAttributes(t *testing.T) {
+func TestBR11_NewRedactsSensitiveAttributes(t *testing.T) {
 	const secret = "abc123secret"
 	path := filepath.Join(t.TempDir(), "agent.log")
 
