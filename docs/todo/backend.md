@@ -15,17 +15,17 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 
 ## M1 Pairing & Koneksi
 
-- [ ] Pembuatan token 256 bit saat first run + test
-- [ ] DACL config dan folder (`_windows.go`) + pemeriksaan saat start
-- [ ] Migrasi versi dan penanganan file rusak + test
-- [ ] Middleware filter jaringan + test
-- [ ] Middleware auth constant-time + test semua route
-- [ ] Muat ulang token lewat waktu modifikasi config + test BR-10
-- [ ] Pemilihan host LAN + opsi `--host` + test
-- [ ] Perintah `pair` dengan QR dan teks
-- [ ] `GET /status` + test
-  - [ ] Sinkronkan `postman/`
-- [ ] Penulisan log akses tanpa token + test BR-11
+- [x] Pembuatan token 256 bit saat first run + test
+- [x] DACL config dan folder (`_windows.go`) + pemeriksaan saat start
+- [x] Migrasi versi dan penanganan file rusak + test
+- [x] Middleware filter jaringan + test
+- [x] Middleware auth constant-time + test semua route
+- [x] Muat ulang token lewat waktu modifikasi config + test BR-10
+- [x] Pemilihan host LAN + opsi `--host` + test
+- [x] Perintah `pair` dengan QR dan teks
+- [x] `GET /status` + test
+  - [x] Sinkronkan `postman/`
+- [x] Penulisan log akses tanpa token + test BR-11
 
 ## M2 Kontrol Media
 

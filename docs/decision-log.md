@@ -400,3 +400,24 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Token `primitive.size.action` 64dp ditambahkan ke `design/tokens.json` lalu `tokens.g.dart` digenerate ulang. Parser path SVG sendiri di `lib/ui` tanpa `flutter_svg` atau `path_drawing`. Token manual 64 hex memakai placeholder "Tempel token dari laptop" dan pesan error "Tokennya 64 karakter, huruf a–f dan angka" dengan gaya error C17. Komentar file M1 ditulis dalam bahasa Inggris.
 - **Alasan:** Parser sendiri menghindari dependensi baru. Token menjaga literal warna dan ukuran tetap di token.
 - **Dampak:** Ikon dan ukuran lain yang belum ada token masuk backlog frontend.
+
+## [Backend M1] Token, config lifecycle, dan DACL
+
+- **Konteks:** `docs/technical-spec.md` bagian 8, `docs/data-design.md` bagian 3, BR-10, BR-11.
+- **Keputusan:** Token dibuat di `LoadOrInit` lewat fungsi yang disuntikkan, agar tidak ada siklus impor config dan pairing. Auth fail-closed bila token sumber kosong atau tidak valid. Token awal yang tidak valid dianggap kosong lalu diisi ulang. Reload token yang gagal mempertahankan token valid terakhir dan mencatat warn tanpa nilai token. Versi config lebih baru memberi `ErrNewerVersion` dan file tidak disentuh. Versi 0 atau tanpa `configVersion` dianggap perlu migrasi. Pengecekan versi dipindah dari `Validate` ke `Load`/`LoadOrInit`. Salinan `.bak` dibuat sebelum migrasi. DACL Windows hanya mengizinkan SID user proses dengan `FILE_ALL_ACCESS`, dan pencocokan tidak bergantung pada flag PROTECTED. Folder diamankan sebelum tulis atomik pertama. Non-Windows memakai chmod 0700 dan 0600. Test DACL nyata memakai tag `manual`.
+- **Alasan:** Siklus impor dihindari. Fail-closed mencegah token kosong menjadi akses terbuka. Versi baru dan file rusak tidak boleh menimpa data pengguna diam-diam.
+- **Dampak:** `waiting.md` memuat pembuktian DACL di laptop. Rotasi `.bak` masuk M6.
+
+## [Backend M1] Auth, filter jaringan, dan GET /status
+
+- **Konteks:** `docs/api-spec.md` (403, 401, envelope `{data}`), BR-1, BR-2, BR-12.
+- **Keputusan:** `NetworkFilter` mengizinkan 10/8, 172.16/12, 192.168/16, 127/8, dan 100.64/10 setelah `Unmap`. Selain itu 403 `forbidden_network`, dan 403 dicek sebelum 401. `NewHandler` lama dipertahankan. `NewAPIHandler(logger, tokens, status)` memakai urutan Recover, Logging, NetworkFilter, slot rate limit M6, lalu Auth. Auth memakai header Bearer dengan skema tidak peka huruf besar dan `subtle.ConstantTimeCompare` setelah cek panjang. Auth berada di luar router, jadi rute tak dikenal tanpa token mendapat 401. `GET /api/v1/status` membalas `{name, version, uptimeSeconds, volume, pending}`. `pending` selalu null di M1. Error volume menghasilkan `volume: null` dengan status 200. Timeout baca audio 2 detik.
+- **Alasan:** Urutan ini menolak IP publik sebelum token diperiksa. Penolakan tidak membocorkan token ke log atau respons.
+- **Dampak:** Rate limit dan slot untuknya masuk M6. Field `pending` diisi di M4.
+
+## [Backend M1] Host LAN, QR, dan pair
+
+- **Konteks:** `docs/data-design.md` bagian 5, BR-12, `docs/release.md` bagian B.
+- **Keputusan:** `listAdapters` bersifat read-only dan berada di paket `pairing`, sebagai pengecualian aturan `os-integration`. `SelectHost` memilih adapter up dengan gateway dan IPv4 privat, dengan urutan stabil. Host divalidasi sebelum `LoadOrInit`, dan `BuildPayload` juga memvalidasi host. Event lifecycle dicetak ke stdout oleh `pair`, bukan ke logger. `run` dan `pair` berbagi `loadConfigFile`. `pair` ikut membuat config bila belum ada, dan token tetap sama pada panggilan berikutnya.
+- **Alasan:** Pemilihan host hanya membaca status adapter, tanpa mengubah sistem. Validasi di depan mencegah config tertulis dengan host yang salah.
+- **Dampak:** `listAdapters` dipindah atau dicatat sebagai pengecualian di M5 atau M6 (`docs/todo/backlog/backend.md`). Pembuktian `pair` dengan adapter nyata ada di `waiting.md`.

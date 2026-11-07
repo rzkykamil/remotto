@@ -141,6 +141,21 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: matikan WiFi laptop sampai status "Nggak kejangkau", tekan "Pairing ulang", lalu tekan back sampai keluar dari pairing. Buka app lagi.
   Harusnya: sambungan lama masih ada dan app kembali ke layar Remote dengan status yang sesuai.
 
+- [ ] M1 Backend: Izin file config hanya milik akun kamu, dan agent memperbaikinya sendiri.
+  Buka: PowerShell di laptop, folder `agent` dari repo ini. Lalu File Explorer ke `%APPDATA%\Remotto\`.
+  Lakukan: jalankan `icacls "$env:APPDATA\Remotto\config.json"` dan catat daftarnya. Lalu klik kanan `config.json` → Properties → Security → Edit → Add, tambahkan "Everyone" (atau "Semua") dengan izin Read, lalu OK. Jalankan `go run ./cmd/agent run` sebentar, tekan Ctrl+C, lalu jalankan `icacls` lagi dan buka `%APPDATA%\Remotto\logs\agent.log`.
+  Harusnya: setelah agent jalan, izin file hanya akun kamu lagi, dan `agent.log` memuat peringatan izin diperbaiki. Token tidak terlihat di log.
+
+- [ ] M1 Backend: Token lama langsung ditolak tanpa restart agent.
+  Buka: PowerShell di laptop (agent sedang jalan lewat `go run ./cmd/agent run`), dan Notepad untuk `%APPDATA%\Remotto\config.json`.
+  Lakukan: catat token lama, ganti isi `"token"` dengan 64 karakter lain (huruf a–f dan angka), simpan. Di PowerShell lain jalankan `Invoke-WebRequest http://127.0.0.1:8765/api/v1/status -Headers @{Authorization="Bearer <token lama>"}`, lalu ulangi dengan token baru.
+  Harusnya: token lama dibalas 401 tanpa restart agent, token baru dibalas 200. Jangan bagikan token ke siapa pun.
+
+- [ ] M1 Backend: `remotto-agent pair` tanpa `--host` memilih IP WiFi yang benar dan QR terbaca.
+  Buka: PowerShell di laptop, folder `agent`. Pengaturan Windows → Network & internet → Wi-Fi → Properties untuk IP WiFi.
+  Lakukan: jalankan `go run ./cmd/agent pair` tanpa `--host`, lalu bandingkan alamat yang tercetak dengan IP WiFi. Kalau ada WSL atau Hyper-V terpasang, pastikan alamatnya bukan IP adapter virtual. Scan QR-nya dari app di HP.
+  Harusnya: alamat sama dengan IP WiFi, adapter WSL atau Hyper-V terlewati, dan QR terbaca sampai app menampilkan berhasil.
+
 ## M2 Kontrol Media
 
 - [ ] M2: Play/pause mengenai Brave.
