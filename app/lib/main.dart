@@ -7,9 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/storage/connection_storage.dart';
 import 'core/storage/storage_providers.dart';
+import 'features/pairing/state/pairing_flow_controller.dart';
+import 'features/pairing/widgets/qr_viewfinder.dart';
 
-/// Membaca storage sebelum `runApp`, jadi redirect router bersifat sinkron
-/// dan tidak ada layar loading di M0.
+/// Reads storage before `runApp`, so the router redirect is synchronous
+/// and there is no loading screen in M0.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -23,6 +25,11 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         initialPairingProvider.overrideWithValue(initial),
+        // Real camera for the scan screen (the only mobile_scanner import
+        // is in qr_viewfinder.dart).
+        qrScannerSourceProvider.overrideWith(
+          (ref) => ref.watch(mobileScannerQrSourceProvider),
+        ),
       ],
       child: const RemottoApp(),
     ),

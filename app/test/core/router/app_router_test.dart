@@ -2,13 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remotto/app.dart';
+import 'package:remotto/core/connection/connection_controller.dart';
+import 'package:remotto/core/connection/connection_providers.dart';
+import 'package:remotto/core/connection/connection_state.dart';
+import 'package:remotto/core/connection/mock_status_repository.dart';
+import 'package:remotto/core/connection/status_repository.dart';
+import 'package:remotto/core/network/api_failure.dart';
+import 'package:remotto/core/network/network_providers.dart';
 import 'package:remotto/core/router/app_router.dart';
 import 'package:remotto/core/storage/connection_storage.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/strings/strings.dart';
+import 'package:remotto/features/pairing/state/pairing_flow_controller.dart';
+import 'package:remotto/features/pairing/state/pairing_flow_state.dart';
+import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fakes.dart';
@@ -20,10 +31,26 @@ const _pairing = PairingData(
   laptopName: 'Laptop Uji',
 );
 
+/// Scheduler that never runs timers. Polling only via `pollOnce`.
+final class _SilentScheduler implements PollScheduler {
+  @override
+  ScheduledJob every(Duration interval, void Function() tick) => _NoopJob();
+
+  @override
+  ScheduledJob after(Duration delay, void Function() callback) => _NoopJob();
+}
+
+final class _NoopJob implements ScheduledJob {
+  @override
+  void cancel() {}
+}
+
 Future<ProviderContainer> _pumpRouter(
   WidgetTester tester, {
   PairingData? initial,
   required ConnectionStorage storage,
+  StatusRepository? repo,
+  List<Override> extra = const [],
 }) async {
   tester.view.physicalSize = const Size(412, 892);
   tester.view.devicePixelRatio = 1.0;
@@ -43,6 +70,12 @@ Future<ProviderContainer> _pumpRouter(
         sharedPreferencesProvider.overrideWithValue(prefs),
         initialPairingProvider.overrideWithValue(initial),
         connectionStorageProvider.overrideWithValue(storage),
+        // A poll from the Remote screen must not use a timer or the real mock.
+        statusRepositoryProvider.overrideWithValue(
+          repo ?? MockStatusRepository([mockStatusOk()]),
+        ),
+        pollSchedulerProvider.overrideWithValue(_SilentScheduler()),
+        ...extra,
       ],
       child: const RemottoApp(),
     ),
@@ -140,7 +173,7 @@ void main() {
     );
     final router = container.read(routerProvider);
 
-    // push tidak memperbarui currentConfiguration, jadi cek layar yang tampil.
+    // push does not update currentConfiguration, so check the screen shown.
     unawaited(router.push(AppRoutes.settings));
     await tester.pumpAndSettle();
     expect(find.text(AppStrings.placeholderSettings), findsOneWidget);
@@ -149,7 +182,7 @@ void main() {
     router.pop();
     await tester.pumpAndSettle();
     expect(find.text(AppStrings.placeholderSettings), findsNothing);
-    expect(find.text(AppStrings.placeholderRemote), findsOneWidget);
+    expect(find.byType(RemoteScreen), findsOneWidget);
     expect(router.canPop(), isFalse);
   });
 
@@ -182,6 +215,69 @@ void main() {
 
     expect(_path(container), AppRoutes.pairing);
     expect(storage.data, isNull);
+  });
+
+  testWidgets('(h) 401 dari Remote: Q12, polling berhenti, data lama tetap', (
+    tester,
+  ) async {
+    final storage = InMemoryConnectionStorage(_pairing);
+    // The first poll (when the Remote screen opens) succeeds, later polls get 401.
+    final repo = MockStatusRepository([
+      mockStatusOk(),
+      mockErrorReply(401, 'unauthorized'),
+    ]);
+    final container = await _pumpRouter(
+      tester,
+      initial: _pairing,
+      storage: storage,
+      repo: repo,
+    );
+    expect(_path(container), AppRoutes.remote);
+
+    await tester.runAsync(
+      () => container.read(connectionControllerProvider.notifier).pollOnce(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(connectionControllerProvider).phase,
+      ConnectionPhase.tokenRejected,
+    );
+    expect(container.read(pairingFlowProvider).step, PairingStep.expired);
+    expect(_path(container), AppRoutes.pairing);
+    expect(container.read(routerProvider).canPop(), isFalse);
+    expect(storage.data, _pairing);
+
+    // Polling has stopped: the next poll does not call the repository.
+    await tester.runAsync(
+      () => container.read(connectionControllerProvider.notifier).pollOnce(),
+    );
+    expect(repo.calls, 2);
+  });
+
+  testWidgets('(i) gagal jaringan biasa tidak memindahkan ke Q12', (
+    tester,
+  ) async {
+    final repo = MockStatusRepository([
+      const MockTransportFailure(TimeoutFailure()),
+    ]);
+    final container = await _pumpRouter(
+      tester,
+      initial: _pairing,
+      storage: InMemoryConnectionStorage(_pairing),
+      repo: repo,
+    );
+
+    await tester.runAsync(
+      () => container.read(connectionControllerProvider.notifier).pollOnce(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(connectionControllerProvider).phase,
+      isNot(ConnectionPhase.tokenRejected),
+    );
+    expect(_path(container), AppRoutes.remote);
   });
 
   Future<(double, double)> slideProbe(WidgetTester tester) async {

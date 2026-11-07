@@ -3,24 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/pairing/pairing_screen.dart';
+import '../../features/pairing/state/pairing_flow_controller.dart';
 import '../../features/remote/remote_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../connection/connection_providers.dart';
+import '../connection/connection_state.dart';
 import '../storage/pairing_data.dart';
 import '../storage/storage_providers.dart';
 import 'route_transitions.dart';
 
 abstract final class AppRoutes {
-  /// Tidak punya layar; hanya redirect ke `/remote` atau `/pairing`.
+  /// Has no screen; only redirects to `/remote` or `/pairing`.
   static const home = '/';
   static const pairing = '/pairing';
   static const remote = '/remote';
   static const settings = '/settings';
 }
 
-/// Redirect murni berdasarkan ada tidaknya data pairing.
+/// Pure redirect based on whether pairing data exists.
 ///
-/// `/pairing` tetap boleh dibuka saat data ada (pairing ulang R04 dan
-/// pemulihan Q12 mempertahankan/menghapus data lalu membuka `/pairing`).
+/// `/pairing` may still be opened when data exists (re-pairing R04 and
+/// recovery Q12 keep/delete the data then open `/pairing`).
 String? redirectFor({required bool hasPairing, required String location}) {
   if (location == AppRoutes.home) {
     return hasPairing ? AppRoutes.remote : AppRoutes.pairing;
@@ -32,14 +35,14 @@ String? redirectFor({required bool hasPairing, required String location}) {
   return null;
 }
 
-/// Memberi tahu GoRouter setiap kali [pairingProvider] berubah.
+/// Notifies GoRouter whenever [pairingProvider] changes.
 final class _PairingRefresh extends ChangeNotifier {
   void poke() => notifyListeners();
 }
 
-/// Akar stack adalah `/remote` (back sistem keluar app). Pengaturan dibuka
-/// lewat `push` dari Remote, sehingga back kembali ke Remote. `/pairing`
-/// juga akar; langkah mundur internal pairing ada di M1.
+/// The stack root is `/remote` (system back exits the app). Settings is opened
+/// via `push` from Remote, so back returns to Remote. `/pairing`
+/// is also a root; internal back steps of pairing live in M1.
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _PairingRefresh();
   ref.listen<PairingData?>(pairingProvider, (previous, next) => refresh.poke());
@@ -52,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       location: state.uri.path,
     ),
     routes: [
-      // Tidak pernah tampil: redirect global selalu mengalihkan `/`.
+      // Never shown: the global redirect always redirects `/`.
       GoRoute(path: AppRoutes.home, redirect: (context, state) => null),
       GoRoute(
         path: AppRoutes.pairing,
@@ -74,6 +77,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Token rejected from any screen (BR-9): stop polling, show
+  // Q12, and make /pairing the stack root so back does not return to Remote.
+  // Old pairing data is not deleted.
+  ref.listen<ConnectionState>(connectionControllerProvider, (previous, next) {
+    if (next.phase != ConnectionPhase.tokenRejected) return;
+    if (previous?.phase == ConnectionPhase.tokenRejected) return;
+    ref.read(connectionControllerProvider.notifier).stop();
+    ref.read(pairingFlowProvider.notifier).showExpired();
+    router.go(AppRoutes.pairing);
+  });
 
   ref.onDispose(() {
     router.dispose();

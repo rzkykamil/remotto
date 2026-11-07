@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/strings/strings.dart';
 
-/// Placeholder rute `/settings`. Layar nyata dikerjakan di M5.
+/// Placeholder for route `/settings`. The real screen is built in M5.
 // TODO(M5): replace placeholder with the settings screen from artboards.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});

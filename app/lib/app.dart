@@ -7,6 +7,7 @@ import 'core/strings/strings.dart';
 import 'core/storage/storage_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'ui/light_backdrop.dart';
+import 'ui/toast_host.dart';
 
 /// Akar app: router, tema terang/gelap, dan latar cahaya bersama.
 class RemottoApp extends ConsumerWidget {
@@ -32,7 +33,7 @@ class RemottoApp extends ConsumerWidget {
             systemNavigationBarColor: Colors.transparent,
             systemNavigationBarIconBrightness: iconBrightness,
           ),
-          child: LightBackdrop(child: child!),
+          child: LightBackdrop(child: ToastHost(child: child!)),
         );
       },
     );
