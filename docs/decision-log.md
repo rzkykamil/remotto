@@ -860,3 +860,80 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Setiap test yang membangun container meng-override `sharedPreferencesProvider`.
 - **Alasan:** Provider prefs sengaja tidak punya default, sama dengan pola storage M0.
 - **Dampak:** Test baru yang lupa override akan gagal dengan pesan yang sama.
+
+## [Backend M4] Jeda 5 detik sebagai konstanta
+
+- **Konteks:** `docs/prd.md` BR-4 mewajibkan jeda 5 detik sebelum perintah daya dijalankan. Test tidak boleh menunggu waktu nyata.
+- **Keputusan:** Jeda adalah konstanta `PowerDelay` tanpa opsi konfigurasi. Test memakai clock palsu (`internal/oscontrol/fake/clock.go`).
+- **Alasan:** Jeda adalah pengaman, bukan preferensi. Opsi konfigurasi bisa membuatnya nol tanpa sengaja.
+- **Dampak:** Mengubah jeda berarti mengubah kode dan test. Efek nyata hanya bisa dicek di laptop (`docs/todo/waiting.md` M4).
+
+## [Backend M4] Jadwal saat executing dijawab 409 power_pending
+
+- **Konteks:** `docs/api-spec.md` memakai `power_executing` untuk Cancel saat perintah berjalan.
+- **Keputusan:** Schedule saat state `executing` dijawab 409 `power_pending`. `power_executing` hanya untuk Cancel.
+- **Alasan:** Sesuai kontrak api-spec. Klien tidak boleh menjadwal ulang saat perintah sudah berjalan.
+- **Dampak:** App harus membaca `pending` dari `/status` sebelum menjadwal.
+
+## [Backend M4] Cancel dan eksekusi diselesaikan lewat nomor generasi
+
+- **Konteks:** Timer bisa sudah menembak saat Cancel datang. Hasil `Timer.Stop()` bisa basi, jadi tidak bisa jadi penentu.
+- **Keputusan:** Setiap jadwal punya nomor generasi `gen`. Cancel dan eksekusi memeriksa `gen` di bawah mutex. `Execute` dipanggil di luar lock dengan timeout 15 detik. `recover` mengembalikan state ke idle.
+- **Alasan:** Satu pemeriksaan di bawah lock mencegah Cancel dan eksekusi sama-sama menang. Timeout mencegah state macet bila panggilan OS tidak kembali.
+- **Dampak:** Test race Cancel vs fire baru terbukti penuh dengan `-race` di CI (`docs/todo/backlog/backend.md` M4).
+
+## [Backend M4] Close membuang jadwal, eksekusi yang berjalan dibiarkan
+
+- **Konteks:** Jadwal hanya ada di memori (`[Gate 1] Jadwal daya hanya di memori`). Agent yang berhenti tidak boleh menjalankan perintah daya yang sudah tidak diminta.
+- **Keputusan:** `Close` membuang jadwal yang belum berjalan. Eksekusi yang sudah dimulai dibiarkan selesai.
+- **Alasan:** Menunggu eksekusi di Close bisa menggantung. Graceful shutdown penuh ditunda ke M6.
+- **Dampak:** `Close()` belum menunggu eksekusi (`docs/todo/backlog/backend.md` M4).
+
+## [Backend M4] Controller nil berarti fail-closed
+
+- **Konteks:** Jalur daya OS bisa tidak tersedia, misalnya saat build non-Windows.
+- **Keputusan:** Schedule dengan controller nil dijawab 500 `power_failed` dengan pesan generik. Rute tetap terdaftar, sama seperti pola media dan volume. Kegagalan `Execute` setelah jeda hanya masuk log, karena respons 200 sudah dikirim.
+- **Alasan:** Gagal tertutup, sehingga tidak ada perintah daya yang diam-diam dianggap berhasil.
+- **Dampak:** Klien tidak melihat kegagalan setelah jeda kecuali lewat `/status` dan log.
+
+## [Backend M4] Shutdown dan restart lewat shutdown.exe tanpa /f
+
+- **Konteks:** R-15 meminta Windows tetap menahan shutdown bila ada pekerjaan belum tersimpan.
+- **Keputusan:** Memanggil `shutdown.exe /s /t 0` dan `/r /t 0` dengan path System32 penuh, tanpa shell. Flag `/f` tidak pernah dipakai.
+- **Alasan:** `/f` memaksa aplikasi tertutup dan bisa menghilangkan pekerjaan yang belum tersimpan. Path penuh mencegah pencarian PATH yang bisa disisipi.
+- **Dampak:** Shutdown bisa ditahan Windows. Perilaku `pending` saat itu ada di `docs/todo/waiting.md` M4.
+
+## [Backend M4] Sleep memilih jalur saat runtime lewat GetPwrCapabilities
+
+- **Konteks:** `[Gate 2] Sleep memilih jalur saat runtime`. Di laptop pengembangan, `SetSuspendState` pada S0 bisa menjadi hibernate atau gagal.
+- **Keputusan:** AoAc dicek lebih dulu: `PostMessageW(SC_MONITORPOWER)`. Bila tidak ada, S3 memakai `SetSuspendState` dengan `SeShutdownPrivilege`. Bila keduanya tidak tersedia, error.
+- **Alasan:** AoAc didahulukan karena itu jalur yang benar di laptop S0. `PostMessageW` dipakai, bukan `SendMessage`, agar tidak menggantung. Hasil dinilai dari nilai kembalian, bukan `GetLastError` yang bisa basi.
+- **Dampak:** `SeShutdownPrivilege` dibiarkan aktif setelah dipakai. Jalur S3 belum terbukti (`docs/todo/waiting.md` M4).
+
+## [Backend M4] Offset struct SYSTEM_POWER_CAPABILITIES
+
+- **Konteks:** Struct 76 byte dibaca dari urutan field `winnt.h`. Header SDK di mesin ini belum dicek.
+- **Keputusan:** `SystemS3` di offset 5 dan `AoAc` di offset 20. Offset AoAc dikoreksi dari 19.
+- **Alasan:** Koreksi berdasarkan urutan field dan pembacaan read-only di laptop ini. Pengecekan ke header SDK menunggu sumbernya tersedia.
+- **Dampak:** Offset 20 perlu dicocokkan dengan SDK (`docs/todo/backlog/backend.md` M4, `docs/todo/waiting.md` M4).
+
+## [Backend M4] cmdRun memasang slog default
+
+- **Konteks:** Log `sleep path chosen` dari `oswin` harus masuk file log agent agar bisa didiagnosis.
+- **Keputusan:** `cmdRun` memanggil `slog.SetDefault(logger)`. Default lama dikembalikan lewat defer.
+- **Alasan:** Log jalur sleep ikut tercatat di `agent.log` tanpa meneruskan logger ke setiap paket.
+- **Dampak:** Paket lain di proses yang sama ikut memakai logger ini selama `cmdRun` berjalan.
+
+## [Backend M4] serveAgent menerima PowerController
+
+- **Konteks:** Scheduler daya perlu satu pemilik lifecycle, sama seperti volume dan media.
+- **Keputusan:** `serveAgent` menerima `PowerController`, membangun scheduler sendiri, dan memasang Close di satu tempat.
+- **Alasan:** Penutupan jadwal saat agent berhenti tidak tersebar di banyak tempat.
+- **Dampak:** Perakitan di `cmd/agent` menjadi satu titik untuk memeriksa lifecycle daya.
+
+## [Backend M4] Test wiring sleep hanya memeriksa field
+
+- **Konteks:** `TestNewPowerSleepNotImplemented` memanggil jalur OS produksi.
+- **Keputusan:** Diganti `TestNewPowerWiresSleep`, yang hanya memeriksa field.
+- **Alasan:** Test otomatis tidak boleh menjalankan efek daya sungguhan (aturan proyek: tanpa perintah daya sungguhan di test otomatis).
+- **Dampak:** Efek sleep hanya bisa dibuktikan di laptop (`docs/todo/waiting.md` M4).

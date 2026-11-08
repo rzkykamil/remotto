@@ -299,8 +299,23 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
 
 - [ ] M4: Sleep benar-benar menidurkan laptop.
   Buka: layar Remote di HP. Simpan pekerjaan dulu.
-  Lakukan: tekan Sleep, konfirmasi, lalu tunggu hitung mundur.
-  Harusnya: layar laptop mati lalu laptop masuk standby. Perhatikan: apakah lagu ikut berhenti, dan berapa lama sampai app menganggap laptop mati?
+  Lakukan: buka PowerShell di laptop dan jalankan `powercfg /a`, catat hasilnya. Lalu tekan Sleep di HP, konfirmasi, dan tunggu hitung mundur. Setelah itu buka `%APPDATA%\Remotto\logs\agent.log` lewat File Explorer dan cari baris `sleep path chosen`.
+  Harusnya: layar laptop mati lalu laptop masuk Modern Standby, bukan hibernate atau tetap menyala. Baris `sleep path chosen` menyebut jalur AoAc. Perhatikan: apakah lagu ikut berhenti, dan berapa lama sampai app menganggap laptop mati?
+
+- [ ] M4: Jalur S3 (`SetSuspendState`) belum terbukti di laptop ini.
+  Buka: PowerShell di laptop, lalu hasil `powercfg /a` yang tadi dicatat.
+  Lakukan: lihat apakah daftar memuat "Standby (S3)". Laptop pengembangan ini hanya punya S0, jadi jalur ini hanya bisa dicek di laptop lain yang punya S3.
+  Harusnya: di laptop ber-S3, sleep lewat `SetSuspendState` membuat laptop tidur dan bangun normal. Di laptop ini cukup dicatat bahwa S3 tidak tersedia.
+
+- [ ] M4: Shutdown atau restart yang ditahan Windows tidak merusak status agent.
+  Buka: Notepad di laptop (ketik sesuatu tanpa menyimpan), lalu layar Remote di HP.
+  Lakukan: jalankan Matikan atau Restart dari HP, lalu di laptop pilih batal saat Windows menanyakan pekerjaan belum tersimpan. Tunggu hitung mundur selesai, lalu cek `GET /status` lewat browser di laptop (`http://127.0.0.1:<port>/status`, dengan token dari config).
+  Harusnya: field `pending` kembali null, agent tetap menjawab `/status`, dan Notepad tidak kehilangan tulisan.
+
+- [ ] M4: Offset AoAc di struct daya dicocokkan dengan SDK (opsional, teknis).
+  Buka: folder SDK Windows di laptop (biasanya `C:\Program Files (x86)\Windows Kits\10\Include`), file `winnt.h`.
+  Lakukan: cari `SYSTEM_POWER_CAPABILITIES` dan hitung posisi field `AoAc`. Bandingkan dengan `agent/internal/oswin/sleep_windows.go`. Bila SDK tidak ada, lewati item ini.
+  Harusnya: posisi AoAc sama dengan offset 20 di kode. Bila beda, kabari untuk perbaikan.
 
 - [ ] M4: Laptop bangun lagi dari sleep dan app tersambung sendiri.
   Buka: layar Remote di HP.

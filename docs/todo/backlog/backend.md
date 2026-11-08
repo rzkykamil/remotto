@@ -41,7 +41,12 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M4 Daya
 
-Belum ada temuan.
+- `go test -race` untuk test Cancel vs fire belum bisa lokal (CGO mati). Jalankan di CI (`agent/internal/control`, `agent/internal/server`).
+- Rate limit khusus endpoint daya belum didefinisikan spec; ditunda ke M6 (`agent/internal/server`).
+- `Close()` tidak menunggu eksekusi yang sedang berjalan; graceful shutdown penuh di M6 (`agent/internal/control/power.go`).
+- `TestServeAgentStopDiscardsPendingPower` hanya membuktikan tidak ada eksekusi di jendela singkat; pembuangan timer dibuktikan `TestCloseDiscardsSchedule` (`agent/cmd/agent`).
+- Offset `AoAc` (20) dan ukuran struct 76 byte di `SYSTEM_POWER_CAPABILITIES` perlu dicocokkan dengan `winnt.h` SDK bila tersedia (`agent/internal/oswin/sleep_windows.go`).
+- Deskripsi request Status di `postman/` belum menyebut bentuk `pending` (objek atau null); opsional (`postman/collections/Remotto Agent/`).
 
 ## M5 Pengaturan & Tema
 

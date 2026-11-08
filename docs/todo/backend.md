@@ -48,14 +48,14 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 
 ## M4 Daya
 
-- [ ] Scheduler dengan clock palsu: jeda, batal, jadwal kedua, eksekusi, gagal + test BR-4, BR-5, BR-17
-- [ ] Field `pending` di `/status`, sisa 0 selama eksekusi
-- [ ] Shutdown dan restart tanpa `/f` di `internal/oswin`
-- [ ] Pemilihan jalur sleep lewat `GetPwrCapabilities`
-- [ ] `POST /power/sleep`, `/power/restart`, `/power/shutdown` + test
-  - [ ] Sinkronkan `postman/`
-- [ ] `POST /power/cancel`, termasuk `power_executing` + test
-  - [ ] Sinkronkan `postman/`
+- [x] Scheduler dengan clock palsu: jeda, batal, jadwal kedua, eksekusi, gagal + test BR-4, BR-5, BR-17
+- [x] Field `pending` di `/status`, sisa 0 selama eksekusi
+- [x] Shutdown dan restart tanpa `/f` di `internal/oswin`
+- [x] Pemilihan jalur sleep lewat `GetPwrCapabilities` (efek sleep nyata belum terbukti, lihat `waiting.md` M4)
+- [x] `POST /power/sleep`, `/power/restart`, `/power/shutdown` + test
+  - [x] Sinkronkan `postman/`
+- [x] `POST /power/cancel`, termasuk `power_executing` + test
+  - [x] Sinkronkan `postman/`
 
 ## M5 Pengaturan & Tema
 
