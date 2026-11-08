@@ -28,7 +28,9 @@ Belum ada temuan.
 
 ## M3 Volume
 
-Belum ada temuan.
+- [ ] Tes volume hanya menguji server palsu di `test/integration/`, bukan agent Go asli. Pembuktian dengan agent asli ada di `waiting.md` M3 Integrasi.
+- [ ] `Future.timeout` pada `putVolume` dan `postVolumeStep` tidak membatalkan request; up/down yang terlambat bisa tetap menaikkan volume setelah UI di-rollback. Dampak kecil. Sama dengan item M1 dan M2 di atas (`lib/core/network/agent_http_client.dart`).
+- [ ] `VolumeSender` retry juga untuk 400 dan 429, dan tidak menghormati `Retry-After`. Kandidat M6 (`lib/features/remote/`).
 
 ## M4 Daya
 

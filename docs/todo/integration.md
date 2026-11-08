@@ -26,11 +26,11 @@ Tidak ada endpoint. Fase ini dicatat "tidak relevan" saat dijalankan.
 
 | Screen/Widget | Endpoint | Status | Catatan |
 |---|---|---|---|
-| `VolumeSlider` | `PUT /volume` | Belum | Throttle, retry 1 kali, rollback S06, 400, 429 |
-| Tombol + | `POST /volume/up` | Belum | Tanpa retry |
-| Tombol − | `POST /volume/down` | Belum | Tanpa retry |
-| Tombol mute | `POST /volume/mute` | Belum | Retry 1 kali |
-| Sinkron nilai | `GET /status` | Belum | `volume: null` → pertahankan nilai terakhir |
+| `VolumeSlider` | `PUT /volume` | Selesai | Retry 1 kali oleh VolumeSender; 400/429 lewat toast S06 + rollback. Tes loopback; HP di `waiting.md` |
+| Tombol + | `POST /volume/up` | Selesai | Tanpa retry. Tes loopback; HP di `waiting.md` |
+| Tombol − | `POST /volume/down` | Selesai | Tanpa retry. Tes loopback; HP di `waiting.md` |
+| Tombol mute | `POST /volume/mute` | Selesai | Retry 1 kali diam-diam oleh controller. Tes loopback; HP di `waiting.md` |
+| Sinkron nilai | `GET /status` | Selesai | `volume: null` → pertahankan nilai terakhir. Tes loopback; HP di `waiting.md` |
 
 ## M4 Daya
 

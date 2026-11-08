@@ -16,3 +16,12 @@
 - Gerbang lolos: `go test ./...`, `go vet`, `gofmt -l .`, dan `GOOS=linux go build` bersih. COM asli belum dijalankan; pembuktian ada di `docs/todo/waiting.md` bagian M3.
 - Keputusan ada di `docs/decision-log.md` dengan tag `[Backend M3]`. Saran di `docs/todo/backlog/backend.md` bagian M3.
 - Fase aktif pindah ke Integrasi karena DoD Backend terpenuhi.
+
+## Integrasi
+
+- Selesai dengan Reviewer LOLOS tanpa temuan WAJIB dan SARAN. 5 baris `docs/todo/integration.md` M3 berstatus Selesai (tes loopback).
+- Dibangun: `AgentHttpClient.putVolume`, `postVolumeStep`, dan `postVolumeMute`; `HttpVolumeRepository` (tanpa retry sendiri, pairing null menjadi UnreachableFailure); `volumeRepositoryProvider` memakai HTTP; `FakeAgentServer` menangani rute volume dan mode audioFailed. Tes: 23 kasus di `test/integration/volume_http_flow_test.dart`.
+- Gerbang lolos: analyze dan format bersih, 707 test lulus. Tidak ada endpoint agent baru; `agent/` dan `postman/` tidak berubah.
+- Keputusan ada di `docs/decision-log.md` dengan tag `[Integrasi M3]`. Saran di `docs/todo/backlog/integration.md` bagian M3.
+- Pembuktian dengan agent asli dan HP sungguhan ada di `docs/todo/waiting.md`.
+- Fase aktif pindah ke QA karena DoD Integrasi terpenuhi.

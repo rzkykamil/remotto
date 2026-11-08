@@ -708,3 +708,52 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Volume memakai Core Audio lewat COM, bukan tombol virtual.
 - **Alasan:** Tombol virtual tidak memberi nilai absolut dan tidak bisa membaca status. Endpoint `PUT /volume` butuh level pasti.
 - **Dampak:** Kode M2 `SendInput` tidak berubah. Jalur tombol virtual tidak dipakai di M3.
+
+## [Integrasi M3] Retry tetap di VolumeSender dan VolumeController
+
+- **Konteks:** Frontend M3 menaruh retry di `VolumeSender` (PUT) dan `VolumeController` (mute). Repository bisa ikut retry bila tidak dibatasi.
+- **Keputusan:** `HttpVolumeRepository` tidak retry. Retry hanya di sender dan controller sesuai aturan per endpoint.
+- **Alasan:** Retry ganda di tiga lapis bisa menghasilkan sampai 4 request untuk satu aksi.
+- **Dampak:** Repository murni satu request per panggilan. Tes retry ada di level sender dan controller.
+
+## [Integrasi M3] Satu AgentHttpClient dengan metode volume baru
+
+- **Konteks:** M1 dan M2 memakai satu `AgentHttpClient` untuk semua endpoint agent.
+- **Keputusan:** Volume memakai `putVolume`, `postVolumeStep`, dan `postVolumeMute` di klien yang sama.
+- **Alasan:** Header token, timeout, dan pemetaan error tetap di satu tempat.
+- **Dampak:** Tidak ada klien HTTP kedua. Penambahan endpoint berikutnya cukup satu metode.
+
+## [Integrasi M3] Kegagalan 400 dan 500 menjadi ServerFailure(code)
+
+- **Konteks:** Agent mengirim kode error seperti `invalid_level` lewat body JSON pada 400.
+- **Keputusan:** Status 400 dan 500 menjadi `ServerFailure` dengan field `code`. Tidak ada tipe failure baru.
+- **Alasan:** Pemanggil cukup membedakan kode bila perlu. Tipe baru hanya menambah cabang yang tidak dipakai UI.
+- **Dampak:** UI memperlakukan semua `ServerFailure` sebagai gagal kirim (toast S06 dan rollback).
+
+## [Integrasi M3] Pairing null menghasilkan UnreachableFailure
+
+- **Konteks:** `[Integrasi M2] Pairing null menghasilkan UnreachableFailure` berlaku untuk media. Volume memakai pola yang sama.
+- **Keputusan:** `HttpVolumeRepository` membaca `pairingProvider` pada setiap panggilan. Bila null, hasilnya `UnreachableFailure` tanpa request.
+- **Alasan:** Tanpa pairing, `UnauthorizedFailure` akan salah memicu alur token ditolak.
+- **Dampak:** Slider tanpa pairing rollback dan menampilkan toast, bukan layar Q12.
+
+## [Integrasi M3] VolumeStatus.fromData publik sebagai satu sumber parser
+
+- **Konteks:** Respons `GET /status` dan respons volume punya bentuk field yang sama.
+- **Keputusan:** `VolumeStatus.fromData` dibuat publik dan dipakai oleh parser status serta parser respons volume.
+- **Alasan:** Satu parser mencegah aturan `null` dan rentang level berbeda di dua tempat.
+- **Dampak:** Perubahan bentuk volume cukup disentuh di satu fungsi.
+
+## [Integrasi M3] Respons volume dibaca dari data langsung
+
+- **Konteks:** Respons `up`, `down`, dan `mute` berisi hasil baca ulang OS (`[Backend M3] Respons volume berisi hasil baca ulang OS`).
+- **Keputusan:** Parser membaca field volume dari body langsung. Field `action` tidak dipakai.
+- **Alasan:** Field `action` tidak ada di kontrak `docs/api-spec.md` untuk volume. Membacanya akan menambah ketergantungan yang tidak perlu.
+- **Dampak:** Penambahan field `action` di agent tidak merusak parser app.
+
+## [Integrasi M3] Tes invalid_level di level repository
+
+- **Konteks:** Slider sudah meng-clamp nilai ke 0 sampai 100 sebelum kirim, jadi UI tidak pernah mengirim `invalid_level`.
+- **Keputusan:** Tes 400 `invalid_level` ditulis di level repository, bukan di UI.
+- **Alasan:** Jalur error tetap terbukti bila clamp di UI dilonggarkan kelak.
+- **Dampak:** Kasus ini tidak muncul di tes widget. Pembuktian nyata ada di Postman (`waiting.md` M3 Backend).

@@ -256,7 +256,7 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Harusnya: mudah dipakai, dan layar pendek tetap rapi.
 
 - [ ] M3 Frontend: Panel volume di HP fisik mirip desain, lebar 412 dan 360 dp, terang dan gelap, serta angka dan layar pendek.
-  Buka: app Remotto di HP (layar Remote, setelah Integrasi M3 selesai), dan file di `design/export/artboards/` di laptop sebagai pembanding: Remote-412-dark, Remote-360-light, dan States-light (S01, S05, S07, S08, S09, S12). Syarat: layar Remote di app asli belum bisa dibuka sampai Integrasi M3, karena provider volume asli belum ada dan sekarang melempar error.
+  Buka: app Remotto di HP (layar Remote, setelah Integrasi M3 selesai), dan file di `design/export/artboards/` di laptop sebagai pembanding: Remote-412-dark, Remote-360-light, dan States-light (S01, S05, S07, S08, S09, S12). Syarat sudah terpenuhi setelah Integrasi M3: pasang APK baru dari build ini, karena provider volume asli sudah ada.
   Lakukan: bandingkan panel volume dengan artboard, lalu ganti tema HP ke terang dan gelap. Pastikan agent di laptop menyala.
   Harusnya: susunan dan warna mirip artboard, angka besar (128, 108 di layar 360 dp) terbaca, badge BISU hanya muncul saat laptop dibisukan, dan tidak ada yang terpotong atau tumpang tindih.
 
@@ -284,6 +284,11 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Buka: laptop Windows, jalankan agent dengan `cd agent && go run ./cmd/agent run` di terminal. Buka Postman dengan environment `Remotto Agent`, lalu folder Volume.
   Lakukan: kirim GET `/volume`, lalu PUT `/volume` dengan level 35. Kirim POST `/volume/up` dua kali, lalu `/volume/down` sekali. Kirim POST `/volume/mute` dengan `true`, lalu `false`. Terakhir kirim PUT `/volume` dengan level 101, lalu 35.5. Setelah itu buka `GET /status` dan lihat isi `volume`. Opsional: colok headset, lalu ulangi PUT `/volume` dan lihat perangkat mana yang berubah.
   Harusnya: angka sama dengan ikon volume Windows. Up dan down berubah 5. Mute menyalakan dan mematikan ikon speaker. Level 101 dan 35.5 ditolak dengan 400 dan kode `invalid_level`. `GET /status` memuat `volume` yang sama, bukan null. Saat headset dicolok, perubahan mengenai headset.
+
+- [ ] M3 Integrasi: Volume laptop mengikuti slider dan tombol lewat agent asli.
+  Buka: agent jalan lewat `go run ./cmd/agent run` di laptop, laptop sedang memutar musik, dan layar Remote di HP yang sudah pairing.
+  Lakukan: geser slider, tekan − dan +, lalu tekan mute dua kali. Ubah volume dari ikon speaker Windows dan tunggu beberapa detik. Matikan agent (Ctrl+C), geser slider, lalu nyalakan agent lagi dan tekan "Ulangi". Terakhir, ganti isi `"token"` di `config.json`, simpan, lalu tekan +.
+  Harusnya: volume laptop mengikuti tiap aksi, dan perubahan dari laptop terbaca di HP. Saat agent mati, toast "Volume nggak kekirim" muncul dan slider kembali ke nilai terakhir. "Ulangi" berhasil saat agent hidup lagi. Setelah token diganti, muncul layar "Token ditolak" (Q12). Saat ditekan cepat, tidak ada perintah ganda.
 
 ## M4 Daya
 
