@@ -757,3 +757,15 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Tes 400 `invalid_level` ditulis di level repository, bukan di UI.
 - **Alasan:** Jalur error tetap terbukti bila clamp di UI dilonggarkan kelak.
 - **Dampak:** Kasus ini tidak muncul di tes widget. Pembuktian nyata ada di Postman (`waiting.md` M3 Backend).
+
+## [Fixing M3] Unmute hanya saat perangkat bisu, dan kegagalan unmute tetap 500
+
+- **Konteks:** Geser slider dan tombol −/+ (`PUT /volume`, `POST /volume/up`, `POST /volume/down`) menjawab 500 `audio_failed` di laptop user, padahal volume Windows sudah berubah. App menampilkan toast gagal lalu angka loncat balik. Log agent mencatat `set mute: Incorrect function.`. `SetMute` gagal dengan ERROR_INVALID_FUNCTION di endpoint audio laptop itu, sedangkan `POST /volume/mute` tetap berhasil. `VolumeService.setLevelLocked` selalu memanggil `SetMuted(false)` setelah `SetLevel` (lihat `[Backend M3] VolumeService bermutex dan unmute di domain`).
+- **Keputusan:**
+  - D1: `setLevelLocked` membaca `Volume()` untuk cek mute sebelum menulis mute. `SetMuted(false)` hanya dipanggil bila perangkat bisu, lalu hasil dibaca ulang. Hasil baca setelah `SetLevel` dipakai sebagai respons. Jalur umum menambah satu baca OS dan tidak menulis mute.
+  - D2: Unmute yang gagal pada perangkat bisu tetap 500 `audio_failed`. Level yang sudah tertulis tidak di-rollback. Respons 200 palsu ditolak, karena app membaca 200 sebagai sukses.
+  - D3: Perbaikan di satu titik, yaitu `setLevelLocked`, sehingga `SetLevel`, `Up`, dan `Down` ikut. `POST /volume/mute` dan `VolumeService.SetMuted` publik tidak berubah.
+  - D4: Warning `status audio read failed` di `GET /status` tidak dibatasi rate limit, sehingga bisa berulang tiap poll. Dedupe dicatat di backlog bila warning ini berisik.
+  - D5: Logger untuk `/status` masuk lewat parameter `newStatusHandler`, bukan field `StatusDeps` yang dipakai di banyak tempat.
+- **Alasan:** BR-15 tetap berlaku: laptop yang bisu kembali bersuara saat slider digeser atau tombol + ditekan. Perangkat yang tidak bisu tidak perlu menulis mute, sehingga kegagalan `SetMute` tidak lagi memutus slider. Respons 500 saat unmute gagal tetap jujur, karena klien tidak boleh menganggap sukses bila laptop masih bisu.
+- **Dampak:** Tidak ada perubahan API, `docs/api-spec.md`, atau Postman. Fake `internal/oscontrol/fake` mendapat `SetMuteErr` dan `SetMutedCalls`. Test regresi ada di `internal/control` dan `internal/server`. Pembuktian di laptop ada di `docs/todo/waiting.md` bagian M3.

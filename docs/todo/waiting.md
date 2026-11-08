@@ -290,6 +290,11 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: geser slider, tekan − dan +, lalu tekan mute dua kali. Ubah volume dari ikon speaker Windows dan tunggu beberapa detik. Matikan agent (Ctrl+C), geser slider, lalu nyalakan agent lagi dan tekan "Ulangi". Terakhir, ganti isi `"token"` di `config.json`, simpan, lalu tekan +.
   Harusnya: volume laptop mengikuti tiap aksi, dan perubahan dari laptop terbaca di HP. Saat agent mati, toast "Volume nggak kekirim" muncul dan slider kembali ke nilai terakhir. "Ulangi" berhasil saat agent hidup lagi. Setelah token diganti, muncul layar "Token ditolak" (Q12). Saat ditekan cepat, tidak ada perintah ganda.
 
+- [ ] M3 Fixing: geser slider dan tombol −/+ tidak lagi memunculkan toast gagal di laptop ini.
+  Buka: PowerShell di laptop, folder `agent`; app Remotto di HP (layar Remote); File Explorer ke `%APPDATA%\Remotto\logs\agent.log`.
+  Lakukan: hentikan agent lama (Ctrl+C atau tutup prosesnya) bila masih jalan. Jalankan `go build -o bin/remotto-agent.exe ./cmd/agent`, lalu `bin\remotto-agent.exe run`. Pastikan laptop tidak bisu, geser slider di HP pelan lalu cepat, tekan + dua kali dan − sekali. Lalu tekan mute di HP, kemudian geser slider atau tekan +, dan bandingkan dengan ikon speaker Windows. Terakhir buka agent.log dan cari "audio failed".
+  Harusnya: volume laptop berubah dan tidak ada toast "Volume nggak kekirim" atau angka loncat balik saat tidak bisu. Setelah mute lalu geser atau +, laptop kembali bersuara (BR-15). Kalau muncul toast di langkah itu, lihat `cause` di log dan kabari: artinya SetMute(false) memang gagal di perangkat ini saat sedang bisu. Tombol mute tetap bekerja seperti sebelumnya. agent.log tidak boleh punya baris "audio failed" baru untuk geser slider atau −/+ saat tidak bisu.
+
 ## M4 Daya
 
 - [ ] M4: Sleep benar-benar menidurkan laptop.

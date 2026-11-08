@@ -35,6 +35,9 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - `go test -race` untuk paket M3 belum bisa lokal (CGO mati). Dicek di CI (`agent/internal/control`, `agent/internal/oswin`, `agent/internal/server`).
 - go-wca terakhir rilis 2023. Risiko dibatasi di balik `AudioController` (`agent/go.mod`).
 - `CoInitializeEx` yang mengembalikan S_FALSE dianggap error oleh go-ole 1.3.0. Tidak realistis di thread baru yang dibuat pekerja (`agent/internal/oswin/audio_windows.go`).
+- Warning `status audio read failed` di `GET /status` tidak dibatasi rate limit, bisa berulang tiap poll. Dedupe bila berisik (`agent/internal/server/status.go`, lihat `[Fixing M3]`).
+- `step()` membaca `Volume()` dua kali, satu panggilan COM tambahan per step. Tidak kritis (`agent/internal/control/volume.go`).
+- Tambah satu test handler `POST /volume/mute` dengan `SetMuteErr`. Kontrak 500 sudah tercakup lewat `SetErr` (`agent/internal/server/volume_test.go`).
 
 ## M4 Daya
 

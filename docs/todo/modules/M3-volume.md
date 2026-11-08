@@ -32,3 +32,10 @@
 - Tidak ada bug. Fixing dilewati karena tidak ada temuan.
 - Pembuktian manual [M] (volume nyata, headset, perubahan dari laptop) ada di `docs/todo/waiting.md` bagian M3.
 - `-race` belum dijalankan (lihat `docs/todo/backlog/qa.md`). Tes rate limit terhadap laju slider nyata menunggu M6 (lihat backlog QA).
+
+## Fixing
+
+- Gejala: geser slider dan tombol −/+ menjawab 500 `audio_failed` di laptop user, padahal volume Windows sudah berubah. App menampilkan toast gagal lalu angka loncat balik.
+- Akar masalah: `setLevelLocked` selalu memanggil `SetMuted(false)` setelah `SetLevel`. Di endpoint audio laptop itu `SetMute` gagal (ERROR_INVALID_FUNCTION), padahal `POST /volume/mute` berhasil.
+- Perbaikan: `setLevelLocked` hanya memanggil `SetMuted(false)` bila perangkat bisu (BR-15 tetap). Jalur `SetLevel`, `Up`, dan `Down` ikut. `GET /status` mencatat warning saat baca audio gagal.
+- Keputusan ada di `docs/decision-log.md` dengan tag `[Fixing M3]`. Pembuktian di laptop ada di `docs/todo/waiting.md` bagian M3.
