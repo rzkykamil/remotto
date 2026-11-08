@@ -56,7 +56,7 @@ final class RemoteHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: RSpace.s2),
+              const SizedBox(height: RSpace.s3),
               // The pill ellipsizes its label when 130% text does not fit.
               Align(
                 alignment: AlignmentDirectional.centerStart,

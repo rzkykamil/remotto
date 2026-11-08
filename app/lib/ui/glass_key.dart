@@ -49,10 +49,10 @@ double _heightOf(GlassKeySize size) => switch (size) {
 };
 
 /// Horizontal padding around a label. The power keys sit three in a row, so
-/// the artboard gives them none; a small one keeps the label from breaking
-/// mid-word at 360 dp.
+/// the artboard gives them none; a small one keeps the label from touching
+/// the capsule edge and from breaking mid-word at 360 dp.
 double _labelPaddingOf(GlassKeySize size) =>
-    size == GlassKeySize.power ? RSpace.s1 : RSpace.s5;
+    size == GlassKeySize.power ? RSpace.s2 : RSpace.s5;
 
 /// Accent key shadow: 0 10px 28px `accent.shadow` (C02 `.key.acc`).
 /// Not a token, like the glass shadow in `GlassPanel`.
@@ -105,7 +105,18 @@ final class GlassKey extends StatelessWidget {
       onPressed: onPressed,
       toggled: toggled,
       focusRingRadius: RRadius.full,
-      builder: (context, pressed) => _capsule(context, pressed: pressed),
+      builder: (context, pressed) {
+        final capsule = _capsule(context, pressed: pressed);
+        // Pressable centers its child with loose constraints, so a power key
+        // would shrink to its content. Fill the cell so the three keys line up
+        // with the screen margins.
+        if (size != GlassKeySize.power) return capsule;
+        return LayoutBuilder(
+          builder: (context, constraints) => constraints.hasBoundedWidth
+              ? SizedBox(width: constraints.maxWidth, child: capsule)
+              : capsule,
+        );
+      },
     );
   }
 

@@ -62,6 +62,7 @@ class GlassPanel extends ConsumerWidget {
           };
 
     final body = Stack(
+      fit: StackFit.passthrough,
       children: [
         // Highlight dalam atas, di bawah isi dan tetap terpotong radius.
         Positioned(

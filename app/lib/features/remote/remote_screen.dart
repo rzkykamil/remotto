@@ -142,7 +142,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
                   pillSemanticsLabel: _pillSemantics(phase),
                   onSettings: () => context.push(AppRoutes.settings),
                 ),
-                const SizedBox(height: RSpace.s5),
+                const SizedBox(height: RSpace.s6),
                 Semantics(
                   container: true,
                   label: RemoteStrings.powerGroupLabel,
