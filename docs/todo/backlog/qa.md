@@ -17,7 +17,8 @@ Belum ada temuan.
 
 ## M3 Volume
 
-Belum ada temuan.
+- `go test -race` belum bisa jalan lokal (CGO mati) untuk `agent/internal/control`, `oswin`, dan `agent/internal/server`. Jalankan di CI atau mesin ber-gcc, konsisten dengan M1 dan M2.
+- Tes rate limit terhadap laju slider nyata (`docs/todo/qa.md` M3) menunggu middleware rate limit di M6 (FR-6.2). M3 hanya memeriksa default config lewat `TestDefaultRateLimitAboveSliderRate`.
 
 ## M4 Daya
 

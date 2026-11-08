@@ -35,14 +35,14 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 
 ## M3 Volume
 
-- [ ] [O] BR-3: −1, 101, pecahan, teks → 400
-- [ ] [O] BR-15: level berubah mematikan mute
-- [ ] [O] BR-16: langkah 5, berhenti di 0 dan 100
-- [ ] [O] BR-14: throttle 100 ms, nilai akhir selalu terkirim
-- [ ] [O] Mute eksplisit idempoten
-- [ ] [O] Gagal → rollback; offline saat drag → gesture batal
-- [ ] [O] `volume: null` di status tidak dianggap offline
-- [ ] [O] Rate limit tidak terpicu laju slider
+- [x] [O] BR-3: −1, 101, pecahan, teks → 400
+- [x] [O] BR-15: level berubah mematikan mute
+- [x] [O] BR-16: langkah 5, berhenti di 0 dan 100
+- [x] [O] BR-14: throttle 100 ms, nilai akhir selalu terkirim
+- [x] [O] Mute eksplisit idempoten
+- [x] [O] Gagal → rollback; offline saat drag → gesture batal
+- [x] [O] `volume: null` di status tidak dianggap offline
+- [x] [O] Rate limit tidak terpicu laju slider
 - [ ] [M] Volume nyata, headset, perubahan dari laptop
 
 ## M4 Daya

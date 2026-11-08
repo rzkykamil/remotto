@@ -25,3 +25,10 @@
 - Keputusan ada di `docs/decision-log.md` dengan tag `[Integrasi M3]`. Saran di `docs/todo/backlog/integration.md` bagian M3.
 - Pembuktian dengan agent asli dan HP sungguhan ada di `docs/todo/waiting.md`.
 - Fase aktif pindah ke QA karena DoD Integrasi terpenuhi.
+
+## QA
+
+- Delapan skenario [O] tercakup test: BR-3 (`TestBR3_*` di `agent/internal/control/volume_test.go` dan `agent/internal/server/volume_test.go`, `app/test/support/fake_volume_repository_test.dart`); BR-15 (`TestBR15_*`, `app/test/features/remote/volume_flow_test.dart`); BR-16 (`TestBR16_*`, `volume_controller_test.dart`, `widgets/volume_panel_test.dart`); BR-14 (`app/test/features/remote/state/volume_sender_test.dart`); mute idempoten (`TestVolumeMuteIsIdempotent`); rollback dan offline (`state/volume_controller_test.dart`, `integration/volume_http_flow_test.dart`); `volume: null` (`TestStatusVolumeNullWhenAudioFails`, `core/connection/connection_controller_test.dart`); rate limit (`TestDefaultRateLimitAboveSliderRate`, `agent/internal/config/config_test.go`, sebagai penjaga default config saja).
+- Tidak ada bug. Fixing dilewati karena tidak ada temuan.
+- Pembuktian manual [M] (volume nyata, headset, perubahan dari laptop) ada di `docs/todo/waiting.md` bagian M3.
+- `-race` belum dijalankan (lihat `docs/todo/backlog/qa.md`). Tes rate limit terhadap laju slider nyata menunggu M6 (lihat backlog QA).
