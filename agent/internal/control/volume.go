@@ -18,8 +18,8 @@ const (
 var ErrInvalidLevel = errors.New("level must be an integer between 0 and 100")
 
 // VolumeService is the domain entry point for volume actions. It validates
-// input, serializes read-modify-write sequences, unmutes on level changes and
-// turns OS errors into ErrAudio.
+// input, serializes read-modify-write sequences, unmutes only when the device is
+// muted and turns OS errors into ErrAudio.
 type VolumeService struct {
 	ctrl AudioController
 	mu   sync.Mutex
@@ -50,9 +50,10 @@ func (s *VolumeService) Get(ctx context.Context) (Volume, error) {
 	return v, nil
 }
 
-// SetLevel sets the output level (BR-3) and unmutes (BR-15). Levels outside
-// 0-100 are rejected with ErrInvalidLevel before the OS is touched; they are
-// never clamped. The returned volume is read back from the OS.
+// SetLevel sets the output level (BR-3). It unmutes (BR-15) only when the device
+// is currently muted. Levels outside 0-100 are rejected with ErrInvalidLevel
+// before the OS is touched; they are never clamped. The returned volume is read
+// back from the OS.
 func (s *VolumeService) SetLevel(ctx context.Context, level int) (Volume, error) {
 	if level < MinLevel || level > MaxLevel {
 		return Volume{}, ErrInvalidLevel
@@ -99,7 +100,8 @@ func (s *VolumeService) SetMuted(ctx context.Context, muted bool) (Volume, error
 }
 
 // step reads the current level, adds delta, clamps the result to 0-100 and
-// writes it. A step at a limit still succeeds and still unmutes (BR-16).
+// writes it. A step at a limit still succeeds and still unmutes a muted device
+// (BR-16); an unmuted device is not unmuted again.
 func (s *VolumeService) step(ctx context.Context, delta int) (Volume, error) {
 	if s.ctrl == nil {
 		return Volume{}, Wrap(ErrAudio, ErrUnsupported)
@@ -118,11 +120,20 @@ func (s *VolumeService) step(ctx context.Context, delta int) (Volume, error) {
 	return s.setLevelLocked(ctx, clamp(cur.Level+delta, MinLevel, MaxLevel))
 }
 
-// setLevelLocked writes level, unmutes, and reads the result back. Callers must
-// hold s.mu and have validated level.
+// setLevelLocked writes level and reads the result back. It calls SetMuted(false)
+// only when the device is currently muted, so a device whose mute write is not
+// supported still accepts level changes while unmuted. An unmute error is
+// returned, not ignored. Callers must hold s.mu and have validated level.
 func (s *VolumeService) setLevelLocked(ctx context.Context, level int) (Volume, error) {
 	if err := s.ctrl.SetLevel(ctx, level); err != nil {
 		return Volume{}, audioError(err)
+	}
+	cur, err := s.ctrl.Volume(ctx)
+	if err != nil {
+		return Volume{}, audioError(err)
+	}
+	if !cur.Muted {
+		return cur, nil
 	}
 	if err := s.ctrl.SetMuted(ctx, false); err != nil {
 		return Volume{}, audioError(err)

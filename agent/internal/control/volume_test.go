@@ -3,6 +3,7 @@ package control_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -287,6 +288,136 @@ func TestCancelledContextDoesNotTouchOS(t *testing.T) {
 	v, _ := a.Volume(context.Background())
 	if v != (control.Volume{Level: 35, Muted: false}) {
 		t.Fatalf("state = %+v, want unchanged {35 false}", v)
+	}
+}
+
+// callPath runs one of the three level-changing paths from level 35:
+// SetLevel(50), Up (40) or Down (30).
+func callPath(svc *control.VolumeService, name string) (control.Volume, error) {
+	ctx := context.Background()
+	switch name {
+	case "SetLevel":
+		return svc.SetLevel(ctx, 50)
+	case "Up":
+		return svc.Up(ctx)
+	case "Down":
+		return svc.Down(ctx)
+	}
+	panic("unknown path " + name)
+}
+
+// wantLevel is the level each path must reach from 35.
+var wantLevel = map[string]int{"SetLevel": 50, "Up": 40, "Down": 30}
+
+// BR-15: an unmuted device is not unmuted again by a level change.
+func TestBR15_PathsSkipUnmuteWhenNotMuted(t *testing.T) {
+	for _, name := range []string{"SetLevel", "Up", "Down"} {
+		t.Run(name, func(t *testing.T) {
+			a := fake.NewAudio(35, false)
+			svc := control.NewVolumeService(a)
+
+			v, err := callPath(svc, name)
+			if err != nil {
+				t.Fatalf("%s error = %v, want nil", name, err)
+			}
+			if calls := a.SetMutedCalls(); len(calls) != 0 {
+				t.Fatalf("SetMutedCalls() = %v, want none", calls)
+			}
+			if v != (control.Volume{Level: wantLevel[name], Muted: false}) {
+				t.Fatalf("%s = %+v, want {%d false}", name, v, wantLevel[name])
+			}
+		})
+	}
+}
+
+// BR-15: a muted device is unmuted by a level change.
+func TestBR15_PathsUnmuteWhenMuted(t *testing.T) {
+	for _, name := range []string{"SetLevel", "Up", "Down"} {
+		t.Run(name, func(t *testing.T) {
+			a := fake.NewAudio(35, true)
+			svc := control.NewVolumeService(a)
+
+			v, err := callPath(svc, name)
+			if err != nil {
+				t.Fatalf("%s error = %v, want nil", name, err)
+			}
+			if got, want := a.SetMutedCalls(), []bool{false}; !reflect.DeepEqual(got, want) {
+				t.Fatalf("SetMutedCalls() = %v, want %v", got, want)
+			}
+			if v != (control.Volume{Level: wantLevel[name], Muted: false}) {
+				t.Fatalf("%s = %+v, want {%d false}", name, v, wantLevel[name])
+			}
+		})
+	}
+}
+
+// A broken mute write must not block level changes on an unmuted device.
+func TestPathsSucceedWhenMuteWriteBrokenAndNotMuted(t *testing.T) {
+	for _, name := range []string{"SetLevel", "Up", "Down"} {
+		t.Run(name, func(t *testing.T) {
+			a := fake.NewAudio(35, false)
+			a.SetMuteErr(errors.New("Incorrect function."))
+			svc := control.NewVolumeService(a)
+
+			v, err := callPath(svc, name)
+			if err != nil {
+				t.Fatalf("%s error = %v, want nil", name, err)
+			}
+			if v.Level != wantLevel[name] {
+				t.Fatalf("%s level = %d, want %d", name, v.Level, wantLevel[name])
+			}
+			if calls := a.SetMutedCalls(); len(calls) != 0 {
+				t.Fatalf("SetMutedCalls() = %v, want none", calls)
+			}
+		})
+	}
+}
+
+// An unmute failure on a muted device is returned as ErrAudio, keeping the cause.
+// The level was already written before the failure.
+func TestPathsFailWhenUnmuteFailsAndMuted(t *testing.T) {
+	for _, name := range []string{"SetLevel", "Up", "Down"} {
+		t.Run(name, func(t *testing.T) {
+			cause := errors.New("Incorrect function.")
+			a := fake.NewAudio(35, true)
+			a.SetMuteErr(cause)
+			svc := control.NewVolumeService(a)
+
+			_, err := callPath(svc, name)
+			if !errors.Is(err, control.ErrAudio) {
+				t.Fatalf("errors.Is(err, ErrAudio) = false, err = %v", err)
+			}
+			if !errors.Is(err, cause) {
+				t.Fatalf("errors.Is(err, cause) = false, want cause kept for logging")
+			}
+			if err.Error() != control.ErrAudio.Error() {
+				t.Fatalf("err.Error() = %q, want %q", err.Error(), control.ErrAudio.Error())
+			}
+			if got := a.SetLevelCalls(); len(got) != 1 || got[0] != wantLevel[name] {
+				t.Fatalf("SetLevelCalls() = %v, want [%d]", got, wantLevel[name])
+			}
+		})
+	}
+}
+
+// The public SetMuted always reaches the OS, whatever the current state.
+func TestSetMutedPublicCallsOSRegardlessOfState(t *testing.T) {
+	ctx := context.Background()
+
+	a := fake.NewAudio(35, false)
+	if _, err := control.NewVolumeService(a).SetMuted(ctx, true); err != nil {
+		t.Fatalf("SetMuted(true) error = %v, want nil", err)
+	}
+	if got, want := a.SetMutedCalls(), []bool{true}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("SetMuted(true) on unmuted: SetMutedCalls() = %v, want %v", got, want)
+	}
+
+	b := fake.NewAudio(35, false)
+	if _, err := control.NewVolumeService(b).SetMuted(ctx, false); err != nil {
+		t.Fatalf("SetMuted(false) error = %v, want nil", err)
+	}
+	if got, want := b.SetMutedCalls(), []bool{false}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("SetMuted(false) on unmuted: SetMutedCalls() = %v, want %v", got, want)
 	}
 }
 

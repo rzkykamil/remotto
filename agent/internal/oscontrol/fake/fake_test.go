@@ -119,6 +119,47 @@ func TestAudioSetLevelCallsCopy(t *testing.T) {
 	}
 }
 
+func TestAudioSetMuteErrFailsOnlySetMuted(t *testing.T) {
+	ctx := context.Background()
+	a := NewAudio(40, true)
+	a.SetMuteErr(errBoom)
+
+	if err := a.SetMuted(ctx, false); !errors.Is(err, errBoom) {
+		t.Fatalf("SetMuted() error = %v, want errBoom", err)
+	}
+	if err := a.SetLevel(ctx, 55); err != nil {
+		t.Fatalf("SetLevel() error = %v, want nil", err)
+	}
+	v, err := a.Volume(ctx)
+	if err != nil || v != (control.Volume{Level: 55, Muted: true}) {
+		t.Fatalf("Volume() = %+v, %v; want {55 true}, nil", v, err)
+	}
+
+	a.SetMuteErr(nil)
+	if err := a.SetMuted(ctx, false); err != nil {
+		t.Fatalf("SetMuted() after SetMuteErr(nil) error = %v, want nil", err)
+	}
+}
+
+func TestAudioSetMutedCallsRecordFailedAttempts(t *testing.T) {
+	ctx := context.Background()
+	a := NewAudio(40, true)
+	a.SetMuteErr(errBoom)
+
+	_ = a.SetMuted(ctx, false)
+	a.SetMuteErr(nil)
+	_ = a.SetMuted(ctx, true)
+
+	if got, want := a.SetMutedCalls(), []bool{false, true}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("SetMutedCalls() = %v, want %v (failed attempts included)", got, want)
+	}
+	got := a.SetMutedCalls()
+	got[0] = true
+	if again := a.SetMutedCalls(); !reflect.DeepEqual(again, []bool{false, true}) {
+		t.Fatalf("SetMutedCalls() shares storage with the fake: got %v", again)
+	}
+}
+
 func TestPowerRecordsCallsWithoutRunning(t *testing.T) {
 	p := &Power{}
 	ctx := context.Background()

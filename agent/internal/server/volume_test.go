@@ -609,3 +609,70 @@ func TestVolumeMuteInvalidRequest(t *testing.T) {
 		})
 	}
 }
+
+// A broken mute write must not fail a level change on an unmuted device.
+func TestVolumePutSucceedsWhenMuteWriteBrokenAndNotMuted(t *testing.T) {
+	a := fake.NewAudio(35, false)
+	a.SetMuteErr(errors.New("Incorrect function."))
+	h := newVolumeTestHandler(&bytes.Buffer{}, a)
+
+	rec := volumeRequest(h, http.MethodPut, lanAddr, bearer(testTokenA), "application/json", `{"level":50}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+	}
+	if got, want := rec.Body.String(), `{"data":{"level":50,"muted":false}}`; got != want {
+		t.Errorf("body = %q, want %q", got, want)
+	}
+}
+
+// Up and down behave the same way on an unmuted device with a broken mute write.
+func TestVolumeStepSucceedsWhenMuteWriteBrokenAndNotMuted(t *testing.T) {
+	tests := []struct {
+		path string
+		want string
+	}{
+		{"/up", `{"data":{"level":40,"muted":false}}`},
+		{"/down", `{"data":{"level":30,"muted":false}}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			a := fake.NewAudio(35, false)
+			a.SetMuteErr(errors.New("Incorrect function."))
+			h := newVolumeTestHandler(&bytes.Buffer{}, a)
+
+			rec := volumeRequestAt(h, http.MethodPost, APIPrefix+"/volume"+tt.path, lanAddr, bearer(testTokenA), "", "")
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+			}
+			if got := rec.Body.String(); got != tt.want {
+				t.Errorf("body = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// A muted device whose unmute fails returns 500 audio_failed. The OS cause
+// reaches the log only.
+func TestVolumePutFailsWhenUnmuteFailsAndMuted(t *testing.T) {
+	const cause = "Incorrect function."
+	var logs bytes.Buffer
+	a := fake.NewAudio(35, true)
+	a.SetMuteErr(errors.New(cause))
+	h := newVolumeTestHandler(&logs, a)
+
+	rec := volumeRequest(h, http.MethodPut, lanAddr, bearer(testTokenA), "application/json", `{"level":50}`)
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500 (body %q)", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"code":"`+CodeAudioFailed+`"`) {
+		t.Errorf("body %q lacks audio_failed", rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), cause) {
+		t.Errorf("response leaks OS detail: %q", rec.Body.String())
+	}
+	if !strings.Contains(logs.String(), cause) {
+		t.Errorf("log lacks OS cause: %q", logs.String())
+	}
+	assertNoSecrets(t, "response body", rec.Body.String())
+	assertNoSecrets(t, "log", logs.String())
+}

@@ -50,8 +50,10 @@ func (m *Media) Calls() []control.MediaAction {
 type Audio struct {
 	mu        sync.Mutex
 	err       error
+	muteErr   error
 	volume    control.Volume
 	levelCall []int
+	muteCalls []bool
 }
 
 // NewAudio returns an Audio with the given initial state.
@@ -64,6 +66,14 @@ func (a *Audio) SetErr(err error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.err = err
+}
+
+// SetMuteErr makes every later SetMuted fail with err, while SetLevel and
+// Volume keep working. Passing nil restores success.
+func (a *Audio) SetMuteErr(err error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.muteErr = err
 }
 
 // Volume returns the stored state, or the configured error.
@@ -88,10 +98,15 @@ func (a *Audio) SetLevel(_ context.Context, level int) error {
 	return nil
 }
 
-// SetMuted stores the mute flag, or returns the configured error.
+// SetMuted records the attempt, then fails in this order: muteErr, then err.
+// If neither is set, it stores the mute flag.
 func (a *Audio) SetMuted(_ context.Context, muted bool) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	a.muteCalls = append(a.muteCalls, muted)
+	if a.muteErr != nil {
+		return a.muteErr
+	}
 	if a.err != nil {
 		return a.err
 	}
@@ -104,6 +119,14 @@ func (a *Audio) SetLevelCalls() []int {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return append([]int(nil), a.levelCall...)
+}
+
+// SetMutedCalls returns a copy of every mute value passed to SetMuted, in call
+// order. Failed attempts are included.
+func (a *Audio) SetMutedCalls() []bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]bool(nil), a.muteCalls...)
 }
 
 // Power records power actions and never runs an OS command.
