@@ -223,5 +223,41 @@ void main() {
       expect(h.calls, [1]);
       expect(h.failed, isEmpty);
     });
+
+    test('BR-14: 100 submit tiap 10 ms selama 1 detik: maks 11 panggilan, terakhir nilai terakhir', () async {
+      final h = _Harness();
+      var seen = 0;
+      var lastSendMs = 0;
+
+      // Settles every running request and records when a send started.
+      Future<void> sync(int nowMs) async {
+        for (var i = 0; i < h.completers.length; i++) {
+          if (!h.completers[i].isCompleted) await h.succeed(i);
+        }
+        if (h.calls.length != seen) {
+          seen = h.calls.length;
+          lastSendMs = nowMs;
+        }
+      }
+
+      // Virtual clock: step n runs at n * 10 ms. Submits happen at 0..990 ms;
+      // step 100 (1000 ms) only lets the throttle timer fire.
+      for (var n = 0; n <= 100; n++) {
+        final nowMs = n * 10;
+        if (h.scheduler.hasLiveOnce(RMotion.sendThrottle) &&
+            nowMs >= lastSendMs + RMotion.sendThrottle.inMilliseconds) {
+          h.scheduler.fireOnce(RMotion.sendThrottle);
+        }
+        await sync(nowMs);
+        if (n < 100) h.sender.submit(n + 1);
+        await sync(nowMs);
+      }
+
+      expect(h.calls.length, lessThanOrEqualTo(11));
+      expect(h.calls.last, 100, reason: 'nilai terakhir harus terkirim');
+      expect(h.calls, [1, for (var v = 10; v <= 90; v += 10) v, 100]);
+      expect(h.failed, isEmpty);
+      expect(h.sender.busy, isFalse);
+    });
   });
 }
