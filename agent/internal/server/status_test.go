@@ -154,6 +154,34 @@ func TestStatusVolumeNullWhenAudioFails(t *testing.T) {
 	}
 }
 
+func TestStatusLogsWarningWhenAudioFails(t *testing.T) {
+	// Audio failure stays a 200 with volume null, but the cause must reach the log
+	// without leaking into the response body.
+	clock := &fakeClock{now: time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)}
+	audio := fake.NewAudio(35, false)
+	audio.SetErr(errors.New("core audio down"))
+	var logs bytes.Buffer
+	h := newStatusTestHandler(t, clock, audio, &logs)
+
+	rec := statusRequest(h, lanAddr, bearer(testTokenA))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	data := decodeStatus(t, rec.Body.Bytes())
+	if v, ok := data["volume"]; !ok || v != nil {
+		t.Errorf("volume = %v (present=%v), want null", v, ok)
+	}
+	if strings.Contains(rec.Body.String(), "core audio down") {
+		t.Errorf("body leaks internal error: %s", rec.Body.String())
+	}
+	if !strings.Contains(logs.String(), "status audio read failed") {
+		t.Errorf("log missing warning message: %s", logs.String())
+	}
+	if !strings.Contains(logs.String(), "core audio down") {
+		t.Errorf("log missing error detail: %s", logs.String())
+	}
+}
+
 func TestStatusNilAudioReportsNullVolume(t *testing.T) {
 	deps := StatusDeps{Name: "x", Version: "1", StartedAt: time.Now()}
 	h := NewAPIHandler(newTestLogger(&bytes.Buffer{}), staticToken(testTokenA), deps)
@@ -262,7 +290,7 @@ func TestStatusHandlerUsesContextFromRequest(t *testing.T) {
 	// The audio read gets a bounded context derived from the request.
 	ctxAudio := &ctxRecordingAudio{}
 	deps := StatusDeps{Name: "x", Version: "1", StartedAt: time.Now(), Audio: ctxAudio}
-	h := newStatusHandler(deps)
+	h := newStatusHandler(deps, nil)
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, APIPrefix+"/status", nil))

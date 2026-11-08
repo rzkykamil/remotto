@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -37,7 +38,7 @@ type statusData struct {
 // newStatusHandler returns the handler for GET /api/v1/status. A failed audio
 // read reports volume as null and still answers 200, so the app keeps the
 // connection and its last known volume.
-func newStatusHandler(deps StatusDeps) http.Handler {
+func newStatusHandler(deps StatusDeps, logger *slog.Logger) http.Handler {
 	now := deps.Now
 	if now == nil {
 		now = time.Now
@@ -50,8 +51,11 @@ func newStatusHandler(deps StatusDeps) http.Handler {
 		}
 		if deps.Audio != nil {
 			ctx, cancel := context.WithTimeout(r.Context(), statusTimeout)
-			if v, err := deps.Audio.Volume(ctx); err == nil {
+			v, err := deps.Audio.Volume(ctx)
+			if err == nil {
 				data.Volume = &v
+			} else if logger != nil {
+				logger.Warn("status audio read failed", slog.String("error", err.Error()))
 			}
 			cancel()
 		}

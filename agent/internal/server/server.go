@@ -58,7 +58,7 @@ func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps, o
 		opt(&o)
 	}
 	router := NewRouter()
-	router.Handle(http.MethodGet, APIPrefix+"/status", newStatusHandler(status))
+	router.Handle(http.MethodGet, APIPrefix+"/status", newStatusHandler(status, logger))
 	media := control.NewMediaService(o.media)
 	router.Handle(http.MethodPost, APIPrefix+"/media/play-pause", newMediaHandler(control.MediaPlayPause, media, logger))
 	router.Handle(http.MethodPost, APIPrefix+"/media/next", newMediaHandler(control.MediaNext, media, logger))
