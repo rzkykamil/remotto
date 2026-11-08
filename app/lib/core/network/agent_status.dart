@@ -4,6 +4,16 @@ import 'api_failure.dart';
 final class VolumeStatus {
   const VolumeStatus({required this.level, required this.muted});
 
+  /// Builds a volume from the `Volume` object (api-spec). Shared by `GET /status`
+  /// and every `/volume` response. Fields that do not match the contract throw
+  /// [ServerFailure].
+  factory VolumeStatus.fromData(Map<String, Object?> data) {
+    return VolumeStatus(
+      level: _requireInt(data, 'level', min: 0, max: 100),
+      muted: _requireBool(data, 'muted'),
+    );
+  }
+
   /// 0 to 100.
   final int level;
   final bool muted;
@@ -126,11 +136,7 @@ VolumeStatus? _parseVolume(Map<String, Object?> data) {
   _requireKey(data, 'volume');
   final raw = data['volume'];
   if (raw == null) return null;
-  final volume = _asMap(raw);
-  return VolumeStatus(
-    level: _requireInt(volume, 'level', min: 0, max: 100),
-    muted: _requireBool(volume, 'muted'),
-  );
+  return VolumeStatus.fromData(_asMap(raw));
 }
 
 Pending? _parsePending(Map<String, Object?> data) {

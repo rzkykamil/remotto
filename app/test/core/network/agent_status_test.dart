@@ -163,4 +163,59 @@ void main() {
       );
     });
   });
+
+  group('VolumeStatus.fromData', () {
+    test('membaca level dan muted yang valid', () {
+      final volume = VolumeStatus.fromData({'level': 60, 'muted': true});
+
+      expect(volume, const VolumeStatus(level: 60, muted: true));
+    });
+
+    test('level 0 dan 100 diterima sebagai batas', () {
+      expect(VolumeStatus.fromData({'level': 0, 'muted': false}).level, 0);
+      expect(VolumeStatus.fromData({'level': 100, 'muted': false}).level, 100);
+    });
+
+    test('level 101 menjadi ServerFailure', () {
+      expect(
+        () => VolumeStatus.fromData({'level': 101, 'muted': false}),
+        throwsA(isA<ServerFailure>()),
+      );
+    });
+
+    test('level -1 menjadi ServerFailure', () {
+      expect(
+        () => VolumeStatus.fromData({'level': -1, 'muted': false}),
+        throwsA(isA<ServerFailure>()),
+      );
+    });
+
+    test('level berupa string menjadi ServerFailure', () {
+      expect(
+        () => VolumeStatus.fromData({'level': '35', 'muted': false}),
+        throwsA(isA<ServerFailure>()),
+      );
+    });
+
+    test('muted bukan bool menjadi ServerFailure', () {
+      expect(
+        () => VolumeStatus.fromData({'level': 35, 'muted': 'false'}),
+        throwsA(isA<ServerFailure>()),
+      );
+    });
+
+    test('key level hilang menjadi ServerFailure', () {
+      expect(
+        () => VolumeStatus.fromData({'muted': false}),
+        throwsA(isA<ServerFailure>()),
+      );
+    });
+
+    test('key muted hilang menjadi ServerFailure', () {
+      expect(
+        () => VolumeStatus.fromData({'level': 35}),
+        throwsA(isA<ServerFailure>()),
+      );
+    });
+  });
 }

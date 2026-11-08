@@ -24,6 +24,21 @@ enum FakeAgentMode {
 
   /// Status tetap seperti [ok]; `POST /media/*` membalas 500 `media_failed`.
   mediaFailed,
+
+  /// Status 200 dengan `volume` null; semua `/volume*` membalas 500
+  /// `audio_failed`. Media tetap seperti [ok].
+  audioFailed,
+}
+
+/// Satu permintaan ke rute `/api/v1/volume*`, termasuk yang ditolak.
+final class FakeVolumeRequest {
+  const FakeVolumeRequest(this.method, this.path, this.body);
+
+  final String method;
+  final String path;
+
+  /// Body mentah. Kosong untuk permintaan tanpa body.
+  final String body;
 }
 
 /// Server HTTP loopback yang meniru endpoint status agent.
@@ -48,11 +63,24 @@ final class FakeAgentServer {
   /// False: `data.volume` null (Core Audio gagal di laptop).
   bool volumeAvailable = true;
 
+  /// Level volume yang dilaporkan dan diubah oleh rute `/api/v1/volume*`.
+  int volumeLevel = 35;
+
+  /// Status mute yang dilaporkan dan diubah oleh rute `/api/v1/volume*`.
+  bool volumeMuted = false;
+
+  /// Jumlah request volume yang masih dibalas 500 `audio_failed`, lalu normal.
+  int failNextVolumeRequests = 0;
+
   /// Jumlah permintaan yang sudah diterima handler.
   int requests = 0;
 
   /// Path setiap `POST /api/v1/media/*` yang diterima, sesuai urutan.
   final List<String> mediaPaths = [];
+
+  /// Setiap permintaan `/api/v1/volume*` yang diterima, sesuai urutan. Termasuk
+  /// permintaan yang ditolak (401, 400, 405, 500 karena mode atau hook).
+  final List<FakeVolumeRequest> volumeRequests = [];
 
   /// Jumlah handler yang sedang berjalan sekarang.
   int inFlight = 0;
@@ -85,6 +113,9 @@ final class FakeAgentServer {
       ..mode = mode
       ..name = name
       ..volumeAvailable = volumeAvailable
+      ..volumeLevel = volumeLevel
+      ..volumeMuted = volumeMuted
+      ..failNextVolumeRequests = failNextVolumeRequests
       ..requests = requests;
     fake._listen();
     return fake;
@@ -122,12 +153,21 @@ final class FakeAgentServer {
     _arrivals.clear();
 
     try {
+      // Body volume dibaca dan dicatat sebelum hold, supaya permintaan yang
+      // menggantung tetap terlihat di [volumeRequests].
+      var body = '';
+      final path = request.uri.path;
+      if (_isVolumePath(path)) {
+        body = await utf8.decoder.bind(request).join();
+        volumeRequests.add(FakeVolumeRequest(request.method, path, body));
+      }
+
       final gate = hold;
       if (gate != null) {
         await Future.any<void>([gate.future, _stop.future]);
       }
       if (_closed) return;
-      await _respond(request);
+      await _respond(request, body);
     } catch (_) {
       // Klien bisa sudah memutus koneksi; tes tidak perlu tahu.
     } finally {
@@ -139,12 +179,23 @@ final class FakeAgentServer {
   static const _mediaPrefix = '/api/v1/media/';
   static const _mediaActions = {'play-pause', 'next', 'prev'};
 
-  Future<void> _respond(HttpRequest request) async {
+  /// Rute volume dan method yang diizinkan. Path di luar peta ini 404.
+  static const _volumeMethods = <String, Set<String>>{
+    '/api/v1/volume': {'GET', 'PUT'},
+    '/api/v1/volume/up': {'POST'},
+    '/api/v1/volume/down': {'POST'},
+    '/api/v1/volume/mute': {'POST'},
+  };
+
+  static bool _isVolumePath(String path) => _volumeMethods.containsKey(path);
+
+  Future<void> _respond(HttpRequest request, String body) async {
     final response = request.response;
     final path = request.uri.path;
     final isMedia = path.startsWith(_mediaPrefix);
+    final isVolume = _isVolumePath(path);
 
-    if (!isMedia && path != _statusPath) {
+    if (!isMedia && !isVolume && path != _statusPath) {
       _writeError(response, 404, 'not_found', 'not found');
       return;
     }
@@ -159,6 +210,10 @@ final class FakeAgentServer {
         return;
       }
     }
+    if (isVolume && !_volumeMethods[path]!.contains(request.method)) {
+      _writeError(response, 405, 'method_not_allowed', 'method not allowed');
+      return;
+    }
 
     switch (mode) {
       case FakeAgentMode.forbidden:
@@ -172,8 +227,13 @@ final class FakeAgentServer {
         _writeRaw(response, 200, '<html>bukan json</html>');
       case FakeAgentMode.ok:
       case FakeAgentMode.mediaFailed:
+      case FakeAgentMode.audioFailed:
         if (request.headers.value('authorization') != 'Bearer $token') {
           _writeError(response, 401, 'invalid_token', 'invalid token');
+          return;
+        }
+        if (isVolume) {
+          _respondVolume(response, request.method, path, body);
           return;
         }
         if (!isMedia) {
@@ -195,11 +255,94 @@ final class FakeAgentServer {
     }
   }
 
+  /// Rute `/api/v1/volume*` setelah auth. Urutan: audio gagal (mode atau hook),
+  /// lalu validasi body, lalu perubahan state.
+  void _respondVolume(
+    HttpResponse response,
+    String method,
+    String path,
+    String body,
+  ) {
+    if (mode == FakeAgentMode.audioFailed || _consumeFailNextVolume()) {
+      _writeError(response, 500, 'audio_failed', 'audio failed');
+      return;
+    }
+
+    switch (path) {
+      case '/api/v1/volume':
+        if (method == 'GET') {
+          _writeVolume(response);
+          return;
+        }
+        final data = _decodeObject(body);
+        final level = data?['level'];
+        if (level is! int) {
+          _writeError(
+            response,
+            400,
+            'invalid_request',
+            'level must be integer',
+          );
+          return;
+        }
+        if (level < 0 || level > 100) {
+          _writeError(response, 400, 'invalid_level', 'level out of range');
+          return;
+        }
+        volumeLevel = level;
+        volumeMuted = false;
+        _writeVolume(response);
+      case '/api/v1/volume/up':
+        volumeLevel = (volumeLevel + 5).clamp(0, 100).toInt();
+        volumeMuted = false;
+        _writeVolume(response);
+      case '/api/v1/volume/down':
+        volumeLevel = (volumeLevel - 5).clamp(0, 100).toInt();
+        volumeMuted = false;
+        _writeVolume(response);
+      case '/api/v1/volume/mute':
+        final muted = _decodeObject(body)?['muted'];
+        if (muted is! bool) {
+          _writeError(response, 400, 'invalid_request', 'muted must be bool');
+          return;
+        }
+        volumeMuted = muted;
+        _writeVolume(response);
+    }
+  }
+
+  bool _consumeFailNextVolume() {
+    if (failNextVolumeRequests <= 0) return false;
+    failNextVolumeRequests--;
+    return true;
+  }
+
+  Map<String, Object?>? _decodeObject(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      return decoded is Map<String, Object?> ? decoded : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  void _writeVolume(HttpResponse response) {
+    _writeRaw(
+      response,
+      200,
+      jsonEncode({
+        'data': {'level': volumeLevel, 'muted': volumeMuted},
+      }),
+    );
+  }
+
   Map<String, Object?> _statusData() => {
     'name': name,
     'version': '1.0.0',
     'uptimeSeconds': 120,
-    'volume': volumeAvailable ? {'level': 35, 'muted': false} : null,
+    'volume': volumeAvailable && mode != FakeAgentMode.audioFailed
+        ? {'level': volumeLevel, 'muted': volumeMuted}
+        : null,
     'pending': null,
   };
 
