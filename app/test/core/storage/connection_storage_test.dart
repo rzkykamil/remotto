@@ -2,9 +2,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:remotto/core/connection/connection_providers.dart';
+import 'package:remotto/core/connection/connection_state.dart';
 import 'package:remotto/core/storage/connection_storage.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fakes.dart';
 
@@ -108,11 +111,15 @@ void main() {
     test(
       'save menulis storage dan mengubah state; clear menghapus keduanya',
       () async {
+        SharedPreferences.setMockInitialValues({});
         final fake = InMemoryConnectionStorage();
         final container = ProviderContainer(
           overrides: [
             initialPairingProvider.overrideWithValue(null),
             connectionStorageProvider.overrideWithValue(fake),
+            sharedPreferencesProvider.overrideWithValue(
+              await SharedPreferences.getInstance(),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -128,6 +135,52 @@ void main() {
         expect(fake.data, isNull);
       },
     );
+  });
+
+  group('pairing dan lastPowerCommand', () {
+    test('save dan clear pairing menghapus lastPowerCommand', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          initialPairingProvider.overrideWithValue(_data),
+          connectionStorageProvider.overrideWithValue(
+            InMemoryConnectionStorage(_data),
+          ),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          connectionClockProvider.overrideWithValue(
+            () => DateTime.utc(2026, 11, 8, 5, 30),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container
+          .read(lastPowerCommandProvider.notifier)
+          .record(
+            LastPowerCommand(
+              action: 'sleep',
+              sentAt: DateTime.utc(2026, 11, 8, 5, 29),
+            ),
+          );
+      expect(prefs.getString('lastPowerCommand'), isNotNull);
+
+      await container.read(pairingProvider.notifier).save(_data);
+      expect(container.read(lastPowerCommandProvider), isNull);
+      expect(prefs.getString('lastPowerCommand'), isNull);
+
+      container
+          .read(lastPowerCommandProvider.notifier)
+          .record(
+            LastPowerCommand(
+              action: 'shutdown',
+              sentAt: DateTime.utc(2026, 11, 8, 5, 29),
+            ),
+          );
+      await container.read(pairingProvider.notifier).clear();
+      expect(container.read(lastPowerCommandProvider), isNull);
+      expect(prefs.getString('lastPowerCommand'), isNull);
+    });
   });
 
   group('PairingData', () {

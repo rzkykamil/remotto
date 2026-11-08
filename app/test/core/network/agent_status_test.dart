@@ -218,4 +218,38 @@ void main() {
       );
     });
   });
+
+  group('Pending.fromData', () {
+    test(
+      'membaca objek Pending dan memakai aturan yang sama dengan /status',
+      () {
+        final pending = Pending.fromData({
+          'action': 'shutdown',
+          'remainingMs': 5000,
+          'delayMs': 5000,
+          'scheduledAt': '2026-01-01T23:41:00+07:00',
+        });
+
+        expect(
+          pending,
+          const Pending(
+            action: 'shutdown',
+            remainingMs: 5000,
+            delayMs: 5000,
+            scheduledAt: '2026-01-01T23:41:00+07:00',
+          ),
+        );
+        expect(
+          () => Pending.fromData({
+            'action': 'shutdown',
+            'remainingMs': -1,
+            'delayMs': 5000,
+            'scheduledAt': '2026-01-01T23:41:00+07:00',
+          }),
+          throwsA(isA<ServerFailure>()),
+          reason: 'remainingMs negatif ditolak seperti di parse /status',
+        );
+      },
+    );
+  });
 }

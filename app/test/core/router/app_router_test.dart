@@ -18,9 +18,11 @@ import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/strings/strings.dart';
 import 'package:remotto/features/pairing/state/pairing_flow_controller.dart';
 import 'package:remotto/features/pairing/state/pairing_flow_state.dart';
+import 'package:remotto/features/remote/power/power_providers.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../support/fake_power_repository.dart';
 import '../../support/fake_status_repository.dart';
 import '../../support/fakes.dart';
 import '../../support/volume_overrides.dart';
@@ -77,6 +79,7 @@ Future<ProviderContainer> _pumpRouter(
         ),
         pollSchedulerProvider.overrideWithValue(_SilentScheduler()),
         volumeOverride(),
+        powerRepositoryProvider.overrideWithValue(FakePowerRepository()),
         ...extra,
       ],
       child: const RemottoApp(),

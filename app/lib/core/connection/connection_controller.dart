@@ -94,7 +94,11 @@ final class ConnectionController extends Notifier<ConnectionState> {
   }
 
   /// Stop polling, called when SCR-010 closes. The phase is not changed.
-  void stop() => _halt();
+  /// Also resets the fast poll so the next start uses the normal interval.
+  void stop() {
+    _fast = false;
+    _halt();
+  }
 
   /// One manual poll, e.g. the "Coba lagi" button. Waits for the poll in
   /// flight if any. Does not run while the token is rejected.
@@ -176,6 +180,9 @@ final class ConnectionController extends Notifier<ConnectionState> {
       case ConnectionPhase.poweredOff:
         _setPhase(ConnectionPhase.back, status: merged);
         ref.read(lastPowerCommandProvider.notifier).clear();
+        // Reconnected: back to the normal interval (FR-4.12).
+        _fast = false;
+        if (_running) _schedulePoll();
         _phaseJob = _scheduler.after(RBehavior.reconnectedPill, () {
           if (state.phase == ConnectionPhase.back) {
             _setPhase(ConnectionPhase.online);
@@ -210,9 +217,10 @@ final class ConnectionController extends Notifier<ConnectionState> {
   }
 
   /// Plain offline, or poweredOff when the power command is still recent (P15).
+  /// A restart never gives P15: the laptop comes back on its own (FR-4.11).
   void _goOffline() {
     final command = ref.read(lastPowerCommandProvider);
-    if (command != null) {
+    if (command != null && command.action != 'restart') {
       final elapsed = _now().difference(command.sentAt);
       final clamped = elapsed.isNegative ? Duration.zero : elapsed;
       final remaining = RBehavior.lastPowerCommandTtl - clamped;

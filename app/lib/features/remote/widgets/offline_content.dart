@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/connection/connection_state.dart';
+import '../../../core/strings/power_strings.dart';
 import '../../../core/strings/remote_strings.dart';
 import '../../../core/theme/tokens.g.dart';
 import '../../../ui/glass_key.dart';
@@ -14,12 +16,15 @@ const double _stateIconSize = 40;
 /// Offline state icon stroke (artboard 1.8 on a 24 viewBox).
 const double _stateIconStroke = 1.8;
 
-/// Volume panel content when offline (`design/components.md` C08, S10).
+/// Volume panel content when offline (`design/components.md` C08, S10, P15).
 ///
 /// Content only; the glass panel is provided by the caller. Order: icon, title, body,
-/// then actions "Coba lagi" and "Pairing ulang". [retrying] changes the label
-/// "Coba lagi" to "Nyoba…" and disables it. [poweredOff] changes the
-/// title and icon to the "Laptop lagi mati" state (P15, used from M4).
+/// then actions. Plain offline shows "Coba lagi" and "Pairing ulang"; [retrying]
+/// changes the label "Coba lagi" to "Nyoba…" and disables it.
+///
+/// [poweredOff] switches to the "Laptop lagi mati" state (P15): power icon, the
+/// P15 body with the time of [lastCommand] (local, `HH.mm`), and only "Pairing
+/// ulang". Polling continues, and the controller leaves this state on its own.
 final class OfflineContent extends StatelessWidget {
   const OfflineContent({
     super.key,
@@ -27,12 +32,26 @@ final class OfflineContent extends StatelessWidget {
     required this.onRepair,
     this.retrying = false,
     this.poweredOff = false,
+    this.lastCommand,
   });
 
   final VoidCallback onRetry;
   final VoidCallback onRepair;
   final bool retrying;
   final bool poweredOff;
+
+  /// Last power command from this phone. Used for the P15 body; null falls
+  /// back to the plain offline body.
+  final LastPowerCommand? lastCommand;
+
+  /// P15 body for [command]. Sleep has its own copy; restart uses the
+  /// shutdown copy because the artboards have no restart variant.
+  static String _poweredOffBody(LastPowerCommand command) {
+    final at = command.sentAt.toLocal();
+    return command.action == 'sleep'
+        ? PowerStrings.poweredOffSleepBody(at)
+        : PowerStrings.poweredOffShutdownBody(at);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +60,10 @@ final class OfflineContent extends StatelessWidget {
     final retryLabel = retrying
         ? RemoteStrings.offlineRetrying
         : RemoteStrings.offlineRetry;
+    final command = lastCommand;
+    final body = poweredOff && command != null
+        ? _poweredOffBody(command)
+        : RemoteStrings.offlineBody;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -68,7 +91,7 @@ final class OfflineContent extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: RSpace.s6),
           child: Text(
-            RemoteStrings.offlineBody,
+            body,
             style: textTheme.bodyLarge?.copyWith(color: muted),
             textAlign: TextAlign.center,
           ),
@@ -80,13 +103,15 @@ final class OfflineContent extends StatelessWidget {
           spacing: RSpace.s1,
           runSpacing: RSpace.s2,
           children: [
-            GlassKey(
-              variant: GlassKeyVariant.chip,
-              size: GlassKeySize.touch,
-              label: retryLabel,
-              semanticsLabel: retryLabel,
-              onPressed: retrying ? null : onRetry,
-            ),
+            // Powered off: no retry key. Polling runs on its own (artboard P15).
+            if (!poweredOff)
+              GlassKey(
+                variant: GlassKeyVariant.chip,
+                size: GlassKeySize.touch,
+                label: retryLabel,
+                semanticsLabel: retryLabel,
+                onPressed: retrying ? null : onRetry,
+              ),
             RLinkButton(
               label: RemoteStrings.repairPairing,
               semanticsLabel: RemoteStrings.repairPairing,

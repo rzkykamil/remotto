@@ -16,6 +16,7 @@ import 'package:remotto/core/strings/remote_strings.dart';
 import 'package:remotto/core/theme/app_theme.dart';
 import 'package:remotto/core/theme/theme_extensions.dart';
 import 'package:remotto/features/remote/data/media_repository.dart';
+import 'package:remotto/features/remote/power/power_providers.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:remotto/features/remote/state/media_providers.dart';
 import 'package:remotto/features/remote/state/volume_controller.dart';
@@ -29,6 +30,7 @@ import 'package:remotto/ui/volume_slider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_media_repository.dart';
+import '../../support/fake_power_repository.dart';
 import '../../support/fake_poll_scheduler.dart';
 import '../../support/fake_status_repository.dart';
 import '../../support/fake_volume_repository.dart';
@@ -110,6 +112,7 @@ Future<_Harness> _pumpRemote(
       FakeMediaRepository([fakeMediaOk(MediaAction.playPause)]),
     ),
     pollSchedulerProvider.overrideWithValue(scheduler),
+    powerRepositoryProvider.overrideWithValue(FakePowerRepository()),
     hapticSinkProvider.overrideWithValue(sink),
     sharedPreferencesProvider.overrideWithValue(prefs),
     initialPairingProvider.overrideWithValue(_pairing),

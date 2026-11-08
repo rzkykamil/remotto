@@ -24,11 +24,13 @@ import 'package:remotto/features/pairing/widgets/qr_viewfinder.dart';
 import 'package:remotto/features/pairing/widgets/result_views.dart';
 import 'package:remotto/features/pairing/widgets/scan_view.dart';
 import 'package:remotto/features/pairing/widgets/testing_view.dart';
+import 'package:remotto/features/remote/power/power_providers.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:remotto/ui/light_backdrop.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_pairing_repository.dart';
+import 'support/fake_power_repository.dart';
 import 'support/fake_status_repository.dart';
 import 'support/fakes.dart';
 import 'support/volume_overrides.dart';
@@ -83,6 +85,7 @@ Future<ProviderContainer> _pump(
         ),
         pollSchedulerProvider.overrideWithValue(_NoopScheduler()),
         volumeOverride(),
+        powerRepositoryProvider.overrideWithValue(FakePowerRepository()),
       ],
       child: const RemottoApp(),
     ),
@@ -177,6 +180,7 @@ Future<_FlowEnv> _pumpFlow(
         ),
         pollSchedulerProvider.overrideWithValue(_NoopScheduler()),
         volumeOverride(),
+        powerRepositoryProvider.overrideWithValue(FakePowerRepository()),
         cameraPermissionServiceProvider.overrideWithValue(permission),
         qrScannerSourceProvider.overrideWithValue(scanner),
         mobileScannerControllerProvider.overrideWithValue(

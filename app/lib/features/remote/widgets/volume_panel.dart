@@ -53,6 +53,7 @@ final class VolumePanel extends ConsumerWidget {
     required this.onRepair,
     this.retrying = false,
     this.compact = false,
+    this.lastCommand,
   });
 
   /// Connection phase of the screen. Online or back enables the controls.
@@ -69,6 +70,9 @@ final class VolumePanel extends ConsumerWidget {
 
   /// 360 dp wide layout: 108 sp number.
   final bool compact;
+
+  /// Last power command from this phone, for the P15 body in [OfflineContent].
+  final LastPowerCommand? lastCommand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -120,6 +124,7 @@ final class VolumePanel extends ConsumerWidget {
                     onRepair: onRepair,
                     retrying: retrying,
                     poweredOff: phase == ConnectionPhase.poweredOff,
+                    lastCommand: lastCommand,
                   ),
                 )
               : Center(

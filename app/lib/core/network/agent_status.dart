@@ -41,6 +41,17 @@ final class Pending {
     required this.scheduledAt,
   });
 
+  /// Builds a schedule from the `Pending` object (api-spec, Daya). Shared with
+  /// `GET /status`. Fields that do not match the contract throw [ServerFailure].
+  factory Pending.fromData(Map<String, Object?> data) {
+    return Pending(
+      action: _requireString(data, 'action'),
+      remainingMs: _requireInt(data, 'remainingMs', min: 0),
+      delayMs: _requireInt(data, 'delayMs', min: 0),
+      scheduledAt: _requireString(data, 'scheduledAt'),
+    );
+  }
+
   /// `sleep`, `restart`, or `shutdown`.
   final String action;
 
@@ -143,13 +154,7 @@ Pending? _parsePending(Map<String, Object?> data) {
   _requireKey(data, 'pending');
   final raw = data['pending'];
   if (raw == null) return null;
-  final pending = _asMap(raw);
-  return Pending(
-    action: _requireString(pending, 'action'),
-    remainingMs: _requireInt(pending, 'remainingMs', min: 0),
-    delayMs: _requireInt(pending, 'delayMs', min: 0),
-    scheduledAt: _requireString(pending, 'scheduledAt'),
-  );
+  return Pending.fromData(_asMap(raw));
 }
 
 void _requireKey(Map<String, Object?> map, String key) {

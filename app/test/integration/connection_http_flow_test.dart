@@ -8,6 +8,7 @@ import 'package:remotto/core/connection/connection_state.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/theme/r_behavior.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/fake_poll_scheduler.dart';
 import 'fake_agent_server.dart';
@@ -22,8 +23,12 @@ void main() {
   Future<void> startContainer() async {
     server = await FakeAgentServer.start();
     sched = FakePollScheduler();
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     container = ProviderContainer(
       overrides: [
+        // Read when offline (lastPowerCommand), so it must be overridden.
+        sharedPreferencesProvider.overrideWithValue(prefs),
         initialPairingProvider.overrideWithValue(
           PairingData(
             host: '127.0.0.1',

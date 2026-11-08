@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../connection/connection_providers.dart';
 import 'app_preferences.dart';
 import 'connection_storage.dart';
 import 'pairing_data.dart';
@@ -36,14 +37,18 @@ final class PairingNotifier extends Notifier<PairingData?> {
   PairingData? build() => ref.read(initialPairingProvider);
 
   /// Menulis storage dulu, baru mengubah state. Bila tulis gagal, state tetap.
+  /// Pairing baru menghapus `lastPowerCommand` milik laptop lama.
   Future<void> save(PairingData data) async {
     await ref.read(connectionStorageProvider).write(data);
     state = data;
+    ref.read(lastPowerCommandProvider.notifier).clear();
   }
 
+  /// Penghapusan pairing juga menghapus `lastPowerCommand`.
   Future<void> clear() async {
     await ref.read(connectionStorageProvider).clear();
     state = null;
+    ref.read(lastPowerCommandProvider.notifier).clear();
   }
 }
 

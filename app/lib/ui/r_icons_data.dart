@@ -63,6 +63,12 @@ abstract final class RIcons {
 
   static const power = RIconData(['M12 2v10', 'M18.4 6.6a9 9 0 1 1-12.77.04']);
 
+  /// Sleep icon (crescent moon) and restart arrow from `Power-light`, `I.moon`
+  /// and `I.r1` / `I.r2`.
+  static const moon = RIconData(['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z']);
+
+  static const restart = RIconData(['M3 12a9 9 0 1 0 3-6.7L3 8', 'M3 3v5h5']);
+
   /// Media icons from States-light (dock). Use with `filled: true`; the
   /// skip icons add a 2 dp stroke, play and pause pass `strokeWidth: 0`.
   static const skipPrev = RIconData(['M19 20 9 12l10-8z', 'M5 19V5']);

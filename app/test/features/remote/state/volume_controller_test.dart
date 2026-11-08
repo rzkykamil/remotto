@@ -8,11 +8,13 @@ import 'package:remotto/core/haptics/r_haptics.dart';
 import 'package:remotto/core/network/agent_status.dart';
 import 'package:remotto/core/network/api_failure.dart';
 import 'package:remotto/core/network/network_providers.dart';
+import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/strings/remote_strings.dart';
 import 'package:remotto/core/toast/toast_controller.dart';
 import 'package:remotto/features/remote/data/volume_repository.dart';
 import 'package:remotto/features/remote/state/volume_controller.dart';
 import 'package:remotto/features/remote/state/volume_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../support/fake_poll_scheduler.dart';
 import '../../../support/fake_status_repository.dart';
@@ -47,6 +49,12 @@ final class GatedVolumeRepository implements VolumeRepository {
 void main() {
   late FakePollScheduler scheduler;
   late RecordingHapticSink sink;
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
 
   ProviderContainer makeContainer({
     required VolumeRepository repo,
@@ -56,6 +64,8 @@ void main() {
     sink = RecordingHapticSink();
     final container = ProviderContainer(
       overrides: [
+        // Read by ConnectionController when offline (lastPowerCommand).
+        sharedPreferencesProvider.overrideWithValue(prefs),
         volumeRepositoryProvider.overrideWithValue(repo),
         pollSchedulerProvider.overrideWithValue(scheduler),
         statusRepositoryProvider.overrideWithValue(

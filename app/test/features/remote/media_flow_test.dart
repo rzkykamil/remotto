@@ -19,7 +19,9 @@ import 'package:remotto/core/theme/tokens.g.dart';
 import 'package:remotto/features/remote/data/media_repository.dart';
 
 import '../../support/fake_media_repository.dart';
+import '../../support/fake_power_repository.dart';
 
+import 'package:remotto/features/remote/power/power_providers.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:remotto/features/remote/state/media_controller.dart';
 import 'package:remotto/features/remote/state/media_providers.dart';
@@ -110,6 +112,7 @@ Future<_Harness> _pumpRemote(
     mediaRepositoryProvider.overrideWithValue(media),
     pollSchedulerProvider.overrideWithValue(scheduler),
     volumeOverride(),
+    powerRepositoryProvider.overrideWithValue(FakePowerRepository()),
     hapticSinkProvider.overrideWithValue(sink),
     sharedPreferencesProvider.overrideWithValue(prefs),
     initialPairingProvider.overrideWithValue(_pairing),

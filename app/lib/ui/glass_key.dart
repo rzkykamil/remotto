@@ -48,6 +48,12 @@ double _heightOf(GlassKeySize size) => switch (size) {
   GlassKeySize.playCompact => RSize.playCompact,
 };
 
+/// Horizontal padding around a label. The power keys sit three in a row, so
+/// the artboard gives them none; a small one keeps the label from breaking
+/// mid-word at 360 dp.
+double _labelPaddingOf(GlassKeySize size) =>
+    size == GlassKeySize.power ? RSpace.s1 : RSpace.s5;
+
 /// Accent key shadow: 0 10px 28px `accent.shadow` (C02 `.key.acc`).
 /// Not a token, like the glass shadow in `GlassPanel`.
 const Offset _accentShadowOffset = Offset(0, 10);
@@ -246,7 +252,7 @@ final class GlassKey extends StatelessWidget {
       child: Padding(
         padding: text == null
             ? EdgeInsets.zero
-            : const EdgeInsets.symmetric(horizontal: RSpace.s5),
+            : EdgeInsets.symmetric(horizontal: _labelPaddingOf(size)),
         child: IconTheme.merge(
           data: IconThemeData(color: color),
           child: Row(

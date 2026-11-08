@@ -9,8 +9,10 @@ import 'package:remotto/core/connection/status_repository.dart';
 import 'package:remotto/core/network/agent_status.dart';
 import 'package:remotto/core/network/api_failure.dart';
 import 'package:remotto/core/network/network_providers.dart';
+import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/theme/r_behavior.dart';
 import 'package:remotto/core/theme/tokens.g.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_status_repository.dart';
 
@@ -85,6 +87,9 @@ final class _ManualRepository implements StatusRepository {
   }
 }
 
+/// Preferences baru tiap test (diisi di setUp).
+late SharedPreferences _prefs;
+
 final class _Clock {
   _Clock(this.now);
 
@@ -99,6 +104,7 @@ final class _Harness {
         statusRepositoryProvider.overrideWithValue(repo),
         pollSchedulerProvider.overrideWithValue(sched),
         connectionClockProvider.overrideWithValue(() => clock.now),
+        sharedPreferencesProvider.overrideWithValue(_prefs),
       ],
     );
   }
@@ -146,6 +152,11 @@ FakeHttpReply _ok({int uptime = 60, bool volumeUnavailable = false}) =>
 const FakeStatusStep _down = FakeTransportFailure(UnreachableFailure());
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   group('start', () {
     test(
       'poll pertama 2 detik dan jadwal periodik 5 detik (BR-21, BR-8)',
@@ -401,6 +412,109 @@ void main() {
     });
   });
 
+  group('lastPowerCommand dari preferences', () {
+    String stored(DateTime sentAt, {String action = 'shutdown'}) =>
+        '{"action":"$action","sentAt":"${sentAt.toUtc().toIso8601String()}"}';
+
+    test('nilai tersimpan dibaca saat provider dibangun', () async {
+      final h = _harness(FakeStatusRepository([_ok()]));
+      await _prefs.setString(
+        'lastPowerCommand',
+        stored(h.clock.now.subtract(const Duration(minutes: 2))),
+      );
+
+      final command = h.container.read(lastPowerCommandProvider);
+      expect(command?.action, 'shutdown');
+      // Dibaca sebagai UTC; instan yang sama dengan jam uji.
+      expect(
+        command?.sentAt,
+        h.clock.now.subtract(const Duration(minutes: 2)).toUtc(),
+      );
+    });
+
+    test('nilai rusak diabaikan', () async {
+      final h = _harness(FakeStatusRepository([_ok()]));
+      await _prefs.setString('lastPowerCommand', '{rusak');
+
+      expect(h.container.read(lastPowerCommandProvider), isNull);
+    });
+
+    test('nilai lebih dari 10 menit dibuang saat dibaca', () async {
+      final h = _harness(FakeStatusRepository([_ok()]));
+      await _prefs.setString(
+        'lastPowerCommand',
+        stored(h.clock.now.subtract(const Duration(minutes: 11))),
+      );
+
+      expect(h.container.read(lastPowerCommandProvider), isNull);
+      await h.settle();
+      expect(_prefs.getString('lastPowerCommand'), isNull);
+    });
+
+    test('sentAt di masa depan dibuang saat dibaca', () async {
+      final h = _harness(FakeStatusRepository([_ok()]));
+      await _prefs.setString(
+        'lastPowerCommand',
+        stored(h.clock.now.add(const Duration(minutes: 1))),
+      );
+
+      expect(h.container.read(lastPowerCommandProvider), isNull);
+      await h.settle();
+      expect(_prefs.getString('lastPowerCommand'), isNull);
+    });
+
+    test('record menulis preferences, clear menghapusnya', () async {
+      final h = _harness(FakeStatusRepository([_ok()]));
+      final sentAt = h.clock.now.subtract(const Duration(minutes: 1));
+      h.container
+          .read(lastPowerCommandProvider.notifier)
+          .record(LastPowerCommand(action: 'restart', sentAt: sentAt));
+      await h.settle();
+      expect(
+        _prefs.getString('lastPowerCommand'),
+        stored(sentAt, action: 'restart'),
+      );
+
+      h.container.read(lastPowerCommandProvider.notifier).clear();
+      await h.settle();
+      expect(_prefs.getString('lastPowerCommand'), isNull);
+      expect(h.container.read(lastPowerCommandProvider), isNull);
+    });
+
+    test(
+      'Offline dengan perintah restart tetap Offline biasa (FR-4.11)',
+      () async {
+        final h = _harness(FakeStatusRepository([_down, _down]));
+        await _prefs.setString(
+          'lastPowerCommand',
+          stored(
+            h.clock.now.subtract(const Duration(minutes: 3)),
+            action: 'restart',
+          ),
+        );
+
+        await h.start();
+        await h.tick();
+        expect(h.phase, ConnectionPhase.offline);
+      },
+    );
+
+    test(
+      'Offline dengan perintah tersimpan langsung jadi PoweredOff',
+      () async {
+        final h = _harness(FakeStatusRepository([_down, _down]));
+        await _prefs.setString(
+          'lastPowerCommand',
+          stored(h.clock.now.subtract(const Duration(minutes: 3))),
+        );
+
+        await h.start();
+        await h.tick();
+        expect(h.phase, ConnectionPhase.poweredOff);
+      },
+    );
+  });
+
   group('poll', () {
     test(
       'paling banyak satu fetch berjalan; tick bertabrakan dilewati',
@@ -484,7 +598,62 @@ void main() {
     });
   });
 
+  group('kembali online mengatur ulang polling cepat', () {
+    test('Offline lalu sukses: interval kembali 5 detik', () async {
+      final h = _harness(FakeStatusRepository([_ok(), _down, _down, _ok()]));
+      await h.start();
+      h.ctrl.setFastPoll(enabled: true);
+      expect(h.sched.periodicJob?.delay, RBehavior.fastPoll);
+
+      await h.tick();
+      await h.tick();
+      expect(h.phase, ConnectionPhase.offline);
+
+      await h.poll();
+      expect(h.phase, ConnectionPhase.back);
+      expect(h.sched.periodicJob?.delay, RMotion.poll);
+      expect(h.sched.jobs.where((job) => job.periodic && job.live).length, 1);
+
+      // The fast flag was reset, so enabling it again changes the interval.
+      h.ctrl.setFastPoll(enabled: true);
+      expect(h.sched.periodicJob?.delay, RBehavior.fastPoll);
+    });
+
+    test('PoweredOff lalu sukses: interval kembali 5 detik', () async {
+      final h = _harness(FakeStatusRepository([_ok(), _down, _down, _ok()]));
+      h.container
+          .read(lastPowerCommandProvider.notifier)
+          .record(
+            LastPowerCommand(
+              action: 'sleep',
+              sentAt: h.clock.now.subtract(const Duration(minutes: 1)),
+            ),
+          );
+      await h.start();
+      h.ctrl.setFastPoll(enabled: true);
+
+      await h.tick();
+      await h.tick();
+      expect(h.phase, ConnectionPhase.poweredOff);
+
+      await h.poll();
+      expect(h.phase, ConnectionPhase.back);
+      expect(h.sched.periodicJob?.delay, RMotion.poll);
+    });
+  });
+
   group('stop', () {
+    test('stop mereset polling cepat; start berikutnya 5 detik', () async {
+      final h = _harness(FakeStatusRepository([_ok(), _ok()]));
+      await h.start();
+      h.ctrl.setFastPoll(enabled: true);
+      expect(h.sched.periodicJob?.delay, RBehavior.fastPoll);
+
+      h.ctrl.stop();
+      await h.start();
+      expect(h.sched.periodicJob?.delay, RMotion.poll);
+    });
+
     test('stop membatalkan jadwal; balasan yang terlambat diabaikan', () async {
       final repo = _ManualRepository();
       final h = _harness(repo);

@@ -44,6 +44,9 @@ abstract final class RemoteStrings {
   static const nextLabel = 'Lagu berikutnya';
   static const mediaGroupLabel = 'Media';
 
+  // SCR-010 power row (C09, Remote.dc.html section "Daya")
+  static const powerGroupLabel = 'Daya';
+
   // SCR-010 volume panel (C04, C05, C10)
   static const volumeLabel = 'VOLUME';
   static const volumeGroupLabel = 'Volume';

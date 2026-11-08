@@ -14,6 +14,7 @@ import 'package:remotto/features/pairing/data/qr_scanner_source.dart';
 import 'package:remotto/features/pairing/domain/pairing_target.dart';
 import 'package:remotto/features/pairing/state/pairing_flow_controller.dart';
 import 'package:remotto/features/pairing/state/pairing_flow_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../support/fakes.dart';
 
@@ -81,6 +82,8 @@ final class Harness {
     container = ProviderContainer(
       overrides: [
         connectionStorageProvider.overrideWithValue(storage),
+        // Saving a pairing also clears lastPowerCommand, which reads prefs.
+        sharedPreferencesProvider.overrideWithValue(_prefs),
         hapticsProvider.overrideWithValue(
           RHaptics(sink: sink, enabled: () => true),
         ),
@@ -116,7 +119,15 @@ final class Harness {
   Future<void> settle() => Future<void>.delayed(Duration.zero);
 }
 
+/// Fresh in-memory preferences per test, filled in setUp.
+late SharedPreferences _prefs;
+
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   group('izin dan Q01/Q02/Q05', () {
     test('Scan QR dengan izin diberikan langsung ke scan', () async {
       final h = Harness()..permission.current = CameraPermission.granted;

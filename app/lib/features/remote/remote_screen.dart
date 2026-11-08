@@ -15,7 +15,11 @@ import '../../core/theme/tokens.g.dart';
 import '../../core/toast/toast_controller.dart';
 import '../../ui/glass_panel.dart';
 import '../../ui/status_pill.dart';
+import 'power/power_flow_host.dart';
+import 'power/power_flow_state.dart';
+import 'power/power_providers.dart';
 import 'widgets/media_dock.dart';
+import 'widgets/power_row.dart';
 import 'widgets/remote_header.dart';
 import 'widgets/volume_panel.dart';
 
@@ -24,8 +28,9 @@ const double _compactWidth = 380;
 
 /// Remote screen SCR-010 (`design/components.md` C10, `States-light`).
 ///
-/// Header, the volume panel, and the media dock. Power controls come later
-/// in M4. Polling starts when the screen opens and stops when
+/// Header, the power row (C09), the volume panel, and the media dock. The
+/// power flow (confirm sheet, countdown, result) runs in [PowerFlowHost]
+/// above this screen. Polling starts when the screen opens and stops when
 /// the screen closes.
 class RemoteScreen extends ConsumerStatefulWidget {
   const RemoteScreen({super.key});
@@ -99,6 +104,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
     });
 
     final connection = ref.watch(connectionControllerProvider);
+    final lastPowerCommand = ref.watch(lastPowerCommandProvider);
     final pairing = ref.watch(pairingProvider);
     final name = connection.status?.name ?? pairing?.laptopName ?? '';
     final width = MediaQuery.sizeOf(context).width;
@@ -107,42 +113,63 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
     final phase = connection.phase;
     final dockEnabled =
         phase == ConnectionPhase.online || phase == ConnectionPhase.back;
+    // Power keys need a live laptop and no flow already running (one schedule
+    // at a time, BR-5). Rebuilds only when the idle state changes, not on
+    // every countdown tick.
+    final powerIdle = ref.watch(
+      powerFlowControllerProvider.select((state) => state is PowerFlowIdle),
+    );
+    final powerEnabled = dockEnabled && powerIdle;
     // The dock sits above the screen's bottom padding (RSpace.s6), and
     // ToastHost measures from the screen bottom, so the inset includes it.
+    // The power row sits above the volume panel, so the dock height is the
+    // same as before.
     _syncToastInset(MediaDock.heightFor(compact) + RSpace.s6);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(margin, RSpace.s4, margin, RSpace.s6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RemoteHeader(
-                laptopName: name,
-                pillVariant: _pillVariant(phase),
-                pillLabel: _pillLabel(phase, connection.uptime),
-                pillSemanticsLabel: _pillSemantics(phase),
-                onSettings: () => context.push(AppRoutes.settings),
-              ),
-              const SizedBox(height: RSpace.s5),
-              Expanded(
-                child: GlassPanel(
-                  padding: const EdgeInsets.all(RSpace.s5),
-                  semanticsLabel: RemoteStrings.volumeGroupLabel,
-                  child: VolumePanel(
-                    phase: phase,
-                    onRetry: _retry,
-                    onRepair: _repair,
-                    retrying: _retrying,
-                    compact: compact,
+    return PowerFlowHost(
+      builder: (context, onPowerSelected) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(margin, RSpace.s4, margin, RSpace.s6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                RemoteHeader(
+                  laptopName: name,
+                  pillVariant: _pillVariant(phase),
+                  pillLabel: _pillLabel(phase, connection.uptime),
+                  pillSemanticsLabel: _pillSemantics(phase),
+                  onSettings: () => context.push(AppRoutes.settings),
+                ),
+                const SizedBox(height: RSpace.s5),
+                Semantics(
+                  container: true,
+                  label: RemoteStrings.powerGroupLabel,
+                  child: PowerRow(
+                    enabled: powerEnabled,
+                    onSelected: onPowerSelected,
                   ),
                 ),
-              ),
-              const SizedBox(height: RSpace.s5),
-              MediaDock(enabled: dockEnabled, compact: compact),
-            ],
+                const SizedBox(height: RSpace.s5),
+                Expanded(
+                  child: GlassPanel(
+                    padding: const EdgeInsets.all(RSpace.s5),
+                    semanticsLabel: RemoteStrings.volumeGroupLabel,
+                    child: VolumePanel(
+                      phase: phase,
+                      onRetry: _retry,
+                      onRepair: _repair,
+                      retrying: _retrying,
+                      compact: compact,
+                      lastCommand: lastPowerCommand,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: RSpace.s5),
+                MediaDock(enabled: dockEnabled, compact: compact),
+              ],
+            ),
           ),
         ),
       ),

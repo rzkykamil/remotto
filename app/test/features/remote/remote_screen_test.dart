@@ -16,6 +16,7 @@ import 'package:remotto/core/network/agent_status.dart';
 import 'package:remotto/core/network/api_failure.dart';
 import 'package:remotto/core/network/network_providers.dart';
 import 'package:remotto/core/router/app_router.dart';
+import 'package:remotto/core/strings/power_strings.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/theme/app_theme.dart';
@@ -24,11 +25,13 @@ import 'package:remotto/core/theme/tokens.g.dart';
 import 'package:remotto/core/strings/pairing_strings.dart';
 import 'package:remotto/core/strings/remote_strings.dart';
 import 'package:remotto/core/toast/toast_controller.dart';
+import 'package:remotto/features/remote/power/power_providers.dart';
 import 'package:remotto/features/remote/remote_screen.dart';
 import 'package:remotto/features/remote/widgets/media_dock.dart';
 import 'package:remotto/ui/glass_toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../support/fake_power_repository.dart';
 import '../../support/fake_status_repository.dart';
 import '../../support/fakes.dart';
 import '../../support/volume_overrides.dart';
@@ -159,6 +162,7 @@ Future<_Harness> _pumpApp(
         statusRepositoryProvider.overrideWithValue(repo),
         pollSchedulerProvider.overrideWithValue(scheduler),
         volumeOverride(),
+        powerRepositoryProvider.overrideWithValue(FakePowerRepository()),
         ...extra,
       ],
       child: const RemottoApp(),
@@ -363,6 +367,88 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'P15: poweredOff setelah perintah daya lokal: pill, judul, body, hanya Pairing ulang',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      final repo = _GatedRepository();
+      final harness = await _pumpApp(tester, repo: repo);
+
+      repo.answerOk();
+      await _settle(tester);
+      harness.container
+          .read(lastPowerCommandProvider.notifier)
+          .record(LastPowerCommand(action: 'shutdown', sentAt: DateTime.now()));
+
+      harness.scheduler.tick();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await _settle(tester);
+      harness.scheduler.tick();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await _settle(tester);
+
+      expect(
+        harness.container.read(connectionControllerProvider).phase,
+        ConnectionPhase.poweredOff,
+      );
+      expect(find.text('LAGI MATI'), findsOneWidget);
+      expect(find.text('NGGAK KEJANGKAU'), findsNothing);
+      expect(find.text('Laptop lagi mati'), findsOneWidget);
+      expect(find.text('Laptop nggak kejangkau'), findsNothing);
+      expect(find.textContaining('Dimatiin dari HP ini jam '), findsOneWidget);
+      expect(find.text('Coba lagi'), findsNothing);
+      expect(find.text('Pairing ulang'), findsOneWidget);
+      // Pill and title share this label, so only check that it exists.
+      expect(find.bySemanticsLabel(RemoteStrings.pillOffA11y), findsWidgets);
+      // PowerRow and the dock stay disabled while the laptop is off.
+      expect(_isEnabled(tester, PowerStrings.semShutdown), isFalse);
+      expect(_isEnabled(tester, RemoteStrings.pauseLabel), isFalse);
+      expect(tester.takeException(), isNull);
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'P15 berakhir 10 menit: jadwal habis, S10 biasa dengan Coba lagi',
+    (tester) async {
+      final repo = _GatedRepository();
+      final harness = await _pumpApp(tester, repo: repo);
+
+      repo.answerOk();
+      await _settle(tester);
+      harness.container
+          .read(lastPowerCommandProvider.notifier)
+          .record(LastPowerCommand(action: 'sleep', sentAt: DateTime.now()));
+
+      harness.scheduler.tick();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await _settle(tester);
+      harness.scheduler.tick();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await _settle(tester);
+      expect(find.text('Laptop lagi mati'), findsOneWidget);
+
+      // The controller schedules the end of P15 once, at the remaining TTL.
+      final expiry = harness.scheduler.jobs.lastWhere(
+        (j) => !j.periodic && j.live,
+      );
+      expect(expiry.delay, lessThanOrEqualTo(RBehavior.lastPowerCommandTtl));
+      expect(expiry.delay, greaterThan(Duration.zero));
+      expiry.run();
+      await _settle(tester);
+
+      expect(
+        harness.container.read(connectionControllerProvider).phase,
+        ConnectionPhase.offline,
+      );
+      expect(find.text('Laptop nggak kejangkau'), findsOneWidget);
+      expect(find.text('NGGAK KEJANGKAU'), findsOneWidget);
+      expect(find.text('Laptop lagi mati'), findsNothing);
+      expect(find.text('Coba lagi'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final width in [360.0, 412.0]) {
     testWidgets('lebar $width, teks 130%: nama panjang tanpa overflow', (
       tester,
@@ -419,12 +505,20 @@ Future<void> _pumpLayout(
     tester.view.resetDevicePixelRatio();
   });
 
+  // Going offline reads the saved last power command (preferences).
+  final prefs = (await tester.runAsync(() async {
+    SharedPreferences.setMockInitialValues({});
+    return SharedPreferences.getInstance();
+  }))!;
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         statusRepositoryProvider.overrideWithValue(repo),
         pollSchedulerProvider.overrideWithValue(scheduler),
         volumeOverride(),
+        powerRepositoryProvider.overrideWithValue(FakePowerRepository()),
       ],
       child: MaterialApp(
         theme: AppTheme.light,
