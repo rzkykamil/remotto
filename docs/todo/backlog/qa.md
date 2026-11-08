@@ -10,6 +10,8 @@ Belum ada temuan.
 
 - `go test -race` belum bisa dijalankan lokal karena gcc dan CGO tidak ada. Jalankan di CI atau mesin ber-gcc (`agent/internal/server`, `agent/internal/pairing`).
 - Sisi log app untuk BR-11 belum teruji karena app belum punya logger. Ditunda ke M6 (lihat `docs/todo/backlog/integration.md`).
+- [ ] `test/features/pairing/state/pairing_flow_controller_test.dart` (4 test: scan QR valid, langganan scanner, Coba lagi dari Q10, Q09 expired) gagal dengan `Expected PairingStep.success, Actual PairingStep.timeout`. Bukan dari T10: folder pairing tidak disentuh, dan `core/network/agent_status.dart` ikut termodifikasi di working tree M4. Cek setelah perubahan itu di-commit.
+
 
 ## M2 Kontrol Media
 
@@ -22,7 +24,7 @@ Belum ada temuan.
 
 ## M4 Daya
 
-Belum ada temuan.
+- [x] `test/features/remote/state/volume_controller_test.dart` (6 test offline) dan `test/integration/connection_http_flow_test.dart` (1 test, "dua kegagalan berturut ke offline"): gagal dengan `UnimplementedError: override in bootstrap` karena `lastPowerCommandProvider` membutuhkan `sharedPreferencesProvider`. Diperbaiki di Frontend M4 (lihat `[Frontend M4] Test wajib meng-override sharedPreferencesProvider` di `docs/decision-log.md`).
 
 ## M5 Pengaturan & Tema
 

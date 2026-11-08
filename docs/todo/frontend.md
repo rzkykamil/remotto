@@ -62,19 +62,19 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 
 ## M4 Daya
 
-- [ ] Buat `PowerRepository` dan mock (202, 200, 409, 500, timeout)
-- [ ] `PowerRow`
-- [ ] `ConfirmSheet` dengan route kustom: P01, P02, P06, tahap 1→2 crossfade
-- [ ] `HoldToConfirm`: P03, P04, P05, custom action screen reader
-- [ ] `CountdownScreen`: P07, P12 reduced motion, wakelock, back = Batal
-- [ ] `ResultScreen`: P09, P10
-- [ ] P08 dengan toast
-- [ ] P11 batal gagal, termasuk kasus timeout ambigu
-- [ ] P13 lanjut hitung mundur dan P14 telat batal
-- [ ] P15 varian offline "Laptop lagi mati" dan `lastPowerCommand`
-- [ ] Teks "dari HP ini" hanya bila `lastPowerCommand` ada
-- [ ] Polling cepat setelah restart
-- [ ] Unit test semua cabang hasil daya, widget test + Semantics
+- [x] Buat `PowerRepository` dan mock (202, 200, 409, 500, timeout)
+- [x] `PowerRow`
+- [x] `ConfirmSheet` dengan route kustom: P01, P02, P06, tahap 1→2 crossfade
+- [x] `HoldToConfirm`: P03, P04, P05, custom action screen reader
+- [x] `CountdownScreen`: P07, P12 reduced motion, wakelock, back = Batal
+- [x] `ResultScreen`: P09, P10
+- [x] P08 dengan toast
+- [x] P11 batal gagal, termasuk kasus timeout ambigu
+- [x] P13 lanjut hitung mundur dan P14 telat batal
+- [x] P15 varian offline "Laptop lagi mati" dan `lastPowerCommand`
+- [x] Teks "dari HP ini" hanya bila `lastPowerCommand` ada
+- [x] Polling cepat setelah restart
+- [x] Unit test semua cabang hasil daya, widget test + Semantics
 
 ## M5 Pengaturan & Tema
 

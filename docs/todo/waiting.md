@@ -334,8 +334,23 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
 
 - [ ] M4: Tahan 1,2 detik terasa pas di kasur.
   Buka: sheet Matikan di HP.
-  Lakukan: coba tahan dengan satu jempol, lalu coba lepas lebih cepat.
-  Harusnya: tidak mungkin kepencet, tapi juga tidak menyebalkan.
+  Lakukan: coba tahan dengan satu jempol sampai terasa penuh, lalu coba lepas lebih cepat di tengah, lalu geser jari keluar dari tombol sebelum penuh. Jangan tahan sampai penuh di tahap terakhir kecuali memang mau laptop mati.
+  Harusnya: tidak mungkin kepencet, tapi juga tidak menyebalkan. Lepas di tengah atau geser keluar membatalkan tanpa perintah terkirim. Ada getar saat tahan penuh.
+
+- [ ] M4 Frontend: Layar daya di HP mirip desain, lebar 360 dan 412 dp, terang dan gelap.
+  Buka: app Remotto di HP (layar Remote), dan file di `design/export/artboards/` di laptop sebagai pembanding: Remote-412-dark, Remote-360-light, dan States-light (sheet daya dan hitung mundur).
+  Lakukan: buka tombol Sleep, Restart, dan Matikan satu per satu sampai sheet terbuka, lalu lihat hitung mundur. Ganti tema HP ke terang dan gelap. Batalkan hitung mundur dengan tombol Batal sebelum habis.
+  Harusnya: susunan dan warna mirip artboard, tidak ada yang terpotong, dan label tombol daya tidak pecah di tengah kata (misalnya "Matika-n").
+
+- [ ] M4 Frontend: Pembaca layar membacakan tombol daya, sheet, tahan, dan hitung mundur.
+  Buka: TalkBack di HP Android atau VoiceOver di iPhone, lalu app Remotto (layar Remote, sheet daya, dan hitung mundur).
+  Lakukan: jelajahi tombol Sleep, Restart, dan Matikan, lalu sheet dan tombol tahan. Cari aksi "Matikan sekarang" lewat menu aksi pembaca layar. Di hitung mundur, dengarkan pengumuman dan cek fokus awal. Batalkan sebelum habis.
+  Harusnya: setiap tombol terbaca jelas, aksi "Matikan sekarang" ada, fokus awal di Batal, dan pengumuman hitung mundur tidak terlalu sering.
+
+- [ ] M4 Frontend: Layar tetap menyala selama hitung mundur, dan tombol back membatalkan.
+  Buka: app Remotto di HP, layar Remote. Simpan pekerjaan di laptop dulu.
+  Lakukan: atur "layar mati otomatis" HP ke waktu tersingkat. Pilih Sleep, konfirmasi, lalu diamkan HP dan lihat layarnya sampai hitung mundur tampil. Lalu tekan tombol back HP sebelum hitung mundur habis.
+  Harusnya: layar tidak mati selama hitung mundur. Back membatalkan, dan laptop tetap nyala. Hitung mundur singkat, jadi bila layar mati saat diam, catat itu sebagai gagal.
 
 ## M5 Pengaturan & Tema
 

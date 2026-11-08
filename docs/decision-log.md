@@ -769,3 +769,94 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
   - D5: Logger untuk `/status` masuk lewat parameter `newStatusHandler`, bukan field `StatusDeps` yang dipakai di banyak tempat.
 - **Alasan:** BR-15 tetap berlaku: laptop yang bisu kembali bersuara saat slider digeser atau tombol + ditekan. Perangkat yang tidak bisu tidak perlu menulis mute, sehingga kegagalan `SetMute` tidak lagi memutus slider. Respons 500 saat unmute gagal tetap jujur, karena klien tidak boleh menganggap sukses bila laptop masih bisu.
 - **Dampak:** Tidak ada perubahan API, `docs/api-spec.md`, atau Postman. Fake `internal/oscontrol/fake` mendapat `SetMuteErr` dan `SetMutedCalls`. Test regresi ada di `internal/control` dan `internal/server`. Pembuktian di laptop ada di `docs/todo/waiting.md` bagian M3.
+
+## [Frontend M4] Fake power di test/support, provider tanpa default
+
+- **Konteks:** Pola `[Frontend M3] Fake volume di test/support, provider tanpa default` dan `[Integrasi M2]`.
+- **Keputusan:** `FakePowerRepository` ada di `app/test/support/`. `powerRepositoryProvider` tidak punya default. `HttpPowerRepository` dibuat di fase Integrasi M4.
+- **Alasan:** Tanpa default, tidak ada kondisi laptop tiruan yang bisa tampil sebagai kenyataan. Dari app asli belum ada perintah daya yang bisa terkirim sebelum Integrasi.
+- **Dampak:** Layar daya di app asli belum bisa dipakai sampai Integrasi M4. Pembuktian nyata ada di `docs/todo/waiting.md` bagian M4.
+
+## [Frontend M4] 409 daya tetap ServerFailure dengan code
+
+- **Konteks:** `power_pending`, `no_pending_power`, dan `power_executing` datang sebagai 409. Test `agent_http_client_test` menegaskan 409 tidak dipetakan khusus.
+- **Keputusan:** Ketiganya tetap `ServerFailure` dengan field `code`. Tidak ada tipe `ConflictFailure` baru.
+- **Alasan:** Sama dengan `[Integrasi M3] Kegagalan 400 dan 500 menjadi ServerFailure(code)`. Tipe baru hanya menambah cabang yang dipakai satu tempat.
+- **Dampak:** Alur daya membaca `code` bila perlu, misalnya untuk memilih P11 atau P14.
+
+## [Frontend M4] PowerFlowController sebagai sumber state, route sebagai cermin
+
+- **Konteks:** Alur daya punya sheet, tahan, hitung mundur, hasil, dan pemulihan. State yang tersebar di beberapa route bisa berbeda satu sama lain.
+- **Keputusan:** `PowerFlowController` adalah satu-satunya sumber state. `PowerFlowHost` hanya mencerminkan state ke route. Route memakai Navigator non-opaque, bukan go_router.
+- **Alasan:** State bisa dites tanpa widget. Alur daya tidak perlu URL sendiri, dan Remote tetap terlihat di belakang.
+- **Dampak:** Logika baru masuk controller. Route cukup menampilkan state yang diberikan.
+
+## [Frontend M4] Hitung mundur dari remainingMs
+
+- **Konteks:** `[Gate 1] Pemulihan saat app dibuka di tengah perintah daya` memakai sisa waktu, bukan jam, karena jam dua perangkat bisa berbeda (BR-20).
+- **Keputusan:** Hitung mundur memakai `remainingMs` dari `/status` dengan timer lokal. Angkanya dibulatkan ke atas. Jam HP tidak dibandingkan dengan jam laptop.
+- **Alasan:** Pembulatan ke atas mencegah angka 0 tampil sebelum waktunya.
+- **Dampak:** Angka di app bisa sedikit berbeda dari jam laptop. Yang dipakai adalah sisa waktu, bukan jam.
+
+## [Frontend M4] Timeout dan ambigu membaca /status, tidak pernah P10
+
+- **Konteks:** `[Gate 2] Timeout penjadwalan daya tidak menampilkan P10`. Frontend punya kasus tambahan: 409 `power_pending` dan `ServerFailure` tak terduga saat schedule.
+- **Keputusan:** Timeout atau error tak terduga saat schedule membaca `/status`. Bila `/status` gagal, tampil P11 dan `lastPowerCommand` tetap tercatat. 409 `power_pending` dengan `/status` yang tak terbaca juga P11, bukan P10. P10 tidak pernah tampil bila laptop mungkin akan mati.
+- **Alasan:** Pesan "laptop masih nyala" yang salah lebih berbahaya daripada peringatan yang berlebihan.
+- **Dampak:** P11 dipakai untuk lebih banyak kasus daripada rancangan awal.
+
+## [Frontend M4] Penjaga _dismissedKey dan P11 yang habis
+
+- **Konteks:** Poll yang sudah berjalan saat Batal dikirim bisa membawa `pending` lama. Tanpa penanda, P13 muncul lagi setelah laptop membatalkan (temuan Reviewer).
+- **Keputusan:** `_dismissedKey` diisi saat P09 atau P14 ditutup dan saat batal berhasil. P11 yang masih berjalan sampai 0 menjadi P09 (sent), dan `lastPowerCommand` tetap tercatat.
+- **Alasan:** Jadwal yang sudah selesai atau dibatalkan tidak dianggap berjalan lagi. P11 yang habis berarti perintah sudah diminta ke laptop, jadi P09 paling jujur.
+- **Dampak:** Respons status yang telat tidak lagi memunculkan P13 setelah batal.
+
+## [Frontend M4] lastPowerCommand disimpan di SharedPreferences
+
+- **Konteks:** `[Frontend M1] Mesin koneksi` menyiapkan `LastPowerCommand` untuk M4. P15 dan teks "dari HP ini" butuh tahu aksi terakhir setelah app ditutup.
+- **Keputusan:** Disimpan sebagai `{action, sentAt}` dengan `sentAt` dalam UTC ISO 8601. Dibuang bila lebih tua dari TTL atau `sentAt` ada di masa depan. Dihapus saat pairing disimpan atau dihapus.
+- **Alasan:** Isinya hanya aksi dan waktu, tidak ada token, jadi tidak perlu secure storage. TTL dan pengecekan masa depan mencegah data basi atau jam salah dipakai.
+- **Dampak:** Teks "dari HP ini" hanya tampil bila data ini ada.
+
+## [Frontend M4] Restart tidak masuk P15
+
+- **Konteks:** `[Gate 1] Restart masuk scope` dan `[Gate 1] Pemulihan saat app dibuka di tengah perintah daya` menyebut P15 untuk laptop mati. Restart menyalakan laptop lagi setelah login.
+- **Keputusan:** P15 "Laptop lagi mati" hanya untuk sleep dan shutdown (FR-4.11). Restart tidak masuk `poweredOff`.
+- **Alasan:** Teks "lagi mati" akan menyesatkan setelah restart, karena laptop nyala lagi tanpa intervensi.
+- **Dampak:** Cabang `restart` di `OfflineContent` tidak tercapai lagi (`docs/todo/backlog/frontend.md` M4).
+
+## [Frontend M4] Copy varian turunan dari artboard
+
+- **Konteks:** Artboard tidak punya copy untuk toast P08 per aksi, P09 sleep dan restart, P14 per aksi, dan P15 sleep.
+- **Keputusan:** Copy diturunkan dari kalimat artboard yang paling dekat dan dikumpulkan di `app/lib/core/strings/power_strings.dart`. Gaya tetap bahasa Indonesia santai.
+- **Alasan:** Layar tidak tampil kosong, dan copy terpusat mudah direvisi saat desain bertambah.
+- **Dampak:** Copy turunan perlu dicek terhadap desain (`docs/todo/waiting.md` bagian M4).
+
+## [Frontend M4] Warna bahaya dari ColorScheme dan status tokens
+
+- **Konteks:** `StatusTokens` tidak punya `danger` atau `onDanger`, sedangkan tombol dan cincin countdown butuh warna bahaya.
+- **Keputusan:** Warna diambil dari `colorScheme.error` dan `onError`, serta `status.dangerText` dan `status.dangerSoft`. Cincin countdown memakai `status.dangerText`.
+- **Alasan:** Token yang sudah ada dipakai dulu, tanpa menambah nilai di luar `tokens.json`.
+- **Dampak:** Token `danger` di `StatusTokens` masuk backlog M4 (`docs/todo/backlog/frontend.md`).
+
+## [Frontend M4] Padding label tombol daya 4 dp
+
+- **Konteks:** `GlassKey` memberi padding horizontal 20 dp (`RSpace.s5`). Dengan itu label tombol daya pecah di 360 dp.
+- **Keputusan:** `GlassKeySize.power` memakai padding label horizontal 4 dp.
+- **Alasan:** Hitungan di backlog M4 menunjukkan area teks 20 dp tidak cukup untuk "Matikan" di 360 dp.
+- **Dampak:** Hasil di HP fisik perlu dicek (`docs/todo/waiting.md` bagian M4).
+
+## [Frontend M4] Haptic gagal-batal dari controller
+
+- **Konteks:** `[Frontend M2] Gagal, 401, dan sumber haptic` dan `[Frontend M3] Haptic dikelola controller` menetapkan satu sumber haptic per aksi.
+- **Keputusan:** Haptic saat batal gagal dipanggil dari `PowerFlowController`, bukan dari `CountdownScreen`.
+- **Alasan:** Mencegah getar ganda untuk satu tap.
+- **Dampak:** Haptic tekan tombol Batal tetap berasal dari `Pressable` seperti tombol lain.
+
+## [Frontend M4] Test wajib meng-override sharedPreferencesProvider
+
+- **Konteks:** `lastPowerCommandProvider` membaca prefs. Test yang membangun container tanpa override gagal dengan `UnimplementedError: override in bootstrap`.
+- **Keputusan:** Setiap test yang membangun container meng-override `sharedPreferencesProvider`.
+- **Alasan:** Provider prefs sengaja tidak punya default, sama dengan pola storage M0.
+- **Dampak:** Test baru yang lupa override akan gagal dengan pesan yang sama.

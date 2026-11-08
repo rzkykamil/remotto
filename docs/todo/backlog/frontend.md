@@ -24,7 +24,7 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - [ ] T11 QrViewfinder: ukuran ikon back dan senter (20 dp) memakai `RSpace.s5` karena tidak ada token ikon. Perlu token ikon di `design/tokens.json`.
 - [ ] T11 QrViewfinder: banner Q04 memakai `GlassToast` (durasi internal 6 dtk), sedangkan `ScanView` menghapusnya setelah 3 dtk. Keluar banner tanpa animasi. Perlu parameter durasi di `GlassToast` atau animasi keluar khusus banner.
 - [ ] T11 QrViewfinder: belum diverifikasi visual (bingkai 248 dp, banner, senter di kamera nyata).
-- [ ] T15 OfflineContent: body untuk keadaan "Laptop lagi mati" belum ada di desain. Artboard hanya mengganti judul dan ikon, tetapi body "lagi nyala" bertentangan dengan keadaan itu. Perlu copy dari M4 (P15).
+- [x] T15 OfflineContent: body untuk keadaan "Laptop lagi mati" belum ada di desain. Diselesaikan di Frontend M4 (P15, lihat `[Frontend M4] Copy varian turunan dari artboard`).
 - [ ] T7 `_startTest` (Q08): cek `attempt` sebelum `save` supaya "Batal" saat penyimpanan berjalan tidak lanjut ke Q09. Ditemukan Reviewer.
 - [ ] T7 PairingScaffold: margin Q08 24 dp, sedangkan PairingScaffold memakai 20 dp. Perlu keputusan nilai yang dipakai.
 - [ ] T8 pesan error host di luar rentang (contoh 8.8.8.8, IP publik) masih memakai pesan Q07 yang sama. Perlu keputusan copy khusus dari desain.
@@ -62,6 +62,17 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 ## M4 Daya
 
 - [ ] Notifikasi lokal selama hitung mundur saat app di background (`docs/prd.md` bagian 6)
+- [x] T3/T10 PowerRow di 360 dp: label tombol daya pecah di tengah kata. Diperbaiki di Frontend M4 dengan padding label 4 dp untuk `GlassKeySize.power` (lihat `[Frontend M4] Padding label tombol daya 4 dp`). Ukuran nyata di HP dicek di `docs/todo/waiting.md` bagian M4.
+- [x] T11 SARAN: poll yang sudah berjalan saat Batal dikirim bisa membawa `pending` lama. Diperbaiki di Frontend M4: batal yang berhasil mengisi `_dismissedKey` (lihat `[Frontend M4] Penjaga _dismissedKey dan P11 yang habis`).
+- [ ] T10 Scheduling: tidak ada copy atau tampilan untuk status "mengirim perintah" (3 dtk). Route hitung mundur terbuka tetapi kosong (`CountdownScreen` tidak menggambar apa pun saat `PowerFlowScheduling`), jadi Remote tetap terlihat di belakang dan `PowerRow` nonaktif. Perlu keputusan desain.
+- [ ] S02 saat app dibuka dengan jadwal berjalan: Remote tampil dulu sebelum P13 terpasang, sampai sekitar 2 dtk. Terkait `docs/todo/frontend.md` M6 (S02 dengan batas 2 dtk). SARAN Reviewer M4.
+- [ ] Token ukuran dan warna daya belum ada di `design/tokens.json`: tombol "Nggak jadi" 64 dp, Batal 80 dp, ikon 56 dan 80 dp, handle, `neutralIcon`, `countBg`, `status.danger` dan `onDanger` di `StatusTokens`, `_keyGap` 10, dan `_powerIconSize` 17. Lihat `[Frontend M4] Warna bahaya dari ColorScheme dan status tokens`. SARAN Reviewer M4.
+- [ ] `Pressable` belum punya `focusNode` dan `autofocus`, jadi tombol Batal di hitung mundur belum bisa dipilih dengan keyboard (Enter). SARAN Reviewer M4.
+- [ ] Tombol full-width bersama di `lib/ui/` belum ada: `_SheetButton`, `_ResultButton`, dan tombol countdown masih privat dan mirip satu sama lain. SARAN Reviewer M4.
+- [ ] `UnreachableFailure` belum membedakan gagal connect dari putus di tengah request (`lib/core/network/agent_http_client.dart`). Berlaku juga untuk daya. SARAN Reviewer M4.
+- [ ] `_startTest` di pairing (`catch (_)`) memetakan semua error ke timeout Q10, sehingga kegagalan setup tersamar. SARAN Reviewer M4.
+- [ ] Cabang `restart` di `OfflineContent._poweredOffBody` tidak tercapai lagi karena restart tidak masuk P15. Hapus atau tandai (lihat `[Frontend M4] Restart tidak masuk P15`). SARAN Reviewer M4.
+- [ ] `Duration(seconds: 1)` di tick controller hitung mundur belum punya komentar sumber sesuai aturan. SARAN Reviewer M4.
 
 ## M5 Pengaturan & Tema
 
