@@ -937,3 +937,45 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Diganti `TestNewPowerWiresSleep`, yang hanya memeriksa field.
 - **Alasan:** Test otomatis tidak boleh menjalankan efek daya sungguhan (aturan proyek: tanpa perintah daya sungguhan di test otomatis).
 - **Dampak:** Efek sleep hanya bisa dibuktikan di laptop (`docs/todo/waiting.md` M4).
+
+## [Integrasi M4] Satu AgentHttpClient dengan metode daya mentah
+
+- **Konteks:** Schedule dan cancel daya memakai header token, timeout, dan pemetaan error yang sama dengan endpoint lain.
+- **Keputusan:** `AgentHttpClient.postPowerSchedule` dan `postPowerCancel` mengembalikan data mentah. Parser tetap di `features/remote/data/power_repository.dart`.
+- **Alasan:** Satu klien mengurangi duplikasi. `core` tidak boleh mengimpor `features`, jadi parser tidak dipindah ke `core`.
+- **Dampak:** Penambahan endpoint daya berikutnya cukup satu metode mentah dan satu parser di `features`.
+
+## [Integrasi M4] HttpPowerRepository tanpa retry dan timeout 3 detik
+
+- **Konteks:** Retry daya bisa menjadwalkan dua kali atau membatalkan jadwal yang sudah berjalan. Timeout bisa terjadi setelah agent sudah menerima perintah.
+- **Keputusan:** `HttpPowerRepository` tidak retry. Timeout schedule dan cancel tetap 3 detik. Timeout menjadi `TimeoutFailure`, lalu controller membaca `/status`.
+- **Alasan:** Satu request per aksi menjaga aturan tanpa retry otomatis untuk perintah daya. Pembacaan `/status` memberi kebenaran dari agent (lihat `[Frontend M4] Timeout dan ambigu membaca /status, tidak pernah P10`).
+- **Dampak:** Jadwal bisa tetap tercatat setelah timeout. Lihat backlog integrasi M4.
+
+## [Integrasi M4] Pairing null menghasilkan UnreachableFailure
+
+- **Konteks:** Pola yang sama dengan `[Integrasi M2]` dan `[Integrasi M3]`.
+- **Keputusan:** `HttpPowerRepository` membaca `pairingProvider` pada setiap panggilan. Bila null, hasilnya `UnreachableFailure` tanpa request.
+- **Alasan:** Tanpa pairing, `UnauthorizedFailure` akan salah memicu alur token ditolak.
+- **Dampak:** Aksi daya tanpa pairing menampilkan P10 dan tidak mengirim apa pun.
+
+## [Integrasi M4] 409 daya tetap ServerFailure dengan code
+
+- **Konteks:** Agent membalas 409 `power_pending` atau `power_executing` saat jadwal bentrok atau batal saat eksekusi.
+- **Keputusan:** 409 menjadi `ServerFailure(code)`, tanpa tipe baru.
+- **Alasan:** Sama dengan `[Integrasi M3] Kegagalan 400 dan 500 menjadi ServerFailure(code)`.
+- **Dampak:** Controller memetakan kode 409 ke P08, P14, atau P13 sesuai alur.
+
+## [Integrasi M4] Pending.fromData memvalidasi action
+
+- **Konteks:** Test kontrak menemukan `Pending.fromData` menerima action yang tidak dikenal, sehingga jadwal rusak bisa lolos sebagai jadwal valid.
+- **Keputusan:** `Pending.fromData` hanya menerima action dari konstanta `{sleep, restart, shutdown}` di `core/network/agent_status.dart`. Action lain membuat parse 202 dan `/status` gagal sebagai `ServerFailure`.
+- **Alasan:** Jadwal tak dikenal tidak boleh ditampilkan sebagai hitung mundur yang bisa dibatalkan.
+- **Dampak:** Seluruh `/status` dengan action tak dikenal ditolak, bukan hanya field `pending`. Perilaku ini disengaja.
+
+## [Integrasi M4] Bukti integrasi lewat loopback dan kontrak
+
+- **Konteks:** Agent Go asli tidak boleh menjalankan sleep, restart, atau shutdown di test otomatis.
+- **Keputusan:** Bukti berupa `FakeAgentServer` loopback dengan rute `/power/*` (`app/test/integration/power_http_flow_test.dart`) dan test kontrak dengan payload persis keluaran Go (`app/test/core/network/power_contract_test.dart`). Tidak ada agent asli atau efek OS di test otomatis.
+- **Alasan:** Aturan efek OS di `docs/development-workflow.md`. Kontrak dengan payload Go menangkap perbedaan bentuk JSON.
+- **Dampak:** Pembuktian dengan agent dan HP sungguhan ada di `docs/todo/waiting.md` M4 (Integrasi).

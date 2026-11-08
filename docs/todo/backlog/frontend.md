@@ -71,8 +71,8 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - [ ] Tombol full-width bersama di `lib/ui/` belum ada: `_SheetButton`, `_ResultButton`, dan tombol countdown masih privat dan mirip satu sama lain. SARAN Reviewer M4.
 - [ ] `UnreachableFailure` belum membedakan gagal connect dari putus di tengah request (`lib/core/network/agent_http_client.dart`). Berlaku juga untuk daya. SARAN Reviewer M4.
 - [ ] `_startTest` di pairing (`catch (_)`) memetakan semua error ke timeout Q10, sehingga kegagalan setup tersamar. SARAN Reviewer M4.
-- [ ] Cabang `restart` di `OfflineContent._poweredOffBody` tidak tercapai lagi karena restart tidak masuk P15. Hapus atau tandai (lihat `[Frontend M4] Restart tidak masuk P15`). SARAN Reviewer M4.
-- [ ] `Duration(seconds: 1)` di tick controller hitung mundur belum punya komentar sumber sesuai aturan. SARAN Reviewer M4.
+- [ ] Sebagian (Integrasi M4): komentar di `OfflineContent._poweredOffBody` sudah dikoreksi, tetapi cabang `restart` belum dihapus karena restart tidak masuk P15. Hapus cabang atau tandai nanti (lihat `[Frontend M4] Restart tidak masuk P15`). SARAN Reviewer M4.
+- [x] `Duration(seconds: 1)` di tick controller hitung mundur belum punya komentar sumber sesuai aturan. SARAN Reviewer M4. Diselesaikan di Integrasi M4 (komentar sumber ditambahkan).
 
 ## M5 Pengaturan & Tema
 

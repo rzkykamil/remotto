@@ -367,6 +367,31 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Lakukan: atur "layar mati otomatis" HP ke waktu tersingkat. Pilih Sleep, konfirmasi, lalu diamkan HP dan lihat layarnya sampai hitung mundur tampil. Lalu tekan tombol back HP sebelum hitung mundur habis.
   Harusnya: layar tidak mati selama hitung mundur. Back membatalkan, dan laptop tetap nyala. Hitung mundur singkat, jadi bila layar mati saat diam, catat itu sebagai gagal.
 
+- [ ] M4 Integrasi: App dan agent asli bicara dengan benar.
+  Buka: terminal di laptop (agent jalan lewat `go run ./cmd/agent run`), layar Remote di HP yang sudah pairing, dan Postman dengan environment `Remotto Agent` untuk `GET /status`.
+  Lakukan: dari HP pilih Sleep, tunggu sampai hitung mundur tampil, lalu tekan Batal sebelum habis. Cek `GET /status` di Postman. Tahap berbahaya selalu diakhiri Batal.
+  Harusnya: hitung mundur 5 detik tampil, Batal menampilkan "Nggak jadi", laptop tetap menyala, dan `pending` di `GET /status` null.
+
+- [ ] M4 Integrasi: Dua perintah berturut tidak menumpuk.
+  Buka: layar Remote di HP, Postman dengan environment `Remotto Agent`, dan agent yang jalan di laptop.
+  Lakukan: dari HP pilih Restart dan buka hitung mundur. Dari Postman kirim POST `/power/shutdown` sebelum hitung mundur habis. Lalu tekan Batal di HP untuk membatalkan Restart. Tahap berbahaya selalu diakhiri Batal.
+  Harusnya: Postman menerima 409 `power_pending`, hitung mundur di HP tetap Restart, dan Batal di HP membatalkan Restart. Laptop tetap menyala.
+
+- [ ] M4 Integrasi: Token salah saat daya ditolak.
+  Buka: terminal di laptop, dan layar Remote di HP.
+  Lakukan: jalankan `remotto-agent reset-token` di laptop, lalu di HP pilih Sleep dan tekan Lanjut. Bila hitung mundur sempat tampil, tekan Batal. Perintah `reset-token` baru ada setelah M5; sebelum itu ganti isi `"token"` di `config.json` seperti item M1 Integrasi.
+  Harusnya: HP pindah ke layar "Token ditolak" (Q12), bukan pesan "tidak terjadwal". Laptop tidak tidur.
+
+- [ ] M4 Integrasi: App dibuka saat jadwal sudah berjalan.
+  Buka: Postman dengan environment `Remotto Agent`, dan app Remotto di HP yang sudah pairing.
+  Lakukan: kirim POST `/power/shutdown` dari Postman, lalu tutup app di HP dan buka lagi. Catat berapa lama layar Remote terlihat sebelum hitung mundur atau layar "telat batal" tampil. Selesaikan dengan Batal sebelum habis. Tahap berbahaya selalu diakhiri Batal.
+  Harusnya: hitung mundur atau layar "telat batal" tampil. Catat jeda yang terlihat di Remote.
+
+- [ ] M4 Integrasi: Jaringan putus saat tekan Sleep.
+  Buka: layar Remote di HP yang sudah tersambung, dan Wi-Fi laptop.
+  Lakukan: matikan Wi-Fi laptop, lalu di HP tekan Sleep dan konfirmasi. Nyalakan lagi Wi-Fi laptop, lalu lihat layar HP. Bila hitung mundur tampil, tekan Batal sebelum habis. Tahap berbahaya selalu diakhiri Batal.
+  Harusnya: HP menampilkan P10 atau P11 sesuai kenyataan. Bila P10 tampil, laptop tidak tidur diam-diam setelah Wi-Fi hidup lagi.
+
 ## M5 Pengaturan & Tema
 
 - [ ] M5: Tampilan di HP fisik sesuai desain, terang dan gelap.

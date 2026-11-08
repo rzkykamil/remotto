@@ -36,12 +36,12 @@ Tidak ada endpoint. Fase ini dicatat "tidak relevan" saat dijalankan.
 
 | Screen/Widget | Endpoint | Status | Catatan |
 |---|---|---|---|
-| P01 Sleep | `POST /power/sleep` | Belum | 202 → P07; gagal → P10; timeout → baca status |
-| P03 Restart | `POST /power/restart` | Belum | Sama; setelah 0 polling cepat |
-| P03 Matikan | `POST /power/shutdown` | Belum | Sama; 409 → P13 |
-| `CountdownScreen` Batal | `POST /power/cancel` | Belum | 200 → P08; 409 → P08 atau P14; timeout → P11 |
-| P13, P14 saat resume | `GET /status` | Belum | `pending`, `remainingMs`, `delayMs` |
-| P15 | `GET /status` gagal | Belum | `lastPowerCommand` < 10 menit |
+| P01 Sleep | `POST /power/sleep` | Selesai | 202 → P07; gagal → P10; timeout → baca status. Tes loopback + kontrak; HP/laptop di `waiting.md` |
+| P03 Restart | `POST /power/restart` | Selesai | Sama; setelah 0 polling cepat. Tes loopback + kontrak; HP/laptop di `waiting.md` |
+| P03 Matikan | `POST /power/shutdown` | Selesai | Sama; 409 → P13. Tes loopback + kontrak; HP/laptop di `waiting.md` |
+| `CountdownScreen` Batal | `POST /power/cancel` | Selesai | 200 → P08; 409 → P08 atau P14; timeout → P11. Tes loopback + kontrak; HP/laptop di `waiting.md` |
+| P13, P14 saat resume | `GET /status` | Selesai | `pending`, `remainingMs`, `delayMs`. Tes loopback + kontrak (parse dan `resumeFromStatus` langsung, bukan lewat widget host); HP di `waiting.md` |
+| P15 | `GET /status` gagal | Selesai | `lastPowerCommand` < 10 menit. Memakai `GET /status` yang sudah jalan sejak M1; tes di `power_http_flow_test.dart`; HP di `waiting.md` |
 
 ## M5 Pengaturan & Tema
 

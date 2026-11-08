@@ -17,3 +17,11 @@
 - Keputusan ada di `docs/decision-log.md` dengan tag `[Backend M4]`. Saran di `docs/todo/backlog/backend.md` bagian M4.
 - Pembuktian efek nyata (sleep, jalur S3, `pending` setelah shutdown tertahan) ada di `docs/todo/waiting.md` bagian M4.
 - Fase aktif pindah ke Integrasi karena DoD Backend terpenuhi.
+
+## Integrasi
+
+- Selesai dengan Reviewer LOLOS. Gerbang: 965 test hijau, `dart format` dan `flutter analyze` bersih, test integrasi daya dijalankan 5 kali dan stabil.
+- Dibangun: `HttpPowerRepository`, `AgentHttpClient.postPowerSchedule` dan `postPowerCancel`, rute `/power/*` di `FakeAgentServer`, dan validasi action di `Pending.fromData`. Test: `http_power_repository_test.dart`, `power_http_flow_test.dart`, `power_contract_test.dart`.
+- Bug `Pending.fromData` menerima action tak dikenal ditemukan test kontrak lalu `fixed` (lihat `docs/todo/qa.md`). Keputusan di `docs/decision-log.md` tag `[Integrasi M4]`. Backlog di `docs/todo/backlog/integration.md` bagian M4.
+- Verifikasi visual belum dilakukan karena tidak ada perubahan UI. Pembuktian dengan agent dan HP sungguhan ada di `docs/todo/waiting.md` bagian M4 (Integrasi).
+- Fase aktif pindah ke Selesai setelah Integrasi, QA, dan Fixing lolos.

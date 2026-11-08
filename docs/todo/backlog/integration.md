@@ -22,7 +22,7 @@ Belum ada temuan.
 
 - [ ] Tes media hanya menguji server palsu di `test/integration/`, bukan agent Go asli. Pembuktian dengan agent asli ada di `waiting.md` M2 Integrasi.
 - [ ] `Future.timeout` pada `postMedia` tidak membatalkan request; request yang sudah terkirim bisa tetap diproses setelah timeout. Sama dengan item M1 di atas. Tanpa retry otomatis, jadi tidak ada perintah ganda.
-- [ ] `pairing_repository.dart` baris 4 dan `status_repository.dart` baris 3 masih menyebut "Mock". Di luar lingkup M2; ganti di fase yang menyentuh file tersebut.
+- [x] `pairing_repository.dart` baris 4 dan `status_repository.dart` baris 3 masih menyebut "Mock". Di luar lingkup M2; ganti di fase yang menyentuh file tersebut. Diselesaikan di Integrasi M4 (komentar dikoreksi).
 - [ ] Impor `../support/fake_media_repository.dart` di `media_flow_test`, `media_controller_test`, dan `media_dock_test` masih di blok package. Pindahkan ke blok relatif.
 - [ ] Jeda 50 ms di helper `untilReplied` (`media_http_flow_test.dart`) berpotensi flaky. Ganti dengan sinyal dari sisi klien bila muncul.
 
@@ -34,7 +34,13 @@ Belum ada temuan.
 
 ## M4 Daya
 
-Belum ada temuan.
+- [ ] Tes daya hanya menguji server palsu di `test/integration/`, bukan agent Go asli. Pembuktian dengan agent asli ada di `waiting.md` M4 (Integrasi).
+- [ ] `Future.timeout` pada schedule dan cancel tidak membatalkan request. Jadwal bisa tetap tercatat setelah timeout; aman karena controller membaca `/status` (`lib/features/remote/data/http_power_repository.dart`).
+- [ ] `UnreachableFailure` belum membedakan gagal connect dari putus di tengah request. Untuk daya, putus di tengah request tampil P10 padahal mungkin sudah terjadwal. Pengaman: polling `/status` berikutnya memunculkan P13 atau P11 lewat `resumeFromStatus`. Juga tercatat di `backlog/frontend.md` M4.
+- [ ] S02 maks 2 detik saat app dibuka dengan jadwal berjalan ditunda ke M6 (butuh alur startup). Juga tercatat di `backlog/frontend.md` M4.
+- [ ] 403 dan 429 pada schedule tampil sebagai P10 tanpa copy khusus. Perlu keputusan copy dari desain, sama dengan item M1.
+- [ ] Skenario timeout 100 ms memakai `server.hold` (test daya). Di mesin yang sangat lambat bisa menghasilkan P11, bukan P10. Belum pernah terlihat.
+- [ ] `/status` dengan action tak dikenal kini menggagalkan seluruh parse. Ini perilaku sengaja (`[Integrasi M4] Pending.fromData memvalidasi action`); catat bila agent nanti menambah action.
 
 ## M5 Pengaturan & Tema
 

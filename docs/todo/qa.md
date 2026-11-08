@@ -47,17 +47,17 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 
 ## M4 Daya
 
-- [ ] [O] BR-4: eksekusi setelah jeda, tidak sebelumnya
-- [ ] [O] BR-5: jadwal kedua → 409, jadwal lama utuh
-- [ ] [O] BR-17: batal tanpa jadwal → 409
-- [ ] [O] Batal saat eksekusi → 409 `power_executing`
-- [ ] [O] BR-6: satu ketukan tidak pernah cukup; lepas cepat mereset
-- [ ] [O] BR-19: P14 tanpa tombol Batal
-- [ ] [O] BR-20: sisa dari `remainingMs`
-- [ ] [O] Timeout ambigu tidak menampilkan P10
-- [ ] [O] Gagal eksekusi membersihkan `pending`
-- [ ] [O] Race batal dan eksekusi aman (`go test -race`)
-- [ ] [M] Sleep, shutdown, restart, batal, tutup app saat hitung mundur
+- [x] [O] BR-4: eksekusi setelah jeda, tidak sebelumnya. Bukti: `TestBR4_ExecutesOnlyAfterPowerDelay` (`agent/internal/control/power_test.go`), `TestBR4_ExecutesOnceAfterDelay` (`agent/internal/server/power_test.go`)
+- [x] [O] BR-5: jadwal kedua → 409, jadwal lama utuh. Bukti: `TestBR5_SecondScheduleRejected` (`agent/internal/server/power_test.go`), `TestBR5_SecondScheduleRejected` dan `TestBR5_ScheduleRejectedWhileExecuting` (`agent/internal/control/power_test.go`)
+- [x] [O] BR-17: batal tanpa jadwal → 409. Bukti: `TestBR17_CancelWithoutScheduleIsConflict` (`agent/internal/server/power_test.go`), `TestBR17_CancelWithoutScheduleFails` (`agent/internal/control/power_test.go`)
+- [x] [O] Batal saat eksekusi → 409 `power_executing`. Bukti: `TestBR17_CancelWhileExecutingIsConflict` (`agent/internal/server/power_test.go`), `TestCancelWhileExecutingFails` (`agent/internal/control/power_test.go`)
+- [x] [O] BR-6: satu ketukan tidak pernah cukup; lepas cepat mereset. Bukti: `plain tap does nothing and fires no haptic`, `releasing at 600 ms does not complete and rewinds to 0` (`app/test/ui/hold_to_confirm_test.dart`); `Lanjut replaces itself with the hold control` (`app/test/features/remote/widgets/confirm_sheet_test.dart`)
+- [x] [O] BR-19: P14 tanpa tombol Batal. Bukti: `shows only "Oke" with no cancel action (BR-19)` (`app/test/features/remote/power/result_screen_test.dart`), `FR-4.10: pending sisa 800 / 0 ms langsung P14 tanpa tombol Batal` (`app/test/features/remote/power_resume_test.dart`)
+- [x] [O] BR-20: sisa dari `remainingMs`. Bukti: `/status with pending is parsed by the HTTP repository and resumes counting` (`app/test/integration/power_http_flow_test.dart`), `timeout, then /status shows pending: counts from the remaining time` (`app/test/features/remote/power/power_flow_controller_test.dart`)
+- [x] [O] Timeout ambigu tidak menampilkan P10. Bukti: `timeout, then /status fails: P11 from the full delay` (`app/test/features/remote/power/power_flow_controller_test.dart`), `timeout, schedule stored on the laptop: counts from the remaining time` (`app/test/integration/power_http_flow_test.dart`)
+- [x] [O] Gagal eksekusi membersihkan `pending`. Bukti: `TestPowerExecuteFailureClearsScheduleAndLogs` (`agent/internal/server/power_test.go`), `TestExecuteFailureReturnsToIdle` (`agent/internal/control/power_test.go`)
+- [ ] [O] Race batal dan eksekusi aman (`go test -race`). Test ada (`TestPowerCancelAndFireRaceSingleOutcome`, `agent/internal/control/power_test.go`), tetapi belum ada bukti dijalankan dengan `-race`: CI hanya `go test ./...` dan gcc/CGO belum tersedia lokal. Lihat `docs/todo/backlog/qa.md` M4.
+- [ ] [M] Sleep, shutdown, restart, batal, tutup app saat hitung mundur. Perlu dicek manual oleh user, lihat `docs/todo/waiting.md`.
 
 ## M5 Pengaturan & Tema
 
@@ -82,3 +82,4 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 
 | Bug | Status | Referensi |
 |---|---|---|
+| `Pending.fromData` menerima action tak dikenal (M4 Integrasi): ditemukan test kontrak | fixed | `app/test/core/network/power_contract_test.dart`; keputusan `[Integrasi M4] Pending.fromData memvalidasi action` di `docs/decision-log.md` |
