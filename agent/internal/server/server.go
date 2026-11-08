@@ -32,6 +32,7 @@ type APIOption func(*apiOptions)
 type apiOptions struct {
 	media control.MediaController
 	audio control.AudioController
+	power *control.PowerScheduler
 }
 
 // WithMedia sets the controller behind the /media routes. Without it the routes
@@ -46,6 +47,12 @@ func WithAudio(c control.AudioController) APIOption {
 	return func(o *apiOptions) { o.audio = c }
 }
 
+// WithPower sets the scheduler behind the /power routes. Without it the routes
+// still exist and answer 500 power_failed (fail-closed).
+func WithPower(s *control.PowerScheduler) APIOption {
+	return func(o *apiOptions) { o.power = s }
+}
+
 // NewAPIHandler returns the complete agent handler: the API routes wrapped in
 // the global middleware. The order is Recover, Logging, NetworkFilter, then
 // the rate limit slot (M6), then Auth, so a request from outside the LAN gets
@@ -57,6 +64,20 @@ func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps, o
 	for _, opt := range opts {
 		opt(&o)
 	}
+	power := o.power
+	if power == nil {
+		power = control.NewPowerScheduler(nil, control.PowerOptions{Logger: logger})
+	}
+	// The status handler reports the active power schedule. It is wired here,
+	// before the handler is built, so /status never reports a stale null.
+	if status.Pending == nil {
+		status.Pending = func() any {
+			if p, ok := power.Pending(); ok {
+				return pendingView(p)
+			}
+			return nil
+		}
+	}
 	router := NewRouter()
 	router.Handle(http.MethodGet, APIPrefix+"/status", newStatusHandler(status, logger))
 	media := control.NewMediaService(o.media)
@@ -65,6 +86,7 @@ func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps, o
 	router.Handle(http.MethodPost, APIPrefix+"/media/prev", newMediaHandler(control.MediaPrev, media, logger))
 	volume := control.NewVolumeService(o.audio)
 	registerVolumeRoutes(router, volume, logger)
+	registerPowerRoutes(router, power, logger)
 	// Rate limit (M6) goes here, between NetworkFilter and Auth.
 	return Chain(router,
 		Recover(logger),

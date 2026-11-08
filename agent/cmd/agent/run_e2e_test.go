@@ -92,15 +92,16 @@ func errorCode(t *testing.T, body map[string]any) string {
 }
 
 // startAgent serves the API on a loopback listener with the given config and
-// status deps, and a fake media port. It returns the base URL and a stop func
-// that waits for exit.
+// status deps, and fake media and power ports. It returns the base URL and a
+// stop func that waits for exit.
 func startAgent(t *testing.T, cfgPath string, cfg config.Config, status server.StatusDeps) (string, func()) {
 	t.Helper()
-	return startAgentWith(t, cfgPath, cfg, status, &fake.Media{})
+	return startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, &fake.Power{})
 }
 
-// startAgentWith is startAgent with the media port supplied by the test.
-func startAgentWith(t *testing.T, cfgPath string, cfg config.Config, status server.StatusDeps, media control.MediaController) (string, func()) {
+// startAgentWith is startAgent with the media and power ports supplied by the
+// test.
+func startAgentWith(t *testing.T, cfgPath string, cfg config.Config, status server.StatusDeps, media control.MediaController, power control.PowerController) (string, func()) {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -110,7 +111,7 @@ func startAgentWith(t *testing.T, cfgPath string, cfg config.Config, status serv
 	ctx, cancel := context.WithCancel(context.Background())
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- serveAgent(ctx, ln, logger, cfgPath, cfg, status, media, status.Audio)
+		errCh <- serveAgent(ctx, ln, logger, cfgPath, cfg, status, media, status.Audio, power)
 	}()
 	stop := func() {
 		cancel()
@@ -354,7 +355,20 @@ func TestRunStartsFromConfigAndStopsOnCancel(t *testing.T) {
 // decoded JSON body.
 func postMedia(t *testing.T, base, route, token string) (int, map[string]any) {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, base+"/api/v1/media/"+route, nil)
+	return postAPI(t, base, "/media/"+route, token)
+}
+
+// postPower calls POST /api/v1/power/<route> like postMedia does for media.
+func postPower(t *testing.T, base, route, token string) (int, map[string]any) {
+	t.Helper()
+	return postAPI(t, base, "/power/"+route, token)
+}
+
+// postAPI calls POST /api/v1<path> with the bearer token and no body. An empty
+// token sends no Authorization header.
+func postAPI(t *testing.T, base, path, token string) (int, map[string]any) {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, base+"/api/v1"+path, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,7 +378,7 @@ func postMedia(t *testing.T, base, route, token string) (int, map[string]any) {
 	client := &http.Client{Timeout: 3 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		t.Fatalf("POST media/%s: %v", route, err)
+		t.Fatalf("POST %s: %v", path, err)
 	}
 	defer resp.Body.Close()
 	var body map[string]any
@@ -385,7 +399,7 @@ func TestServeAgentMediaWithFakeOS(t *testing.T) {
 	}
 	media := &fake.Media{}
 	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: fake.NewAudio(0, false)}
-	base, stop := startAgentWith(t, cfgPath, cfg, status, media)
+	base, stop := startAgentWith(t, cfgPath, cfg, status, media, &fake.Power{})
 	defer stop()
 
 	t.Run("three routes with token run in order", func(t *testing.T) {
@@ -494,7 +508,7 @@ func TestServeAgentVolumeWithFakeOS(t *testing.T) {
 	}
 	audio := fake.NewAudio(40, false)
 	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: audio}
-	base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{})
+	base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, &fake.Power{})
 	defer stop()
 
 	// statusVolume reads data.volume from GET /status.
@@ -545,6 +559,100 @@ func TestServeAgentVolumeWithFakeOS(t *testing.T) {
 			t.Errorf("status volume = %v/%v, want 40/false", level, muted)
 		}
 	})
+}
+
+// TestServeAgentPowerWithFakeOS covers POST /power/* end to end over a real
+// loopback socket, with the fake power port and the real clock. The schedule is
+// cancelled right away, so the test never waits for the 5 second delay and the
+// fake port must record nothing.
+func TestServeAgentPowerWithFakeOS(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, 8765, e2eToken)
+	cfg, _, err := loadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfigFile: %v", err)
+	}
+	power := &fake.Power{}
+	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: fake.NewAudio(0, false)}
+	base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, power)
+	defer stop()
+
+	t.Run("schedule answers 202 and status shows the countdown", func(t *testing.T) {
+		code, body := postPower(t, base, "shutdown", e2eToken)
+		if code != http.StatusAccepted {
+			t.Fatalf("schedule status = %d, want 202 (body %s)", code, stringify(body))
+		}
+		data, ok := body["data"].(map[string]any)
+		if !ok {
+			t.Fatalf("body has no data object: %v", body)
+		}
+		pending, ok := data["pending"].(map[string]any)
+		if !ok || pending["action"] != "shutdown" || pending["delayMs"] != float64(5000) {
+			t.Fatalf("schedule pending = %v, want action shutdown delayMs 5000", data["pending"])
+		}
+
+		code, st := getStatus(t, base, e2eToken)
+		if code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", code)
+		}
+		statusPending, ok := st["data"].(map[string]any)["pending"].(map[string]any)
+		if !ok || statusPending["action"] != "shutdown" || statusPending["delayMs"] != float64(5000) {
+			t.Errorf("status pending = %v, want action shutdown delayMs 5000", st["data"].(map[string]any)["pending"])
+		}
+	})
+
+	t.Run("cancel answers 200 and clears pending", func(t *testing.T) {
+		code, body := postPower(t, base, "cancel", e2eToken)
+		if code != http.StatusOK {
+			t.Fatalf("cancel status = %d, want 200 (body %s)", code, stringify(body))
+		}
+		if data, ok := body["data"].(map[string]any); !ok || data["cancelled"] != "shutdown" {
+			t.Errorf("cancel data = %v, want cancelled shutdown", body["data"])
+		}
+
+		code, st := getStatus(t, base, e2eToken)
+		if code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", code)
+		}
+		if v := st["data"].(map[string]any)["pending"]; v != nil {
+			t.Errorf("status pending after cancel = %v, want null", v)
+		}
+	})
+
+	t.Run("cancelled command never reaches the OS port", func(t *testing.T) {
+		if calls := power.Calls(); len(calls) != 0 {
+			t.Errorf("power calls = %v, want none", calls)
+		}
+	})
+}
+
+// TestServeAgentStopDiscardsPendingPower checks that stopping the agent while a
+// power command is scheduled does not run it. It does not wait for the 5 second
+// delay, so it only shows that nothing ran in the short window before stop
+// returns. The timer cancellation itself is tested with a fake clock in
+// control.TestCloseDiscardsSchedule.
+//
+// stop is called once, not deferred, because it waits for serveAgent to return.
+func TestServeAgentStopDiscardsPendingPower(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, 8765, e2eToken)
+	cfg, _, err := loadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfigFile: %v", err)
+	}
+	power := &fake.Power{}
+	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: fake.NewAudio(0, false)}
+	base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, power)
+
+	if code, body := postPower(t, base, "shutdown", e2eToken); code != http.StatusAccepted {
+		stop()
+		t.Fatalf("schedule status = %d, want 202 (body %s)", code, stringify(body))
+	}
+	stop()
+
+	if calls := power.Calls(); len(calls) != 0 {
+		t.Errorf("power calls after stop = %v, want none", calls)
+	}
 }
 
 // tryStatus is getStatus without t.Fatal, for polling while the agent starts.

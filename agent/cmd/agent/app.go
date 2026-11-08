@@ -156,6 +156,12 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	defer func() { _ = closer.Close() }()
+	// Packages without a logger of their own (oswin logs the sleep path through
+	// slog.Default) must write to the same JSON file. The previous default is
+	// restored when run returns.
+	prevDefault := slog.Default()
+	slog.SetDefault(logger)
+	defer slog.SetDefault(prevDefault)
 
 	for _, ev := range events {
 		logEvent(logger, ev)
@@ -177,7 +183,7 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "remotto-agent: gagal membuka %s: %v\n", addr, err)
 		return 1
 	}
-	if err := serveAgent(ctx, ln, logger, path, cfg, status, ctrl.Media, ctrl.Audio); err != nil {
+	if err := serveAgent(ctx, ln, logger, path, cfg, status, ctrl.Media, ctrl.Audio, ctrl.Power); err != nil {
 		logger.Error("server failed", slog.String("error", err.Error()))
 		fmt.Fprintf(stderr, "remotto-agent: server berhenti dengan error: %v\n", err)
 		return 1
@@ -187,11 +193,22 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 
 // serveAgent serves the API on ln until ctx is done. The token comes from the
 // config file at cfgPath, so a token reset takes effect without a restart
-// (BR-10). media is the media port behind /media/* and audio the volume port
-// behind /volume. It returns nil on a normal stop.
-func serveAgent(ctx context.Context, ln net.Listener, logger *slog.Logger, cfgPath string, cfg config.Config, status server.StatusDeps, media control.MediaController, audio control.AudioController) error {
+// (BR-10). media is the media port behind /media/*, audio the volume port
+// behind /volume, and power the OS port behind /power/*. Power commands go
+// through a control.PowerScheduler owned by this call. When serveAgent returns,
+// the scheduler is closed, so a pending power command is discarded and never
+// runs (docs/technical-spec.md, graceful shutdown). It returns nil on a normal
+// stop.
+func serveAgent(ctx context.Context, ln net.Listener, logger *slog.Logger, cfgPath string, cfg config.Config, status server.StatusDeps, media control.MediaController, audio control.AudioController, power control.PowerController) error {
+	sched := control.NewPowerScheduler(power, control.PowerOptions{Logger: logger})
+	defer sched.Close()
+
 	tokens := server.NewConfigTokenSource(cfgPath, cfg.Token, logger)
-	handler := server.NewAPIHandler(logger, tokens, status, server.WithMedia(media), server.WithAudio(audio))
+	handler := server.NewAPIHandler(logger, tokens, status,
+		server.WithMedia(media),
+		server.WithAudio(audio),
+		server.WithPower(sched),
+	)
 	srv := server.NewHTTPServer(ln.Addr().String(), handler)
 	return server.Serve(ctx, srv, ln, logger)
 }

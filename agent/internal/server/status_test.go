@@ -209,6 +209,53 @@ func TestStatusPendingFromDeps(t *testing.T) {
 	}
 }
 
+// BR-5 / api-spec Status: pending is the full Pending object while a schedule
+// is active, with the same field names as the /power responses.
+func TestStatusPendingObjectWhileScheduled(t *testing.T) {
+	clock := fake.NewClock(powerStart)
+	sched := control.NewPowerScheduler(&fake.Power{}, control.PowerOptions{Clock: clock, Logger: newTestLogger(&bytes.Buffer{})})
+	t.Cleanup(sched.Close)
+	deps := StatusDeps{Name: "x", Version: "1", StartedAt: powerStart, Now: clock.Now, Audio: fake.NewAudio(1, false)}
+	h := NewAPIHandler(newTestLogger(&bytes.Buffer{}), staticToken(testTokenA), deps, WithPower(sched))
+
+	if _, err := sched.Schedule(context.Background(), control.PowerRestart); err != nil {
+		t.Fatalf("Schedule() error = %v", err)
+	}
+	clock.Advance(2 * time.Second)
+
+	rec := statusRequest(h, lanAddr, bearer(testTokenA))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	want := `"pending":{"action":"restart","remainingMs":3000,"delayMs":5000,"scheduledAt":"` + powerScheduledAt + `"}`
+	if !strings.Contains(rec.Body.String(), want) {
+		t.Errorf("body = %s, want it to contain %s", rec.Body.String(), want)
+	}
+	data := decodeStatus(t, rec.Body.Bytes())
+	p, ok := data["pending"].(map[string]any)
+	if !ok || len(p) != 4 {
+		t.Fatalf("pending = %v, want an object with 4 fields", data["pending"])
+	}
+}
+
+// api-spec Status: pending is null when nothing is scheduled, with the power
+// scheduler wired in.
+func TestStatusPendingNullWhenIdleWithScheduler(t *testing.T) {
+	clock := fake.NewClock(powerStart)
+	sched := control.NewPowerScheduler(&fake.Power{}, control.PowerOptions{Clock: clock, Logger: newTestLogger(&bytes.Buffer{})})
+	t.Cleanup(sched.Close)
+	deps := StatusDeps{Name: "x", Version: "1", StartedAt: powerStart, Now: clock.Now, Audio: fake.NewAudio(1, false)}
+	h := NewAPIHandler(newTestLogger(&bytes.Buffer{}), staticToken(testTokenA), deps, WithPower(sched))
+
+	rec := statusRequest(h, lanAddr, bearer(testTokenA))
+	if !strings.Contains(rec.Body.String(), `"pending":null`) {
+		t.Errorf("body = %s, want pending null", rec.Body.String())
+	}
+	if data := decodeStatus(t, rec.Body.Bytes()); data["pending"] != nil {
+		t.Errorf("pending = %v, want null", data["pending"])
+	}
+}
+
 func TestStatusRequiresToken(t *testing.T) {
 	// BR-1 / BR-2: no token, malformed, short, wrong case, or wrong value -> 401.
 	clock := &fakeClock{now: time.Now()}
