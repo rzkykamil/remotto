@@ -8,7 +8,8 @@ import 'agent_status.dart';
 import 'api_failure.dart';
 
 /// HTTP client for the agent (api-spec): `GET /api/v1/status`,
-/// `POST /api/v1/media/{action}`, and the `/api/v1/volume` endpoints.
+/// `POST /api/v1/media/{action}`, the `/api/v1/volume` endpoints, and the
+/// `/api/v1/power` endpoints (schedule and cancel).
 ///
 /// Transport errors map to [TimeoutFailure] or [UnreachableFailure]. Status
 /// codes and bodies go through [parseStatusResponse] or [unwrapAgentResponse].
@@ -58,6 +59,46 @@ final class AgentHttpClient {
       );
       if (data['action'] != action) throw const ServerFailure();
     }, timeout);
+  }
+
+  /// `POST /api/v1/power/{action}` (`sleep`, `restart`, `shutdown`). No body.
+  /// Returns the raw `data` map (`{"pending": ...}`) for the repository to
+  /// parse. The agent answers 202 once the schedule is stored.
+  ///
+  /// Schedule is not idempotent and must never be retried automatically, not
+  /// here and not in any state layer. Only the user may send it again.
+  Future<Map<String, Object?>> postPowerSchedule({
+    required String host,
+    required int port,
+    required String token,
+    required String action,
+    required Duration timeout,
+  }) {
+    return _postData(
+      host: host,
+      port: port,
+      token: token,
+      path: '/api/v1/power/$action',
+      timeout: timeout,
+    );
+  }
+
+  /// `POST /api/v1/power/cancel`, no body. Returns the raw `data` map
+  /// (`{"cancelled": ..., "pending": null}`). Never retried automatically.
+  /// Only the user may repeat a cancel after a failure.
+  Future<Map<String, Object?>> postPowerCancel({
+    required String host,
+    required int port,
+    required String token,
+    required Duration timeout,
+  }) {
+    return _postData(
+      host: host,
+      port: port,
+      token: token,
+      path: '/api/v1/power/cancel',
+      timeout: timeout,
+    );
   }
 
   /// `PUT /api/v1/volume` with `{"level": n}`. Returns the latest volume.
@@ -146,6 +187,27 @@ final class AgentHttpClient {
         headers: response.headers,
       );
       return VolumeStatus.fromData(data);
+    }, timeout);
+  }
+
+  /// Shared path for body-less POST calls that return a `data` map (power).
+  /// Sends only the Authorization and Accept headers. Never retries.
+  Future<Map<String, Object?>> _postData({
+    required String host,
+    required int port,
+    required String token,
+    required String path,
+    required Duration timeout,
+  }) {
+    final uri = Uri.http('$host:$port', path);
+    return _guard(() async {
+      final response = await _client.post(uri, headers: _headers(token));
+      final body = utf8.decode(response.bodyBytes);
+      return unwrapAgentResponse(
+        response.statusCode,
+        body,
+        headers: response.headers,
+      );
     }, timeout);
   }
 

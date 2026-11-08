@@ -41,6 +41,58 @@ final class FakeVolumeRequest {
   final String body;
 }
 
+/// Jadwal daya yang sedang aktif di server palsu. Bentuknya sama dengan objek
+/// `Pending` di `docs/api-spec.md`.
+final class FakePending {
+  const FakePending({
+    required this.action,
+    required this.remainingMs,
+    required this.delayMs,
+    required this.scheduledAt,
+  });
+
+  /// `sleep`, `restart`, atau `shutdown`.
+  final String action;
+
+  /// Sisa hitung mundur. Nilai 0 atau kurang berarti perintah sudah dieksekusi.
+  final int remainingMs;
+
+  /// Delay awal jadwal.
+  final int delayMs;
+
+  /// Waktu penjadwalan dalam RFC 3339.
+  final String scheduledAt;
+
+  Map<String, Object?> toJson() => {
+    'action': action,
+    'remainingMs': remainingMs,
+    'delayMs': delayMs,
+    'scheduledAt': scheduledAt,
+  };
+}
+
+/// Balasan yang sudah disiapkan handler. Dipakai rute power.
+final class _Reply {
+  const _Reply(this.status, this.body, {this.retryAfter});
+
+  factory _Reply.error(
+    int status,
+    String code,
+    String message, {
+    String? retryAfter,
+  }) => _Reply(
+    status,
+    jsonEncode({
+      'error': {'code': code, 'message': message},
+    }),
+    retryAfter: retryAfter,
+  );
+
+  final int status;
+  final String body;
+  final String? retryAfter;
+}
+
 /// Server HTTP loopback yang meniru endpoint status agent.
 ///
 /// Hanya bind ke `127.0.0.1` dengan port acak. [hold] membuat handler menunggu
@@ -71,6 +123,22 @@ final class FakeAgentServer {
 
   /// Jumlah request volume yang masih dibalas 500 `audio_failed`, lalu normal.
   int failNextVolumeRequests = 0;
+
+  /// Jadwal daya yang tersimpan, atau null bila tidak ada. Boleh diisi langsung
+  /// oleh tes (mis. sisa 3000 ms, atau 0 untuk "sudah dieksekusi").
+  FakePending? pending;
+
+  /// Path setiap `/api/v1/power/*` yang diterima, sesuai urutan. Termasuk yang
+  /// ditolak (405, 404, 401, 403, 500 karena mode atau hook).
+  final List<String> powerPaths = [];
+
+  /// True: jadwal `POST /power/{sleep|restart|shutdown}` berikutnya dibalas
+  /// 500 `power_failed` dan tidak menyimpan jadwal. Lalu kembali normal.
+  bool failNextPowerSchedule = false;
+
+  /// True dan [hold] terisi: jadwal daya disimpan dulu sebelum handler
+  /// menunggu [hold]. Meniru balasan yang hilang tapi jadwal sudah ada.
+  bool storePendingBeforeHold = false;
 
   /// Jumlah permintaan yang sudah diterima handler.
   int requests = 0;
@@ -116,7 +184,10 @@ final class FakeAgentServer {
       ..volumeLevel = volumeLevel
       ..volumeMuted = volumeMuted
       ..failNextVolumeRequests = failNextVolumeRequests
-      ..requests = requests;
+      ..requests = requests
+      ..pending = pending
+      ..failNextPowerSchedule = failNextPowerSchedule
+      ..powerPaths.addAll(powerPaths);
     fake._listen();
     return fake;
   }
@@ -162,11 +233,24 @@ final class FakeAgentServer {
         volumeRequests.add(FakeVolumeRequest(request.method, path, body));
       }
 
+      // Permintaan power dicatat sebelum hold, sama seperti volume.
+      final isPower = path.startsWith(_powerPrefix);
+      if (isPower) powerPaths.add(path);
+
       final gate = hold;
+      _Reply? early;
+      if (isPower && storePendingBeforeHold && gate != null) {
+        // Jadwal disimpan sekarang; balasan baru dikirim setelah hold selesai.
+        early = _powerReply(request);
+      }
       if (gate != null) {
         await Future.any<void>([gate.future, _stop.future]);
       }
       if (_closed) return;
+      if (early != null) {
+        _writeReply(request.response, early);
+        return;
+      }
       await _respond(request, body);
     } catch (_) {
       // Klien bisa sudah memutus koneksi; tes tidak perlu tahu.
@@ -178,6 +262,8 @@ final class FakeAgentServer {
   static const _statusPath = '/api/v1/status';
   static const _mediaPrefix = '/api/v1/media/';
   static const _mediaActions = {'play-pause', 'next', 'prev'};
+  static const _powerPrefix = '/api/v1/power/';
+  static const _powerActions = {'sleep', 'restart', 'shutdown', 'cancel'};
 
   /// Rute volume dan method yang diizinkan. Path di luar peta ini 404.
   static const _volumeMethods = <String, Set<String>>{
@@ -192,6 +278,10 @@ final class FakeAgentServer {
   Future<void> _respond(HttpRequest request, String body) async {
     final response = request.response;
     final path = request.uri.path;
+    if (path.startsWith(_powerPrefix)) {
+      _writeReply(response, _powerReply(request));
+      return;
+    }
     final isMedia = path.startsWith(_mediaPrefix);
     final isVolume = _isVolumePath(path);
 
@@ -343,8 +433,92 @@ final class FakeAgentServer {
     'volume': volumeAvailable && mode != FakeAgentMode.audioFailed
         ? {'level': volumeLevel, 'muted': volumeMuted}
         : null,
-    'pending': null,
+    'pending': pending?.toJson(),
   };
+
+  /// Rute `/api/v1/power/*`. Urutan: method (405), aksi (404), mode (403, 429,
+  /// 500, body rusak), auth (401), lalu logika jadwal atau batal.
+  _Reply _powerReply(HttpRequest request) {
+    final action = request.uri.path.substring(_powerPrefix.length);
+    if (request.method != 'POST') {
+      return _Reply.error(405, 'method_not_allowed', 'method not allowed');
+    }
+    if (!_powerActions.contains(action)) {
+      return _Reply.error(404, 'not_found', 'not found');
+    }
+
+    switch (mode) {
+      case FakeAgentMode.forbidden:
+        return _Reply.error(403, 'forbidden_network', 'forbidden');
+      case FakeAgentMode.rateLimited:
+        return _Reply.error(
+          429,
+          'rate_limited',
+          'too many requests',
+          retryAfter: '2',
+        );
+      case FakeAgentMode.serverError:
+        return _Reply.error(500, 'internal', 'internal error');
+      case FakeAgentMode.badBody:
+        return const _Reply(200, '<html>bukan json</html>');
+      case FakeAgentMode.ok:
+      case FakeAgentMode.mediaFailed:
+      case FakeAgentMode.audioFailed:
+        break;
+    }
+
+    if (request.headers.value('authorization') != 'Bearer $token') {
+      return _Reply.error(401, 'invalid_token', 'invalid token');
+    }
+    if (action == 'cancel') return _cancelPower();
+    return _schedulePower(action);
+  }
+
+  _Reply _schedulePower(String action) {
+    if (failNextPowerSchedule) {
+      failNextPowerSchedule = false;
+      return _Reply.error(500, 'power_failed', 'power scheduling failed');
+    }
+    if (pending != null) {
+      return _Reply.error(409, 'power_pending', 'power already scheduled');
+    }
+    final scheduled = FakePending(
+      action: action,
+      remainingMs: 5000,
+      delayMs: 5000,
+      scheduledAt: DateTime.now().toUtc().toIso8601String(),
+    );
+    pending = scheduled;
+    return _Reply(
+      202,
+      jsonEncode({
+        'data': {'pending': scheduled.toJson()},
+      }),
+    );
+  }
+
+  _Reply _cancelPower() {
+    final current = pending;
+    if (current == null) {
+      return _Reply.error(409, 'no_pending_power', 'no pending power');
+    }
+    if (current.remainingMs <= 0) {
+      return _Reply.error(409, 'power_executing', 'power already executing');
+    }
+    pending = null;
+    return _Reply(
+      200,
+      jsonEncode({
+        'data': {'cancelled': current.action, 'pending': null},
+      }),
+    );
+  }
+
+  void _writeReply(HttpResponse response, _Reply reply) {
+    final retryAfter = reply.retryAfter;
+    if (retryAfter != null) response.headers.set('Retry-After', retryAfter);
+    _writeRaw(response, reply.status, reply.body);
+  }
 
   void _writeError(
     HttpResponse response,

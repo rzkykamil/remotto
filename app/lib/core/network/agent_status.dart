@@ -45,7 +45,7 @@ final class Pending {
   /// `GET /status`. Fields that do not match the contract throw [ServerFailure].
   factory Pending.fromData(Map<String, Object?> data) {
     return Pending(
-      action: _requireString(data, 'action'),
+      action: _requireAction(data, 'action'),
       remainingMs: _requireInt(data, 'remainingMs', min: 0),
       delayMs: _requireInt(data, 'delayMs', min: 0),
       scheduledAt: _requireString(data, 'scheduledAt'),
@@ -163,6 +163,16 @@ void _requireKey(Map<String, Object?> map, String key) {
 
 Map<String, Object?> _asMap(Object? value) {
   if (value is Map<String, Object?>) return value;
+  throw const ServerFailure();
+}
+
+/// Himpunan `action` power yang valid. Sumber: agent/internal/control/control.go
+/// (hanya sleep, restart, shutdown). Nilai lain = kegagalan kontrak.
+const _powerActions = {'sleep', 'restart', 'shutdown'};
+
+String _requireAction(Map<String, Object?> map, String key) {
+  final value = map[key];
+  if (value is String && _powerActions.contains(value)) return value;
   throw const ServerFailure();
 }
 

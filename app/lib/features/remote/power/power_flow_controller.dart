@@ -22,6 +22,7 @@ import 'package:remotto/features/remote/power/power_providers.dart';
 ///   difference between the phone and laptop clocks.
 /// - Only the user repeats a cancel.
 final class PowerFlowController extends Notifier<PowerFlowState> {
+  // Countdown ticks once per second (technical-spec §5).
   static const Duration _tickInterval = Duration(seconds: 1);
 
   /// Below this much time left, the schedule can no longer be cancelled (BR-19).

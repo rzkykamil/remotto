@@ -44,8 +44,9 @@ final class OfflineContent extends StatelessWidget {
   /// back to the plain offline body.
   final LastPowerCommand? lastCommand;
 
-  /// P15 body for [command]. Sleep has its own copy; restart uses the
-  /// shutdown copy because the artboards have no restart variant.
+  /// P15 body for [command]. Sleep has its own copy; any other action uses
+  /// the shutdown copy. Restart never reaches P15 (the laptop comes back on
+  /// its own, FR-4.11), so it is not handled here.
   static String _poweredOffBody(LastPowerCommand command) {
     final at = command.sentAt.toLocal();
     return command.action == 'sleep'

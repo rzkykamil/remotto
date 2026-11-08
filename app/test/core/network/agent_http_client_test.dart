@@ -708,4 +708,110 @@ void main() {
       expect(error.toString(), isNot(contains(_token)));
     });
   });
+
+  group('postPower', () {
+    String scheduledBody(String action) => jsonEncode({
+      'data': {
+        'pending': {
+          'action': action,
+          'remainingMs': 5000,
+          'delayMs': 5000,
+          'scheduledAt': '2026-01-01T23:41:00+07:00',
+        },
+      },
+    });
+
+    test(
+      'schedule POST ke /api/v1/power/{action} tanpa body, 202 sukses',
+      () async {
+        final built = _build((request) {
+          final action = request.url.pathSegments.last;
+          return _json(202, scheduledBody(action));
+        });
+
+        final data = await built.client.postPowerSchedule(
+          host: _host,
+          port: _port,
+          token: _token,
+          action: 'shutdown',
+          timeout: _timeout,
+        );
+
+        expect(data['pending'], isA<Map<String, Object?>>());
+        final request = built.requests.single;
+        expect(request.method, 'POST');
+        expect(
+          request.url,
+          Uri.http('$_host:$_port', '/api/v1/power/shutdown'),
+        );
+        expect(request.headers['Authorization'], 'Bearer $_token');
+        expect(request.headers.containsKey('Content-Type'), isFalse);
+        expect(request.body, isEmpty);
+      },
+    );
+
+    test('cancel POST ke /api/v1/power/cancel, 200 sukses', () async {
+      final built = _build(
+        (_) => _json(
+          200,
+          jsonEncode({
+            'data': {'cancelled': 'shutdown', 'pending': null},
+          }),
+        ),
+      );
+
+      final data = await built.client.postPowerCancel(
+        host: _host,
+        port: _port,
+        token: _token,
+        timeout: _timeout,
+      );
+
+      expect(data['cancelled'], 'shutdown');
+      final request = built.requests.single;
+      expect(request.url, Uri.http('$_host:$_port', '/api/v1/power/cancel'));
+      expect(request.headers['Authorization'], 'Bearer $_token');
+    });
+
+    test('schedule tidak di-retry walau gagal transport', () async {
+      final built = _build((_) => throw const SocketException('putus'));
+
+      final error = await _errorOf(
+        () => built.client.postPowerSchedule(
+          host: _host,
+          port: _port,
+          token: _token,
+          action: 'sleep',
+          timeout: _timeout,
+        ),
+      );
+
+      expect(error, isA<UnreachableFailure>());
+      expect(built.requests, hasLength(1));
+    });
+
+    test('409 power_pending menjadi ServerFailure dengan code', () async {
+      final built = _build(
+        (_) => _json(
+          409,
+          jsonEncode({
+            'error': {'code': 'power_pending', 'message': 'ada jadwal'},
+          }),
+        ),
+      );
+
+      final error = await _errorOf(
+        () => built.client.postPowerSchedule(
+          host: _host,
+          port: _port,
+          token: _token,
+          action: 'restart',
+          timeout: _timeout,
+        ),
+      );
+
+      expect(error, isA<ServerFailure>());
+      expect((error as ServerFailure).code, 'power_pending');
+    });
+  });
 }
