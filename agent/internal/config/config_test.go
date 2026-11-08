@@ -58,6 +58,22 @@ func TestDefaultValues(t *testing.T) {
 	}
 }
 
+// TestDefaultRateLimitAboveSliderRate guards BR-14: the slider sends at most
+// one request per 100 ms (10 per second), so the default limit must leave
+// headroom above that rate.
+func TestDefaultRateLimitAboveSliderRate(t *testing.T) {
+	const sliderRPS = 10
+	c := Default("PC", fixedNow)
+	if c.RateLimit.RequestsPerSecond < 2*sliderRPS {
+		t.Fatalf("RateLimit.RequestsPerSecond = %d, want >= %d (2x slider rate)",
+			c.RateLimit.RequestsPerSecond, 2*sliderRPS)
+	}
+	if c.RateLimit.Burst < c.RateLimit.RequestsPerSecond {
+		t.Fatalf("RateLimit.Burst = %d, want >= RequestsPerSecond %d",
+			c.RateLimit.Burst, c.RateLimit.RequestsPerSecond)
+	}
+}
+
 func TestDirUsesAppData(t *testing.T) {
 	base := t.TempDir()
 	t.Setenv("APPDATA", base)
