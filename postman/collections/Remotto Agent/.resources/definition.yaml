@@ -4,3 +4,4 @@ description: |-
   API agent Remotto. Sumber kontrak: docs/api-spec.md.
   Sukses berbentuk { "data": ... }, error berbentuk { "error": { "code", "message" } }.
   Semua request memakai Authorization: Bearer {{token}}.
+  Semua endpoint bisa membalas 429 dengan error code `rate_limited` dan header `Retry-After` (detik) bila melewati batas rate per IP. Batas dan burst diatur di config `rateLimit`.

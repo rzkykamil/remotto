@@ -12,8 +12,9 @@ import (
 )
 
 // shutdownTimeout is how long in-flight requests get after the context is
-// cancelled (docs/technical-spec.md, section 9).
-const shutdownTimeout = 3 * time.Second
+// cancelled (docs/technical-spec.md, section 9). It is a variable only so the
+// tests can shorten it; production code never changes it.
+var shutdownTimeout = 3 * time.Second
 
 // NewHandler assembles the global middleware around router. The order is
 // fixed: Recover (outermost), then Logging, then the router. Network filter,
@@ -33,6 +34,8 @@ type apiOptions struct {
 	media control.MediaController
 	audio control.AudioController
 	power *control.PowerScheduler
+	rps   int
+	burst int
 }
 
 // WithMedia sets the controller behind the /media routes. Without it the routes
@@ -53,12 +56,24 @@ func WithPower(s *control.PowerScheduler) APIOption {
 	return func(o *apiOptions) { o.power = s }
 }
 
+// WithRateLimit turns on the per-IP rate limit with rps requests per second and
+// a burst of burst requests (docs/data-design.md, config rateLimit). Without
+// this option there is no limiter. Values below 1 make NewAPIHandler panic, as
+// RateLimit does; the config loader rejects them before they get here.
+func WithRateLimit(rps, burst int) APIOption {
+	return func(o *apiOptions) {
+		o.rps = rps
+		o.burst = burst
+	}
+}
+
 // NewAPIHandler returns the complete agent handler: the API routes wrapped in
-// the global middleware. The order is Recover, Logging, NetworkFilter, then
-// the rate limit slot (M6), then Auth, so a request from outside the LAN gets
-// 403 before any token check and unknown routes still need a valid token.
-// Options are optional; callers that pass none get the routes without the
-// hardware controllers.
+// the global middleware. The order is Recover, Logging, NetworkFilter, the rate
+// limit (only with WithRateLimit), then Auth, so a request from outside the LAN
+// gets 403 before any limit or token check, and a request over the limit gets
+// 429 before any token check. Unknown routes are limited and still need a valid
+// token. Options are optional; callers that pass none get the routes without
+// the hardware controllers and without a rate limit.
 func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps, opts ...APIOption) http.Handler {
 	var o apiOptions
 	for _, opt := range opts {
@@ -87,13 +102,16 @@ func NewAPIHandler(logger *slog.Logger, tokens TokenSource, status StatusDeps, o
 	volume := control.NewVolumeService(o.audio)
 	registerVolumeRoutes(router, volume, logger)
 	registerPowerRoutes(router, power, logger)
-	// Rate limit (M6) goes here, between NetworkFilter and Auth.
-	return Chain(router,
+	mws := []Middleware{
 		Recover(logger),
 		Logging(logger),
 		NetworkFilter(logger),
-		Auth(tokens),
-	)
+	}
+	if o.rps > 0 || o.burst > 0 {
+		mws = append(mws, RateLimit(logger, o.rps, o.burst, nil))
+	}
+	mws = append(mws, Auth(tokens))
+	return Chain(router, mws...)
 }
 
 // NewHTTPServer returns an http.Server with the timeouts from the tech spec.
