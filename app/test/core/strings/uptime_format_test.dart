@@ -22,4 +22,22 @@ void main() {
       });
     }
   });
+
+  group('formatUptimeLong (Settings card, lowercase)', () {
+    final cases = <(String, Duration)>[
+      ('0m', Duration.zero),
+      ('59m', const Duration(minutes: 59, seconds: 59)),
+      ('1j 0m', const Duration(hours: 1)),
+      ('3j 12m', const Duration(hours: 3, minutes: 12, seconds: 59)),
+      ('12m', const Duration(minutes: 12)),
+      ('25j 0m', const Duration(hours: 25)),
+      ('0m', const Duration(minutes: -5)),
+    ];
+
+    for (final (expected, input) in cases) {
+      test('$input -> $expected', () {
+        expect(formatUptimeLong(input), expected);
+      });
+    }
+  });
 }
