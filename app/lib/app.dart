@@ -6,6 +6,7 @@ import 'core/router/app_router.dart';
 import 'core/strings/strings.dart';
 import 'core/storage/storage_providers.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/raster_monitor.dart';
 import 'core/theme/reduce_transparency_channel.dart';
 import 'core/theme/tokens.g.dart';
 import 'ui/light_backdrop.dart';
@@ -19,6 +20,9 @@ class RemottoApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Sumber reduce transparency dipasang sekali; nilainya tidak dipakai di sini.
     ref.watch(reduceTransparencyBootstrapProvider);
+    // Monitor raster memasang timing callback sekali; saat raster lambat
+    // terus-menerus, slowRasterProvider menjadi true (kriteria dan angka: raster_monitor.dart).
+    ref.watch(rasterMonitorBootstrapProvider);
     // MaterialApp ada di bawah context ini, jadi MediaQuery belum tersedia.
     // Membaca flag OS yang sama dengan MediaQuery.disableAnimations.
     final disableAnimations = WidgetsBinding
