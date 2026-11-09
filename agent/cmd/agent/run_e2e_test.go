@@ -20,6 +20,7 @@ import (
 
 	"remotto/agent/internal/config"
 	"remotto/agent/internal/control"
+	"remotto/agent/internal/instance"
 	"remotto/agent/internal/oscontrol/fake"
 	"remotto/agent/internal/pairing"
 	"remotto/agent/internal/server"
@@ -277,9 +278,9 @@ func TestServeAgentStatusWithFakeOS(t *testing.T) {
 	})
 }
 
-// TestServeAgentTokenResetWithoutRestart checks BR-10 through the real wiring:
+// TestBR10_ServeAgentTokenResetWithoutRestart checks BR-10 through the real wiring:
 // a token written to config.json replaces the old one while the agent runs.
-func TestServeAgentTokenResetWithoutRestart(t *testing.T) {
+func TestBR10_ServeAgentTokenResetWithoutRestart(t *testing.T) {
 	cfgPath := filepath.Join(t.TempDir(), "config.json")
 	writeRunConfig(t, cfgPath, 8765, e2eToken)
 	cfg, _, err := loadConfigFile(cfgPath)
@@ -312,6 +313,7 @@ func TestRunStartsFromConfigAndStopsOnCancel(t *testing.T) {
 	port := freePort(t)
 	cfgPath := filepath.Join(t.TempDir(), "config.json")
 	writeRunConfig(t, cfgPath, port, e2eToken)
+	stubAcquire(t, func() (instance.Release, error) { return func() {}, nil })
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -348,6 +350,45 @@ func TestRunStartsFromConfigAndStopsOnCancel(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("run did not return within 10s after cancel")
 	}
+}
+
+// TestCloseAudioClosesPortAndWarnsOnError checks shutdown of the audio port: a
+// port that implements io.Closer is closed once, and a failed close is logged
+// as a warning. The fake port never touches COM.
+func TestCloseAudioClosesPortAndWarnsOnError(t *testing.T) {
+	t.Run("closed once on success without warning", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := slog.New(slog.NewJSONHandler(&buf, nil))
+		audio := fake.NewAudio(0, false)
+		closeAudio(logger, audio)
+		if got := audio.CloseCalls(); got != 1 {
+			t.Fatalf("Close calls = %d, want 1", got)
+		}
+		if strings.Contains(buf.String(), `"level":"WARN"`) {
+			t.Errorf("unexpected warning: %s", buf.String())
+		}
+	})
+
+	t.Run("failed close is logged as warning", func(t *testing.T) {
+		var buf bytes.Buffer
+		logger := slog.New(slog.NewJSONHandler(&buf, nil))
+		audio := fake.NewAudio(0, false)
+		audio.SetCloseErr(errors.New("device stuck"))
+		closeAudio(logger, audio)
+		if got := audio.CloseCalls(); got != 1 {
+			t.Fatalf("Close calls = %d, want 1", got)
+		}
+		out := buf.String()
+		if !strings.Contains(out, `"level":"WARN"`) || !strings.Contains(out, "audio close failed") {
+			t.Errorf("log = %s, want an audio close warning", out)
+		}
+	})
+
+	t.Run("port without Close is skipped", func(t *testing.T) {
+		logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
+		// unsupported has no Close method, so closeAudio must not panic.
+		closeAudio(logger, unsupported{})
+	})
 }
 
 // postMedia calls POST /api/v1/media/<route> with the given bearer token. An
@@ -688,4 +729,84 @@ func hasEvent(events []config.Event, kind config.EventKind) bool {
 		}
 	}
 	return false
+}
+
+// statusResponse GETs /api/v1/status with the bearer token and returns the HTTP
+// status and the Retry-After header. The body is drained and closed.
+func statusResponse(t *testing.T, base, token string) (int, string) {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodGet, base+"/api/v1/status", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("GET status: %v", err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	return resp.StatusCode, resp.Header.Get("Retry-After")
+}
+
+// TestServeAgentRateLimitWithFakeOS covers the per-IP rate limit (FR, BR-14)
+// over a real loopback socket with the default config (20 rps, burst 40). A
+// fast burst of 60 requests gets both 200 and 429 with Retry-After. A slider
+// rate of one request every 100 ms for about 3 s never gets 429.
+func TestServeAgentRateLimitWithFakeOS(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, 8765, e2eToken)
+	cfg, _, err := loadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfigFile: %v", err)
+	}
+	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: fake.NewAudio(0, false)}
+
+	t.Run("fast burst gets 200 then 429 with Retry-After", func(t *testing.T) {
+		base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, &fake.Power{})
+		defer stop()
+
+		var ok, limited int
+		for i := 0; i < 60; i++ {
+			code, retry := statusResponse(t, base, e2eToken)
+			switch code {
+			case http.StatusOK:
+				ok++
+			case http.StatusTooManyRequests:
+				limited++
+				if n, err := strconv.Atoi(retry); err != nil || n < 1 {
+					t.Fatalf("429 Retry-After = %q, want integer >= 1", retry)
+				}
+			default:
+				t.Fatalf("request %d status = %d, want 200 or 429", i+1, code)
+			}
+		}
+		if ok == 0 || limited == 0 {
+			t.Fatalf("200 count = %d, 429 count = %d, want both > 0", ok, limited)
+		}
+	})
+
+	t.Run("slider rate never gets 429 (BR-14)", func(t *testing.T) {
+		base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, &fake.Power{})
+		defer stop()
+
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		deadline := time.After(3 * time.Second)
+		for {
+			select {
+			case <-deadline:
+				return
+			case <-ticker.C:
+				code, _ := statusResponse(t, base, e2eToken)
+				if code == http.StatusTooManyRequests {
+					t.Fatal("slider rate got 429, want never")
+				}
+				if code != http.StatusOK {
+					t.Fatalf("status = %d, want 200", code)
+				}
+			}
+		}
+	})
 }

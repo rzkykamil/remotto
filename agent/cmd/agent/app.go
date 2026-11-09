@@ -15,6 +15,7 @@ import (
 
 	"remotto/agent/internal/config"
 	"remotto/agent/internal/control"
+	"remotto/agent/internal/instance"
 	"remotto/agent/internal/logging"
 	"remotto/agent/internal/pairing"
 	"remotto/agent/internal/server"
@@ -28,23 +29,31 @@ Perintah:
   help                tampilkan bantuan
   pair                tampilkan QR dan teks pairing
   reset-token         buat ulang token (belum tersedia)
-  install-startup     pasang autostart (belum tersedia)
-  uninstall-startup   hapus autostart (belum tersedia)
+  install-startup     pasang autostart
+  uninstall-startup   hapus autostart
 
 Opsi run:
   --config <path>     file config.json (default %APPDATA%\Remotto\config.json)
-  --background        jalankan tanpa konsol (belum berefek)
+  --background        jalankan tanpa konsol, log hanya ke file
 
 Opsi pair:
   --config <path>     file config.json (default %APPDATA%\Remotto\config.json)
   --host <ipv4>       alamat laptop di QR (default: adapter LAN terdeteksi)
 `
 
-// plannedCommands are subcommands reserved for later milestones (M1 and M6).
+// acquireInstance takes the single-instance lock before any config, log or
+// listener is touched. Tests replace it so they never depend on a running agent.
+var acquireInstance = func() (instance.Release, error) {
+	return instance.Acquire(instance.MutexName)
+}
+
+// detach releases the console for run --background. Tests replace it so they
+// never call FreeConsole.
+var detach = detachConsole
+
+// plannedCommands are subcommands reserved for later milestones (M5).
 var plannedCommands = map[string]bool{
-	"reset-token":       true,
-	"install-startup":   true,
-	"uninstall-startup": true,
+	"reset-token": true,
 }
 
 // run dispatches the subcommand in args and returns the process exit code.
@@ -64,6 +73,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return cmdRun(ctx, args[1:], stdout, stderr)
 	case "pair":
 		return cmdPair(args[1:], stdout, stderr)
+	case "install-startup":
+		return cmdInstallStartup(stdout, stderr, args[1:])
+	case "uninstall-startup":
+		return cmdUninstallStartup(stdout, stderr, args[1:])
 	}
 	if plannedCommands[args[0]] {
 		fmt.Fprintf(stderr, "perintah %q belum tersedia di versi ini\n", args[0])
@@ -118,9 +131,7 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	configPath := flags.String("config", "", `path to config.json (default %APPDATA%\Remotto\config.json)`)
-	// --background is accepted so the Task Scheduler entry in M6 does not fail.
-	// It has no effect yet.
-	flags.Bool("background", false, "run without a console (no effect yet)")
+	background := flags.Bool("background", false, "run without a console; log to file only")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -130,6 +141,24 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if flags.NArg() > 0 {
 		fmt.Fprintf(stderr, "remotto-agent: argumen tidak dikenal: %s\n", flags.Arg(0))
 		return 2
+	}
+
+	release, err := acquireInstance()
+	if err != nil {
+		if errors.Is(err, instance.ErrAlreadyRunning) {
+			fmt.Fprintln(stderr, "remotto-agent: agent sudah berjalan di sesi ini")
+			return 1
+		}
+		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
+		return 1
+	}
+	defer release()
+
+	// Detach before config and log are touched. A failure does not stop the
+	// agent; it is logged once the logger exists.
+	var detachErr error
+	if *background {
+		detachErr = detach()
 	}
 
 	path, err := defaultConfigPath(*configPath)
@@ -146,10 +175,15 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
+	var console io.Writer = stderr
+	if *background {
+		// Without a console, JSON lines go to agent.log only.
+		console = nil
+	}
 	logger, closer, err := logging.New(logging.Options{
 		Level:   cfg.LogLevel,
 		File:    filepath.Join(filepath.Dir(path), "logs", "agent.log"),
-		Console: stderr,
+		Console: console,
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
@@ -163,11 +197,17 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	slog.SetDefault(logger)
 	defer slog.SetDefault(prevDefault)
 
+	if detachErr != nil {
+		logger.Warn("console detach failed", slog.String("error", detachErr.Error()))
+	}
 	for _, ev := range events {
 		logEvent(logger, ev)
 	}
 
 	ctrl := newControllers()
+	// Runs after serveAgent returns, so no request can reach the audio port
+	// while it closes.
+	defer closeAudio(logger, ctrl.Audio)
 	status := server.StatusDeps{
 		Name:      cfg.LaptopName,
 		Version:   version,
@@ -177,7 +217,7 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 
 	addr := net.JoinHostPort(cfg.BindAddress, fmt.Sprint(cfg.Port))
-	ln, err := net.Listen("tcp", addr)
+	ln, err := listenAgent(addr, cfg.Port)
 	if err != nil {
 		logger.Error("listen failed", slog.String("addr", addr), slog.String("error", err.Error()))
 		fmt.Fprintf(stderr, "remotto-agent: gagal membuka %s: %v\n", addr, err)
@@ -189,6 +229,19 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+// closeAudio closes the audio port when it implements io.Closer, so its COM
+// worker stops at shutdown. A failure is logged as a warning and does not stop
+// the shutdown.
+func closeAudio(logger *slog.Logger, audio control.AudioController) {
+	c, ok := audio.(io.Closer)
+	if !ok {
+		return
+	}
+	if err := c.Close(); err != nil {
+		logger.Warn("audio close failed", slog.String("error", err.Error()))
+	}
 }
 
 // serveAgent serves the API on ln until ctx is done. The token comes from the
@@ -208,6 +261,7 @@ func serveAgent(ctx context.Context, ln net.Listener, logger *slog.Logger, cfgPa
 		server.WithMedia(media),
 		server.WithAudio(audio),
 		server.WithPower(sched),
+		server.WithRateLimit(cfg.RateLimit.RequestsPerSecond, cfg.RateLimit.Burst),
 	)
 	srv := server.NewHTTPServer(ln.Addr().String(), handler)
 	return server.Serve(ctx, srv, ln, logger)
