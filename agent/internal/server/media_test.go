@@ -160,6 +160,9 @@ func TestBR11_MediaFailureLogsCauseWithoutToken(t *testing.T) {
 	if strings.Contains(rec.Body.String(), "secret detail") {
 		t.Errorf("response leaks OS detail: %q", rec.Body.String())
 	}
+	if want := `{"error":{"code":"media_failed","message":"media control failed"}}`; rec.Body.String() != want {
+		t.Errorf("body = %q, want %q", rec.Body.String(), want)
+	}
 	if !strings.Contains(logs.String(), "secret detail") {
 		t.Errorf("log lacks OS cause: %q", logs.String())
 	}

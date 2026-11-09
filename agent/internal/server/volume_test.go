@@ -263,6 +263,9 @@ func TestVolumeAudioFailureDoesNotLeak(t *testing.T) {
 			if strings.Contains(rec.Body.String(), "secret detail") {
 				t.Errorf("response leaks OS detail: %q", rec.Body.String())
 			}
+			if want := `{"error":{"code":"audio_failed","message":"audio control failed"}}`; rec.Body.String() != want {
+				t.Errorf("body = %q, want %q", rec.Body.String(), want)
+			}
 			if !strings.Contains(logs.String(), "secret detail") {
 				t.Errorf("log lacks OS cause: %q", logs.String())
 			}
@@ -520,6 +523,9 @@ func TestVolumePostAudioFailureDoesNotLeak(t *testing.T) {
 			}
 			if strings.Contains(rec.Body.String(), "secret detail") {
 				t.Errorf("response leaks OS detail: %q", rec.Body.String())
+			}
+			if want := `{"error":{"code":"audio_failed","message":"audio control failed"}}`; rec.Body.String() != want {
+				t.Errorf("body = %q, want %q", rec.Body.String(), want)
 			}
 			if !strings.Contains(logs.String(), "secret detail") {
 				t.Errorf("log lacks OS cause: %q", logs.String())
