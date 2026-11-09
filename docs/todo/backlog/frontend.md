@@ -76,7 +76,15 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M5 Pengaturan & Tema
 
-Belum ada temuan.
+- [ ] Token pemisah baris grup belum ada di `design/tokens.json`. `SettingsGroup` memakai `glass.lowlight` (ink 6%), sedangkan artboard `Settings-light` memakai `line` 1px ink 8%. Tambah token `divider` di desain lalu regenerasi.
+- [ ] `Pressable` selalu memberi `button: true` ke Semantics. Baris info di `SettingsRow` karena itu memakai Semantics biasa. Pertimbangkan parameter `isButton` di `Pressable` agar satu jalur saja.
+- [ ] `ThemeSegmented` memakai `Row` dengan `crossAxisAlignment: stretch` dan gagal layout (tinggi tak terbatas) bila diletakkan langsung di `Column` dalam scroll. Saat ini pemanggil (`SettingsScreen`) membungkusnya dengan `IntrinsicHeight`. Perbaiki di komponen agar aman di layout apa pun. Sampai diperbaiki, pemanggil baru wajib membungkus dengan `IntrinsicHeight` (lihat `docs/todo/modules/M5-pengaturan-tema.md`).
+- [ ] Token `RMotion` khusus crossfade tema belum ada. Crossfade 200 ms saat ini memakai `RMotion.toast`. Tambah token di desain lalu regenerasi.
+- [ ] Toast gagal hapus pairing memakai `RemoteStrings.toastCommandFailed` sementara. Desain belum punya copy untuk kasus ini. Tambah copy khusus di `app/lib/core/strings/`.
+- [ ] `ThemeSegmented` masih memakai warna literal `strokeWidth 2.5` dan fallback `Colors.black`. Ganti dengan konstanta bernama. SARAN Reviewer M5.
+- [ ] Versi app belum ditampilkan di Pengaturan karena desain R01 belum punya baris versi. Tambah bila desain menambahkannya.
+- [ ] Status "NYAMBUNG" dan "NGGAK KEJANGKAU" ada di `SettingsStrings` dan `RemoteStrings`. Gabungkan jadi satu sumber.
+- [ ] `flutter analyze` belum diuji di mesin lain untuk kode Swift iOS (`app/ios/Runner/AppDelegate.swift`). Lihat `docs/todo/waiting.md` M5.
 
 ## M6 Ketahanan & Startup
 

@@ -394,10 +394,35 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
 
 ## M5 Pengaturan & Tema
 
-- [ ] M5: Tampilan di HP fisik sesuai desain, terang dan gelap.
+- [ ] M5: Tampilan Pengaturan sama dengan desain, terang dan gelap, dan teks besar tetap rapi.
+  Buka: layar Pengaturan di HP (menu Pengaturan di dalam app Remotto).
+  Lakukan: bandingkan dengan artboard R01 dan R02 di `design/export/artboards/`. Lalu buka pengaturan ukuran font HP (Setelan → Layar → Ukuran teks) dan besarkan sampai sekitar 130%, buka lagi Pengaturan dan Remote.
+  Harusnya: warna dan susunan sama dengan desain di tema terang dan gelap. Nama panjang membungkus tanpa terpotong, pilihan tema tetap tiga kolom, dan tidak ada tombol yang tumpang tindih.
+
+- [ ] M5: Ganti tema langsung berlaku dan bertahan.
   Buka: layar Pengaturan di HP.
-  Lakukan: ganti tema Terang, Gelap, Sistem, lalu matikan getar.
-  Harusnya: tema langsung berubah dan getar mati di semua tombol.
+  Lakukan: pilih Terang, lalu Gelap, lalu Sistem, tanpa menekan tombol Simpan. Tutup app sepenuhnya lalu buka lagi.
+  Harusnya: tampilan langsung berubah setiap kali pilihan diganti, dan pilihan terakhir masih aktif setelah app dibuka lagi.
+
+- [ ] M5: Matikan "Getar saat ditekan" menghentikan getar.
+  Buka: layar Pengaturan di HP, lalu layar Remote.
+  Lakukan: matikan "Getar saat ditekan", tekan beberapa tombol di Remote. Lalu nyalakan lagi dan tekan tombol yang sama.
+  Harusnya: saat mati tidak ada getar sama sekali. Saat nyala, getar kembali.
+
+- [ ] M5: Pairing ulang dari Pengaturan dan dari Remote offline.
+  Buka: layar Pengaturan di HP, lalu layar Remote saat laptop offline.
+  Lakukan: di Pengaturan tekan "Hapus & pairing ulang", lalu coba tombol "Nggak jadi" di sheet konfirmasi dulu. Ulangi, dan kali ini pilih "Hapus & pairing ulang" lalu tekan tombol back HP di layar intro pairing.
+  Harusnya: "Nggak jadi" tidak mengubah apa pun. "Hapus & pairing ulang" membawa ke layar intro pairing, dan back di sana menutup app (tidak kembali ke Pengaturan).
+
+- [ ] M5: Reduce transparency di iPhone (iOS saja).
+  Buka: Pengaturan iPhone, lalu app Remotto.
+  Lakukan: buka Pengaturan iPhone → Aksesibilitas → Tampilan & Ukuran Teks → Kurangi Transparansi, nyalakan. Lalu kembali ke app Remotto yang masih terbuka.
+  Harusnya: kaca di app langsung jadi solid dan cahaya latar mati, tanpa perlu membuka ulang app.
+
+- [ ] M5: Build iOS pertama lulus di Mac (`AppDelegate.swift` belum dikompilasi).
+  Buka: Mac dengan Xcode, folder `app/ios/` di repo.
+  Lakukan: jalankan `cd app && flutter build ios --debug --no-codesign`. Bila gagal, cek baris di `app/ios/Runner/AppDelegate.swift` yang memanggil `engineBridge.applicationRegistrar.messenger()`.
+  Harusnya: build lulus. Bila API `messenger()` tidak dikenali, perbaiki pemanggilannya sesuai versi Flutter di Mac, lalu kabari untuk dicatat.
 
 - [ ] M5: Reset token mematikan akses lama.
   Buka: terminal laptop dan layar Remote di HP.
@@ -408,11 +433,6 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Buka: TalkBack di HP Android, lalu app Remotto.
   Lakukan: jelajahi tombol Remote, slider, sheet daya, tahan, dan hitung mundur.
   Harusnya: semua terbaca jelas, urutannya masuk akal, dan pengumuman tidak mengganggu.
-
-- [ ] M5: Teks besar tetap rapi.
-  Buka: pengaturan ukuran font di HP.
-  Lakukan: besarkan teks sampai sekitar 130%, lalu buka Remote dan Pengaturan.
-  Harusnya: tidak ada teks terpotong atau tombol tumpang tindih.
 
 ## M6 Ketahanan & Startup
 

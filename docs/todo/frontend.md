@@ -78,13 +78,13 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 
 ## M5 Pengaturan & Tema
 
-- [ ] `SettingsGroup` dan `SettingsRow`
-- [ ] `ThemeSegmented` dan `GlassSwitch`
-- [ ] SCR-020 R01, R02, R03, R05, tanpa baris lisensi
-- [ ] R06 fallback solid
-- [ ] `SimpleConfirmSheet` dan R04, stack diganti ke Q01
-- [ ] Platform channel iOS untuk reduce transparency
-- [ ] Widget test + Semantics
+- [x] `SettingsGroup` dan `SettingsRow`
+- [x] `ThemeSegmented` dan `GlassSwitch`
+- [x] SCR-020 R01, R02, R03, R05, tanpa baris lisensi
+- [x] R06 fallback solid
+- [x] `SimpleConfirmSheet` dan R04, stack diganti ke Q01
+- [x] Platform channel iOS untuk reduce transparency (sisi Dart dan test channel; kode Swift belum dikompilasi, lihat `docs/todo/waiting.md` M5)
+- [x] Widget test + Semantics
 
 ## M6 Ketahanan & Startup
 

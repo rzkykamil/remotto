@@ -979,3 +979,59 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Bukti berupa `FakeAgentServer` loopback dengan rute `/power/*` (`app/test/integration/power_http_flow_test.dart`) dan test kontrak dengan payload persis keluaran Go (`app/test/core/network/power_contract_test.dart`). Tidak ada agent asli atau efek OS di test otomatis.
 - **Alasan:** Aturan efek OS di `docs/development-workflow.md`. Kontrak dengan payload Go menangkap perbedaan bentuk JSON.
 - **Dampak:** Pembuktian dengan agent dan HP sungguhan ada di `docs/todo/waiting.md` M4 (Integrasi).
+
+## [Frontend M5] Basis branch M5 dari team/m4-daya
+
+- **Konteks:** `main` tidak ada di lokal maupun remote. M5 memakai primitif dari M0 sampai M4.
+- **Keputusan:** Branch `team/m5-pengaturan-tema` dibuat dari `team/m4-daya`, bukan `team/M0-baseline`.
+- **Alasan:** M5 memakai `Pressable`, `GlassPanel`, `GlassKey`, dan `ConfirmSheet` yang sudah ada di M4.
+- **Dampak:** Diff M5 memuat commit M0 sampai M4 bila dibandingkan dengan `main` yang belum ada.
+
+## [Frontend M5] ThemeSegmented memakai GestureDetector dan FocusableActionDetector
+
+- **Konteks:** Segmen tema harus berperilaku sebagai radio (checked, inMutuallyExclusiveGroup). `Pressable` selalu memberi `button: true` ke Semantics.
+- **Keputusan:** `ThemeSegmented` memakai `GestureDetector` dan `FocusableActionDetector` langsung, tidak lewat `Pressable`.
+- **Alasan:** Semantics radio tidak bisa dicapai dengan `Pressable` tanpa mengubah primitif bersama.
+- **Dampak:** Ada dua jalur tap di kode. Backlog M5 mencatat usulan parameter `isButton` di `Pressable` untuk menyatukannya.
+
+## [Frontend M5] Pairing ulang dari Remote offline lewat sheet C22
+
+- **Konteks:** Sebelumnya, pairing ulang dari Remote offline langsung pindah ke layar pairing (M1 dan M4).
+- **Keputusan:** Tombol pairing ulang dari Remote offline membuka sheet konfirmasi C22 dulu, sesuai C08.
+- **Alasan:** Pairing ulang menghapus token. Konfirmasi mencegah tekanan tidak sengaja.
+- **Dampak:** Perubahan perilaku dibanding M1 dan M4. Alur yang sama sekarang dipakai dari Pengaturan dan dari Remote offline.
+
+## [Frontend M5] Toast gagal hapus pairing memakai toastCommandFailed sementara
+
+- **Konteks:** Desain belum punya copy toast untuk gagal menghapus pairing.
+- **Keputusan:** Memakai `RemoteStrings.toastCommandFailed` sementara.
+- **Alasan:** Lebih baik menampilkan pesan gagal yang umum daripada tanpa pesan. Copy khusus menunggu desain.
+- **Dampak:** Teks toast belum spesifik. Item ada di `docs/todo/backlog/frontend.md` bagian M5.
+
+## [Frontend M5] Reduce transparency hanya iOS lewat channel
+
+- **Konteks:** Pengaturan iOS "Kurangi Transparansi" tidak bisa dibaca dari Flutter tanpa kode native.
+- **Keputusan:** Channel `remotto/accessibility` dipasang di `AppDelegate.swift`. Android tidak punya channel. Pemanggilan yang gagal (`MissingPluginException`) dianggap `false`.
+- **Alasan:** Android tidak punya setelan setara yang dipakai desain. Nilai `false` menjaga tampilan kaca normal.
+- **Dampak:** Di Android dan test, kaca selalu normal. Kode Swift belum dikompilasi di Windows, lihat `docs/todo/waiting.md` bagian M5.
+
+## [Frontend M5] Baris info memakai Semantics biasa, switch memakai SettingsRow.toggled
+
+- **Konteks:** `Pressable` memberi `button: true`, sedangkan baris info tidak bisa ditekan dan switch sudah punya semantik toggle.
+- **Keputusan:** Baris info di `SettingsRow` memakai `Semantics` biasa. Switch di Pengaturan memakai `SettingsRow.toggled`, bukan `Pressable` yang berdiri sendiri.
+- **Alasan:** Menghindari peran button yang salah pada elemen yang bukan tombol.
+- **Dampak:** Dua jalur semantik di `SettingsRow`. Usulan penyatuan ada di `docs/todo/backlog/frontend.md` bagian M5.
+
+## [Frontend M5] Crossfade tema 200 ms memakai RMotion.toast
+
+- **Konteks:** Desain menyebut crossfade tema 200 ms, tetapi belum ada token `RMotion` untuk tema.
+- **Keputusan:** Crossfade memakai `RMotion.toast` yang bernilai 200 ms.
+- **Alasan:** Nilai sama dengan desain. Menambah token baru ke desain di luar lingkup M5.
+- **Dampak:** Nama token tidak sesuai maksudnya. Item backlog token khusus ada di `docs/todo/backlog/frontend.md` bagian M5.
+
+## [Frontend M5] Versi app tidak ditampilkan di Pengaturan
+
+- **Konteks:** Artboard R01 dan R02 tidak punya baris versi app.
+- **Keputusan:** Versi app tidak ditampilkan di layar Pengaturan M5.
+- **Alasan:** Mengikuti desain.
+- **Dampak:** Tidak ada cara melihat versi di app. Bila desain menambahkannya, lihat `docs/todo/backlog/frontend.md` bagian M5.
