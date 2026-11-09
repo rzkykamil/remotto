@@ -61,7 +61,7 @@ flutter build apk --release
    .\remotto-agent.exe install-startup
    ```
 
-   Task "At log on" berjalan di sesi user tanpa hak admin. Jendela konsol bisa berkedip sekali saat login.
+   Task "At log on" berjalan di sesi user tanpa hak admin. Jendela konsol bisa berkedip sekali saat login. Pendaftaran task lewat Task Scheduler bisa membutuhkan terminal Administrator.
 
 5. Cek jenis sleep laptop:
 
@@ -76,7 +76,7 @@ flutter build apk --release
 
 **Log:** `%APPDATA%\Remotto\logs\agent.log`. Config: `%APPDATA%\Remotto\config.json`.
 
-**Uninstall:**
+**Uninstall:** `uninstall-startup` aman dijalankan ulang. Bila task sudah tidak ada, perintah tetap sukses.
 
 ```powershell
 .\remotto-agent.exe uninstall-startup

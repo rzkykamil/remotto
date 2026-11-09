@@ -8,7 +8,7 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - [Ditutup M1] Ganti nama `TestLoggingNeverRecordsSecrets` (`agent/internal/server/middleware_test.go`) dan `TestNewRedactsSensitiveAttributes` (`agent/internal/logging/logging_test.go`) agar menyebut `BR-11`: `TestBR11_*`.
 - [Ditutup M1] `agent/config.example.json` kini `"token": ""` dengan `_note`; first run mengisi token (`agent/internal/config/lifecycle.go`).
 - `Logging` mencatat `http.ErrAbortHandler` sebagai 500/`internal`, padahal abort itu disengaja. Kecualikan satu baris (`agent/internal/server/middleware.go`).
-- Subcommand `pair`, `reset-token`, `install-startup`, dan `uninstall-startup` masih stub yang mengembalikan "belum tersedia" (`agent/cmd/agent/app.go`). Dikerjakan M1 (`pair`), M5 (`reset-token`), dan M6 (startup).
+- [Ditutup M6 untuk startup] Subcommand `pair`, `reset-token`, `install-startup`, dan `uninstall-startup` masih stub yang mengembalikan "belum tersedia" (`agent/cmd/agent/app.go`). Dikerjakan M1 (`pair`), M5 (`reset-token`), dan M6 (startup).
 
 ## M1 Pairing & Koneksi
 
@@ -28,7 +28,7 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M3 Volume
 
-- `oswin.Audio.Close()` belum dipanggil saat shutdown, menunggu graceful shutdown M6 (`agent/cmd/agent/platform_windows.go`, `agent/internal/oswin/audio_windows.go`).
+- [Ditutup M6] `oswin.Audio.Close()` belum dipanggil saat shutdown, menunggu graceful shutdown M6 (`agent/cmd/agent/platform_windows.go`, `agent/internal/oswin/audio_windows.go`).
 - Operasi COM tidak bisa dibatalkan. Bila device macet, pekerja tertahan dan request berikutnya timeout 1 dtk; timeout hanya membebaskan pemanggil (`agent/internal/oswin/audio_windows.go`).
 - Notifikasi perubahan volume Windows (`IAudioEndpointVolumeCallback`) tidak dipakai; polling cukup untuk sekarang (`agent/internal/oswin/audio_windows.go`).
 - Race baca-tulis dengan proses atau HP lain di luar mutex diterima (`agent/internal/control/volume.go`).
@@ -54,7 +54,14 @@ Belum ada temuan.
 
 ## M6 Ketahanan & Startup
 
-Belum ada temuan.
+- `startup.go` `isAccessDenied` dan `isNotFound` mencocokkan teks Inggris; di Windows non-Inggris deteksi bisa meleset. Pertimbangkan `schtasks /Query` atau exit code (`agent/internal/startup/startup.go`).
+- Panic di `Recover` mencatat stack ke log; pastikan tidak ada token di stack. Sudah diuji, catatan saja (`agent/internal/server`).
+- `TestServeAgentStopDiscardsPendingPower` belum memakai fake clock karena `serveAgent` belum menerima clock (`agent/cmd/agent`).
+- `PowerScheduler.Close()` tidak menunggu eksekusi yang sedang berjalan. Sama dengan backlog M4 (`agent/internal/control/power.go`).
+- `go test -race` belum dijalankan lokal (CGO mati). Jalankan di CI (`agent/internal/server`, `agent/internal/startup`, `agent/cmd/agent`).
+- `http.ErrAbortHandler` dicatat sebagai 500 di `Logging`; minor. Sama dengan backlog M0 (`agent/internal/server/middleware.go`).
+- Rate limit khusus endpoint daya belum didefinisikan spec. Sama dengan backlog M4 (`agent/internal/server/ratelimit.go`).
+- `NetworkFilter` mencatat warn per penolakan; pertimbangkan dedupe. Sama dengan backlog M1 (`agent/internal/server/netfilter.go`).
 
 ## Stretch
 

@@ -475,3 +475,43 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Buka: app Remotto di HP paling lemah yang kamu punya, layar Remote.
   Lakukan: buka dan tutup beberapa sheet, lalu scroll.
   Harusnya: jika patah-patah konsisten, efek kaca berganti ke tampilan solid tanpa crash. Ambang dicek di sini.
+
+- [ ] M6 (Backend): autostart terpasang dan jalan saat login.
+  Buka: terminal Windows (PowerShell atau Command Prompt) di folder agent, dan Task Scheduler di laptop.
+  Lakukan: jalankan `remotto-agent install-startup` (buka terminal sebagai Administrator bila diminta), cek task `Remotto\Agent` di Task Scheduler (trigger At log on), lalu logout dan login lagi.
+  Harusnya: agent jalan sendiri setelah login tanpa jendela konsol yang menetap.
+
+- [ ] M6 (Backend): uninstall menghapus autostart dan idempoten.
+  Buka: terminal Windows.
+  Lakukan: jalankan `remotto-agent uninstall-startup`, cek task hilang, lalu jalankan sekali lagi.
+  Harusnya: pesan sukses, tidak ada error kedua.
+
+- [ ] M6 (Backend): `run --background` melepas konsol dan log tetap ditulis.
+  Buka: terminal Windows di folder agent.
+  Lakukan: jalankan `remotto-agent run --background`.
+  Harusnya: jendela konsol tidak menempel, dan log tertulis di `%APPDATA%\Remotto\logs\agent.log`.
+
+- [ ] M6 (Backend): agent hanya satu.
+  Buka: dua terminal Windows.
+  Lakukan: jalankan `remotto-agent run` di terminal pertama, lalu di terminal kedua.
+  Harusnya: terminal kedua keluar dengan pesan "agent sudah berjalan".
+
+- [ ] M6 (Backend): port bentrok jelas.
+  Buka: terminal Windows.
+  Lakukan: pakai port 8765 dengan program lain, lalu jalankan `remotto-agent run`.
+  Harusnya: pesan "port 8765 sudah dipakai program lain" yang jelas.
+
+- [ ] M6 (Backend): rate limit dari klien lain di LAN.
+  Buka: app Remotto di HP dan komputer lain di LAN (terminal, mis. curl).
+  Lakukan: slider digeser terus dari HP, lalu spam endpoint dari komputer lain.
+  Harusnya: slider tidak kena 429, dan spam mendapat 429 dengan header Retry-After.
+
+- [ ] M6 (Backend): log dirotasi.
+  Buka: folder `%APPDATA%\Remotto\logs` di Explorer.
+  Lakukan: biarkan log melewati 5 MiB (atau pakai uji sementara).
+  Harusnya: `agent.log.1` sampai `.3` muncul, tidak ada file ke-4.
+
+- [ ] M6 (Backend): Ctrl+C saat jadwal daya tertunda tidak menjalankan aksi daya.
+  Buka: terminal Windows, app Remotto di HP.
+  Lakukan: jadwalkan matikan dari app, lalu tekan Ctrl+C di terminal agent sebelum hitung mundur habis. Dilakukan manual oleh pemilik, bukan developer atau agent.
+  Harusnya: tidak ada shutdown atau sleep, dan log mencatat jadwal dibuang.

@@ -6,7 +6,7 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 
 - [x] `go mod init` di `agent/` dengan Go 1.27
 - [x] Kerangka subcommand di `cmd/agent` dan variabel `version`
-- [x] `internal/logging`: slog JSON ke file + konsol, rotasi menyusul di M6
+- [x] `internal/logging`: slog JSON ke file + konsol, rotasi selesai di M6
 - [x] `internal/config`: path, default, baca, validasi, tulis atomik + test
 - [x] Kerangka `internal/server`: router, envelope respons, recover, logging + test
 - [x] Interface `MediaController`, `AudioController`, `PowerController` di `internal/control`
@@ -60,14 +60,14 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 ## M5 Pengaturan & Tema
 
 - [ ] Perintah `reset-token` + test
-- [ ] Pastikan token lama langsung ditolak oleh agent yang berjalan + test BR-10
+- [x] Pastikan token lama langsung ditolak oleh agent yang berjalan + test BR-10
 
 ## M6 Ketahanan & Startup
 
-- [ ] `internal/startup`: `install-startup`, `uninstall-startup` lewat XML task
-- [ ] `run --background` dengan `FreeConsole`
-- [ ] Satu instance lewat named mutex
-- [ ] Middleware rate limit + header `Retry-After` + test
-- [ ] Graceful shutdown + test
-- [ ] Rotasi log 5 MiB, 3 file + test
-- [ ] Pesan jelas saat port sudah dipakai
+- [x] `internal/startup`: `install-startup`, `uninstall-startup` lewat XML task
+- [x] `run --background` dengan `FreeConsole`
+- [x] Satu instance lewat named mutex
+- [x] Middleware rate limit + header `Retry-After` + test
+- [x] Graceful shutdown + test
+- [x] Rotasi log 5 MiB, 3 file + test
+- [x] Pesan jelas saat port sudah dipakai

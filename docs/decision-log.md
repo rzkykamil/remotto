@@ -1077,3 +1077,66 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Jendela 120 frame. Frame dihitung lambat bila raster lebih dari 16 ms. Bila minimal 90 persen frame dalam jendela penuh lambat, `slowRasterProvider` menjadi true dan tetap true selama sesi.
 - **Alasan:** 120 frame sekitar 2 detik pada 60 fps, cukup untuk tidak mematikan kaca karena satu lonjakan sesaat.
 - **Dampak:** Angka ini keputusan M6 dan perlu diuji di HP lemah (lihat `docs/todo/waiting.md` bagian M6).
+
+## [Backend M6] Rate limit dipasang sebelum auth
+
+- **Konteks:** Endpoint agent perlu dibatasi dari klien di LAN, termasuk tebakan token.
+- **Keputusan:** Middleware rate limit dipasang di `NewAPIHandler` antara NetworkFilter dan Auth, sehingga 429 keluar sebelum pengecekan token. Token bucket memakai stdlib tanpa dependensi `x/time`. Limit per IP, dibaca dari `RemoteAddr`.
+- **Alasan:** Tebakan token ikut dibatasi. Stdlib cukup dan tidak menambah dependensi.
+- **Dampak:** Request dengan token salah ikut dihitung. Respons 429 membawa header `Retry-After`. Klien di balik alamat IP yang sama berbagi kuota. Limit khusus endpoint daya belum ada, lihat `docs/todo/backlog/backend.md` bagian M6.
+
+## [Backend M6] Named mutex Local\RemottoAgent diambil di cmdRun
+
+- **Konteks:** Agent hanya boleh berjalan satu kali. Mutex di `main` akan ikut menghalangi perintah lain.
+- **Keputusan:** Mutex `Local\RemottoAgent` diambil di `cmdRun` sebelum config dan listener. Fungsi `acquireInstance` bisa ditimpa di test.
+- **Alasan:** `pair` dan perintah lain tetap bisa jalan saat agent aktif.
+- **Dampak:** Logika satu instance hanya ada di `run`. Test memakai fungsi pengganti.
+
+## [Backend M6] FreeConsole setelah instance lock, gagal tidak menghentikan agent
+
+- **Konteks:** `run --background` harus melepas konsol agar jendela tidak menempel saat login.
+- **Keputusan:** `FreeConsole` dipanggil setelah instance lock dan sebelum config serta logger. Bila gagal, agent tetap jalan dan mencatat warn setelah logger siap. Di mode background, log hanya ditulis ke file.
+- **Alasan:** Gagal melepas konsol bukan alasan untuk berhenti.
+- **Dampak:** Error sebelum logger siap tidak terlihat di konsol. Cek `agent.log` untuk melihat hasilnya.
+
+## [Backend M6] Task XML UTF-16 LE dengan BOM dan pengaturan daya
+
+- **Konteks:** `schtasks /XML` hanya menerima UTF-16 dengan BOM. Default Task Scheduler menghentikan task saat laptop beralih ke baterai dan membatasi waktu jalan.
+- **Keputusan:** File XML UTF-16 LE dengan BOM. `StopIfGoingOnBatteries` false, `ExecutionTimeLimit` PT0S, `MultipleInstancesPolicy` IgnoreNew, dan `StartWhenAvailable` true.
+- **Alasan:** Agent di laptop harus tetap hidup selama user login, termasuk saat di baterai.
+- **Dampak:** Windows tidak menghentikan agent karena baterai atau batas waktu. Task tidak membuat instance kedua.
+
+## [Backend M6] uninstall-startup idempoten
+
+- **Konteks:** `uninstall-startup` bisa dijalankan lagi setelah task sudah dihapus.
+- **Keputusan:** Task yang tidak ada dianggap sukses.
+- **Alasan:** Perintah aman diulang tanpa error kedua.
+- **Dampak:** Deteksi "tidak ditemukan" memakai teks Inggris di keluaran `schtasks`. Risikonya ada di `docs/todo/backlog/backend.md` bagian M6.
+
+## [Backend M6] Rotasi log default di logging.New
+
+- **Konteks:** Log tumbuh tanpa batas. `docs/data-design.md` tidak mendefinisikan field config untuk rotasi.
+- **Keputusan:** Default 5 MiB dan 3 file di dalam `logging.New`, tanpa field config baru. Rotasi tidak terjadi pada file aktif yang kosong, supaya satu baris besar tidak memicu rotasi berulang. Kegagalan rotasi tidak mematikan log: file dibuka ulang dan tulisan dicoba lagi (perbaikan reviewer).
+- **Alasan:** Field config baru butuh perubahan spec data. Log harus tetap jalan walau rotasi gagal.
+- **Dampak:** User tidak bisa mengubah batas lewat config. Mengubah batas berarti mengubah kode.
+
+## [Backend M6] Pesan port bentrok dideteksi per OS
+
+- **Konteks:** Error port yang sudah dipakai memakai nilai `syscall` berbeda di tiap OS.
+- **Keputusan:** Deteksi `WSAEADDRINUSE` di Windows dan `EADDRINUSE` di OS lain.
+- **Alasan:** Satu nilai tidak cocok di semua OS.
+- **Dampak:** Pesan "port sudah dipakai" hanya muncul bila deteksi per OS cocok.
+
+## [Backend M6] Audio.Close mengembalikan error dan dipanggil setelah serveAgent
+
+- **Konteks:** `oswin.Audio.Close()` belum dipanggil saat shutdown (backlog M3). Test shutdown butuh timeout yang bisa diatur.
+- **Keputusan:** `Close()` mengembalikan error dan dipanggil di `cmdRun` setelah `serveAgent` kembali. `shutdownTimeout` menjadi variabel paket.
+- **Alasan:** Graceful shutdown lengkap dan test deterministik.
+- **Dampak:** Error `Close` tercatat di log. Test shutdown mengubah nilai `shutdownTimeout`.
+
+## [Backend M6] Panic handler dan test BR-10 tidak diubah
+
+- **Konteks:** FR-6.5 dan BR-10 sudah dipenuhi sebelum M6.
+- **Keputusan:** Panic handler tidak diubah. Hanya test tambahan yang ditulis.
+- **Alasan:** Menghindari perubahan pada jalur yang sudah teruji.
+- **Dampak:** Perilaku recover tidak berubah dari M5.
