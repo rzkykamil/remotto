@@ -515,3 +515,13 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Buka: terminal Windows, app Remotto di HP.
   Lakukan: jadwalkan matikan dari app, lalu tekan Ctrl+C di terminal agent sebelum hitung mundur habis. Dilakukan manual oleh pemilik, bukan developer atau agent.
   Harusnya: tidak ada shutdown atau sleep, dan log mencatat jadwal dibuang.
+
+- [ ] M6 (Integrasi): app yang masih berisi token lama masuk alur pairing ulang di semua layar (Media, Volume, Daya) setelah `remotto-agent reset-token` di laptop.
+  Buka: app Remotto di HP.
+  Lakukan: di laptop jalankan reset-token (lewat terminal, bukan endpoint daya), lalu di HP buka layar Remote dan tekan media atau volume.
+  Harusnya: app langsung ke alur pairing ulang, tanpa toast galat yang membingungkan.
+
+- [ ] M6 (Integrasi, opsional): tekan tombol media berulang cepat di HP sampai kena 429.
+  Buka: app Remotto di HP.
+  Lakukan: tekan play/pause atau next berulang cepat.
+  Harusnya: toast "Ulangi" muncul jika kena 429, dan tidak ada retry otomatis.

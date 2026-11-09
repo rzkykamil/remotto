@@ -48,9 +48,14 @@ Belum ada temuan.
 
 ## M6 Ketahanan & Startup
 
-- [ ] Test `app/test/integration/volume_http_flow_test.dart` memakai `failNextVolumeRequests = 2` padahal hanya satu request dikonsumsi (baris 179 dan 301). Ubah ke 1; hasil tidak berubah (SARAN reviewer M6).
+- [x] Test `app/test/integration/volume_http_flow_test.dart` baris 179 memakai `failNextVolumeRequests = 2` padahal hanya satu request dikonsumsi. Sudah diubah ke 1; hasil tidak berubah (SARAN reviewer M6).
+- [ ] Test `app/test/integration/volume_http_flow_test.dart` baris 301 tetap `failNextVolumeRequests = 2`. Tes mute gagal dua kali memang butuh dua kegagalan, jadi nilai 2 benar. SARAN reviewer M6 untuk baris ini tidak diterapkan.
 - [ ] `Retry-After` pada 429 belum dihormati. Perlu desain copy untuk pesan tunggu (`lib/features/remote/state/volume_sender.dart`). SARAN reviewer M6.
+- [ ] `Retry-After` dari 429 juga belum dipakai di `PowerFlowController` dan `ConnectionController`. Perlu desain copy yang sama dengan item di atas.
 - [ ] Request yang kena `Future.timeout` belum dibatalkan, jadi perintah yang terlambat tetap bisa sampai ke agent. Sama dengan item M3 di atas (`lib/core/network/agent_http_client.dart`). SARAN reviewer M6.
+- [ ] Mute dan retry 429: `volume_http_flow_test.dart` (sekitar 346–356, "429 pada mute: dua request") masih retry otomatis untuk mute pada 429. Bertentangan dengan keputusan 429 tidak di-retry. Perlu keputusan: ubah perilaku atau perbarui keputusan.
+- [ ] Koneksi: kegagalan kedua saat server mati memakan sekitar 2 detik (`connection_resume_http_test.dart` tes C), bukan "connect cepat" seperti spec. Perlu diselidiki (dugaan: koneksi keep-alive).
+- [ ] `POST /power/schedule` tidak ada di `docs/api-spec.md`; tes memakai `/power/shutdown`. Perlu klarifikasi spec.
 
 ## Stretch
 

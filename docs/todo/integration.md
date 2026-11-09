@@ -48,11 +48,11 @@ Tidak ada endpoint. Fase ini dicatat "tidak relevan" saat dijalankan.
 | Screen/Widget | Endpoint | Status | Catatan |
 |---|---|---|---|
 | SCR-020 info laptop | `GET /status` | Belum | R05 pakai data terakhir |
-| Q12 setelah `reset-token` | Semua endpoint | Belum | 401 → pairing ulang |
+| Q12 setelah `reset-token` | Semua endpoint | Selesai | 401 → pairing ulang. Sisi agent `TestServeAgentResetTokenRejectsAllRoutes`; sisi app tes 401 per endpoint. Pembuktian di HP di `waiting.md` |
 
 ## M6 Ketahanan & Startup
 
 | Screen/Widget | Endpoint | Status | Catatan |
 |---|---|---|---|
-| Resume app | `GET /status` | Belum | S02 maksimal 2 detik |
-| Semua repository | Semua endpoint | Belum | 429 dan timeout konsisten |
+| Resume app | `GET /status` | Selesai | S02 maksimal 2 detik. `connection_resume_http_test.dart` (HTTP asli, scheduler asli, batas 2 detik sebagai asersi). Pembuktian nyata di HP di `waiting.md` |
+| Semua repository | Semua endpoint | Selesai | 429 dan timeout konsisten. Tes 429 di media, volume, power, dan poll status; agent asli di `run_e2e_test.go` |

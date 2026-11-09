@@ -15,3 +15,11 @@
 - Perbaikan reviewer: kegagalan rotasi tidak mematikan log. File dibuka ulang dan tulisan dicoba lagi.
 - Dicentang di `docs/todo/backend.md` bagian M6. Keputusan `[Backend M6]` di `docs/decision-log.md`. Saran di `docs/todo/backlog/backend.md` bagian M6.
 - Delapan item pembuktian di `docs/todo/waiting.md` bagian M6 (Backend), belum dicentang karena butuh laptop dan HP.
+
+## Integrasi
+
+- Selesai dengan Reviewer LOLOS DENGAN SARAN. Gerbang: `go test` dan `flutter test` hijau.
+- Resume app dan Semua repository selesai di `docs/todo/integration.md`. Q12 setelah reset-token (baris M5) selesai, dibuktikan di sisi agent dan app.
+- Tes baru: `app/test/integration/connection_resume_http_test.dart` dan 429 di media, volume, power, poll status (`agent/cmd/agent/run_e2e_test.go`).
+- Keputusan `[Integrasi M6]` di `docs/decision-log.md`. Saran di `docs/todo/backlog/integration.md` bagian M6.
+- Item pembuktian di HP ditambah di `docs/todo/waiting.md` bagian M6 (Integrasi).

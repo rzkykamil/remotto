@@ -1140,3 +1140,38 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Panic handler tidak diubah. Hanya test tambahan yang ditulis.
 - **Alasan:** Menghindari perubahan pada jalur yang sudah teruji.
 - **Dampak:** Perilaku recover tidak berubah dari M5.
+
+## [Integrasi M6] Pola tes dua sisi, bukan agent Go dari Dart
+
+- **Konteks:** Tes M6 harus memeriksa app dan agent. Dart tidak memuat paket Go, dan menjalankan `remotto-agent.exe` dari tes berisiko memicu efek OS.
+- **Keputusan:** App diuji lewat `fake_agent_server.dart` (HTTP loopback asli). Agent diuji lewat `httptest` dan fake OS. Agent Go tidak dijalankan dari Dart.
+- **Alasan:** Pola ini sama dengan M2 sampai M5. Tes tidak menyentuh daya atau media sungguhan.
+- **Dampak:** Bukti lintas dua sisi ada di dua tempat. Perilaku yang hanya muncul saat app dan agent asli bicara perlu pembuktian di HP (`docs/todo/waiting.md`).
+
+## [Integrasi M6] Scheduler asli hanya di tes resume
+
+- **Konteks:** Batas S02 2 detik bergantung pada scheduler polling. Tes 429 dan timeout tidak perlu menunggu interval nyata.
+- **Keputusan:** Scheduler asli hanya di `connection_resume_http_test.dart`. Tes 429 dan timeout poll memakai `pollOnce` dan timeout nyata 3 detik, tanpa sleep panjang.
+- **Alasan:** Tes tetap cepat dan deterministik. Batas 2 detik tetap diuji di satu tempat.
+- **Dampak:** Tes 429 dan timeout tidak membuktikan jadwal polling. Jadwal hanya dibuktikan di tes resume.
+
+## [Integrasi M6] Batas 2 detik dibuktikan sebagai batas atas pada loopback
+
+- **Konteks:** Resume harus kembali normal dalam 2 detik (BR-21). Loopback tidak mencerminkan latensi WiFi.
+- **Keputusan:** Tes mengasersi `elapsed < RBehavior.resumeWait` pada loopback sebagai batas atas. Latensi WiFi nyata diukur di HP.
+- **Alasan:** Loopback memberi hasil yang stabil. Angka di WiFi hanya bisa diukur di perangkat.
+- **Dampak:** Tes lulus belum berarti 2 detik terpenuhi di WiFi. Lihat `docs/todo/waiting.md` bagian M6 (Integrasi).
+
+## [Integrasi M6] 429 tidak di-retry otomatis, kecuali retry mute lama
+
+- **Konteks:** Poll, power, media, dan volume bisa kena 429 dari rate limit agent. Retry otomatis mengirim request lagi dalam jendela pembatasan yang sama.
+- **Keputusan:** 429 tidak di-retry untuk poll, power, media, dan volume. Ini diasersi di tes, bukan perubahan perilaku. Pengecualian: retry mute 1 kali pada 429 (perilaku lama), tercatat di `docs/todo/backlog/integration.md` bagian M6.
+- **Alasan:** Retry langsung memperpanjang pembatasan. Perilaku mute lama dipertahankan sampai ada keputusan.
+- **Dampak:** Perilaku mute bertentangan dengan keputusan ini sampai backlog diputuskan.
+
+## [Integrasi M6] Q12 dibuktikan di agent dan app
+
+- **Konteks:** Setelah `reset-token`, token lama harus ditolak dan app harus masuk pairing ulang. Dua sisi perlu bukti.
+- **Keputusan:** Agent: semua rute menolak token lama dengan 401 (`TestServeAgentResetTokenRejectsAllRoutes`). App: 401 per endpoint memicu `tokenRejected`.
+- **Alasan:** Bukti agent saja tidak menunjukkan app pindah ke pairing ulang. Bukti app saja tidak menunjukkan agent menolak token.
+- **Dampak:** Alur nyata di HP (token lama masuk pairing ulang) belum terbukti dan ada di `docs/todo/waiting.md`.

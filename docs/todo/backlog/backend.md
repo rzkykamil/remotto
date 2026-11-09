@@ -62,6 +62,7 @@ Belum ada temuan.
 - `http.ErrAbortHandler` dicatat sebagai 500 di `Logging`; minor. Sama dengan backlog M0 (`agent/internal/server/middleware.go`).
 - Rate limit khusus endpoint daya belum didefinisikan spec. Sama dengan backlog M4 (`agent/internal/server/ratelimit.go`).
 - `NetworkFilter` mencatat warn per penolakan; pertimbangkan dedupe. Sama dengan backlog M1 (`agent/internal/server/netfilter.go`).
+- `ConfigTokenSource` (`agent/internal/server/auth.go`) memuat ulang config hanya bila mtime atau ukuran berubah. Dua penulisan token berukuran sama dalam satu tick mtime Windows (sekitar 15 ms) bisa terlewat. Tes sudah diberi `bumpConfigMtime` di `run_e2e_test.go`. Pertimbangkan membandingkan isi (hash) saat reload; SARAN, tidak mendesak.
 
 ## Stretch
 
