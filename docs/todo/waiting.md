@@ -455,3 +455,23 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Buka: tab Actions di GitHub, lalu HP.
   Lakukan: unduh artefak `main`, lalu install `remotto.apk`.
   Harusnya: app terbuka normal dan ikonnya benar, termasuk di ukuran kecil.
+
+- [ ] M6 (Frontend): tidak ada polling saat app di background.
+  Buka: app Remotto di HP, lalu tekan tombol home dan buka aplikasi lain.
+  Lakukan: buka `%APPDATA%\Remotto\logs\agent.log` di laptop, lihat baris `request` dengan path status selama 30 detik.
+  Harusnya: tidak ada request status baru selama app di background.
+
+- [ ] M6 (Frontend): kembali ke app setelah di background, S02 muncul dan kontrol tidak bisa ditekan, lalu pulih sekitar 2 detik.
+  Buka: app Remotto di HP, layar Remote.
+  Lakukan: tekan home, tunggu 10 detik, buka lagi app.
+  Harusnya: S02 muncul singkat, tombol kontrol nonaktif, lalu kembali normal dalam sekitar 2 detik (BR-21).
+
+- [ ] M6 (Frontend): saat WiFi laptop mati, app menampilkan offline setelah dua percobaan gagal.
+  Buka: app Remotto di HP, layar Remote.
+  Lakukan: matikan WiFi laptop sebentar saat app terbuka, lalu nyalakan lagi. Jangan mematikan laptop.
+  Harusnya: S10 muncul setelah dua percobaan gagal, lalu S11 saat tersambung lagi.
+
+- [ ] M6 (Frontend): efek kaca berubah solid saat app patah-patah di HP lemah.
+  Buka: app Remotto di HP paling lemah yang kamu punya, layar Remote.
+  Lakukan: buka dan tutup beberapa sheet, lalu scroll.
+  Harusnya: jika patah-patah konsisten, efek kaca berganti ke tampilan solid tanpa crash. Ambang dicek di sini.

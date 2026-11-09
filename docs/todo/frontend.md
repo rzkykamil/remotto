@@ -88,8 +88,8 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 
 ## M6 Ketahanan & Startup
 
-- [ ] Polling berhenti saat background dan langsung jalan saat resume
-- [ ] S02 saat resume dengan batas 2 detik
-- [ ] Konsistensi timeout semua repository
-- [ ] Pemantauan waktu raster untuk `GlassMode`
-- [ ] Unit test siklus hidup
+- [x] Polling berhenti saat background dan langsung jalan saat resume
+- [x] S02 saat resume dengan batas 2 detik
+- [x] Konsistensi timeout semua repository
+- [x] Pemantauan waktu raster untuk `GlassMode`
+- [x] Unit test siklus hidup

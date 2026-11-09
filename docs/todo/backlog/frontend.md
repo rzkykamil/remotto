@@ -39,7 +39,7 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - [x] `HttpMediaRepository` dan `postMedia` ke `POST /api/v1/media/{action}` selesai di Integrasi M2 (endpoint sebenarnya `/media/play-pause|next|prev`). Lihat `[Frontend M2] Repository media mock sebagai default` dan `[Integrasi M2]` di decision-log.
 - [ ] Now playing (judul lagu) di layar Remote; masuk stretch.
 - [ ] Status play asli dari laptop belum ada di API; app menganggap lagu sedang jalan saat dibuka. Lihat `[Frontend M2] Status play, optimistic, dan tap ulang`.
-- [ ] Polling dan lifecycle app untuk dock media (berhenti saat background) dikerjakan di M6.
+- [x] Polling dan lifecycle app untuk dock media (berhenti saat background) dikerjakan di M6. Diselesaikan di Frontend M6: pause dan resume di `RemoteScreen`.
 - [ ] Haptic press tetap berbunyi saat tap diabaikan karena play sedang diproses (perilaku `Pressable` semua tombol). Cek rasanya di `docs/todo/waiting.md` M2; ubah bila terasa mengganggu.
 
 ## M3 Volume
@@ -54,7 +54,7 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - [ ] Semantics increase di 100 atau decrease di 0 tidak membuka mute walau laptop sedang bisu (`volume_controller.dart` `_step` ~333–340). Perlu keputusan produk. SARAN reviewer M3.
 - [ ] `_retrySlider` di `volume_controller.dart` (~288) tidak mengecek dragging dan fase koneksi. SARAN reviewer M3.
 - [ ] Haptic detent untuk tap-lompat slider belum ada (sengaja, tap hanya memindah nilai). Lihat `[Frontend M3] Haptic dikelola controller` di `docs/decision-log.md`. Di luar lingkup M3.
-- [ ] Polling dan lifecycle app (berhenti saat background, lanjut saat kembali) masuk M6. Di luar lingkup M3.
+- [x] Polling dan lifecycle app (berhenti saat background, lanjut saat kembali) masuk M6. Di luar lingkup M3. Diselesaikan di Frontend M6.
 - [ ] `HttpVolumeRepository` dan `volumeRepositoryProvider` asli masuk Integrasi M3. Lihat `[Frontend M3] Fake volume di test/support, provider tanpa default`.
 - [ ] Golden test panel volume belum dibuat; pengecekan terang dan gelap memakai widget test. Di luar lingkup M3.
 - [ ] Ambang layar pendek 700 dp dan `_shortHeight` perlu dicek di HP nyata.
@@ -65,7 +65,7 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - [x] T3/T10 PowerRow di 360 dp: label tombol daya pecah di tengah kata. Diperbaiki di Frontend M4 dengan padding label 4 dp untuk `GlassKeySize.power` (lihat `[Frontend M4] Padding label tombol daya 4 dp`). Ukuran nyata di HP dicek di `docs/todo/waiting.md` bagian M4.
 - [x] T11 SARAN: poll yang sudah berjalan saat Batal dikirim bisa membawa `pending` lama. Diperbaiki di Frontend M4: batal yang berhasil mengisi `_dismissedKey` (lihat `[Frontend M4] Penjaga _dismissedKey dan P11 yang habis`).
 - [ ] T10 Scheduling: tidak ada copy atau tampilan untuk status "mengirim perintah" (3 dtk). Route hitung mundur terbuka tetapi kosong (`CountdownScreen` tidak menggambar apa pun saat `PowerFlowScheduling`), jadi Remote tetap terlihat di belakang dan `PowerRow` nonaktif. Perlu keputusan desain.
-- [ ] S02 saat app dibuka dengan jadwal berjalan: Remote tampil dulu sebelum P13 terpasang, sampai sekitar 2 dtk. Terkait `docs/todo/frontend.md` M6 (S02 dengan batas 2 dtk). SARAN Reviewer M4.
+- [ ] S02 saat app dibuka dengan jadwal berjalan: Remote tampil dulu sebelum P13 terpasang, sampai sekitar 2 dtk. Terkait `docs/todo/frontend.md` M6 (S02 dengan batas 2 dtk). SARAN Reviewer M4. Tampilan S02 selama polling pertama sesuai `design/scope-and-flows.md` baris 51 dan 70, tetapi batas 2 dtk untuk startup belum dibuktikan (M6 hanya menguji resume).
 - [ ] Token ukuran dan warna daya belum ada di `design/tokens.json`: tombol "Nggak jadi" 64 dp, Batal 80 dp, ikon 56 dan 80 dp, handle, `neutralIcon`, `countBg`, `status.danger` dan `onDanger` di `StatusTokens`, `_keyGap` 10, dan `_powerIconSize` 17. Lihat `[Frontend M4] Warna bahaya dari ColorScheme dan status tokens`. SARAN Reviewer M4.
 - [ ] `Pressable` belum punya `focusNode` dan `autofocus`, jadi tombol Batal di hitung mundur belum bisa dipilih dengan keyboard (Enter). SARAN Reviewer M4.
 - [ ] Tombol full-width bersama di `lib/ui/` belum ada: `_SheetButton`, `_ResultButton`, dan tombol countdown masih privat dan mirip satu sama lain. SARAN Reviewer M4.

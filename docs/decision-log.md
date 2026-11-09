@@ -1035,3 +1035,45 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Versi app tidak ditampilkan di layar Pengaturan M5.
 - **Alasan:** Mengikuti desain.
 - **Dampak:** Tidak ada cara melihat versi di app. Bila desain menambahkannya, lihat `docs/todo/backlog/frontend.md` bagian M5.
+
+## [Frontend M6] Basis branch dari team/m5-pengaturan-tema
+
+- **Konteks:** Branch `main` belum ada di remote. Remote hanya punya `team/M0-baseline` sebagai branch dasar, dan `team/m5-pengaturan-tema` berisi M5 (HEAD `466c1a2`).
+- **Keputusan:** `team/m6-ketahanan-startup` dibuat dari `team/m5-pengaturan-tema`.
+- **Alasan:** `main` tidak dibuat sendiri karena push ke `main` memicu build artefak rilis.
+- **Dampak:** Rilis ke `main` perlu keputusan pemilik lewat `/merge-to-main`.
+
+## [Frontend M6] Observer lifecycle ada di RemoteScreen
+
+- **Konteks:** Polling status hanya perlu jalan saat layar Remote terbuka dan app di depan.
+- **Keputusan:** `WidgetsBindingObserver` dipasang di `RemoteScreen`. `paused` dan `detached` memanggil `pause()`, `resumed` memanggil `resume()`. `inactive` dan `hidden` diabaikan.
+- **Alasan:** Shade notifikasi dan dialog sistem hanya membuat `inactive`. Jika ikut dihentikan, S02 palsu muncul setiap kali shade dibuka.
+- **Dampak:** Bukan di `ConnectionController` atau `RemottoApp`. Layar lain yang punya polling harus memasang observer sendiri.
+
+## [Frontend M6] pause() dipisah dari stop()
+
+- **Konteks:** `stop()` juga mereset mode polling cepat. Tanpa pemisahan, resume akan kembali ke interval 5 detik.
+- **Keputusan:** `pause()` menghentikan polling dan mempertahankan `_fast`. `stop()` (Remote ditutup) tetap mereset.
+- **Alasan:** Setelah resume, polling tetap 2 detik seperti sebelum app di background.
+- **Dampak:** Dua jalur berhenti di `ConnectionController`. Tes pause dan resume ada di `connection_controller_test.dart`.
+
+## [Frontend M6] Timeout perintah satu sumber RMotion.commandTimeout
+
+- **Konteks:** Timeout polling dan repository status masing-masing diisi 3 detik secara terpisah dari token.
+- **Keputusan:** Timeout request perintah dan status memakai `RMotion.commandTimeout` (3 detik). Pairing tetap 5 detik lewat `RBehavior.stepTimeout`, aturan terpisah Q08.
+- **Alasan:** Satu sumber mencegah nilai yang menyimpang antar repository.
+- **Dampak:** Mengubah timeout di token mengubah semua perintah sekaligus. Pairing tidak ikut berubah.
+
+## [Frontend M6] VolumeSender retry hanya untuk kegagalan transien
+
+- **Konteks:** Sebelumnya semua kegagalan selain 401 di-retry sekali, termasuk 400, 429, dan 500.
+- **Keputusan:** Hanya `TimeoutFailure`, `UnreachableFailure`, dan `TimeoutException` yang di-retry diam-diam. 429, 403, dan 500 gagal sekali, rollback, lalu toast.
+- **Alasan:** Menghormati `Retry-After` butuh desain copy. Retry 500 berulang menambah beban agent.
+- **Dampak:** Beberapa test volume lama diubah ekspektasinya ke aturan ini. Asersi tidak dilonggarkan. `Retry-After` masih di `docs/todo/backlog/integration.md` bagian M6.
+
+## [Frontend M6] Ambang monitor raster 120 frame dan 90 persen
+
+- **Konteks:** `docs/design-system.md` section 7 hanya menyebut "terlalu lambat secara konsisten" tanpa angka.
+- **Keputusan:** Jendela 120 frame. Frame dihitung lambat bila raster lebih dari 16 ms. Bila minimal 90 persen frame dalam jendela penuh lambat, `slowRasterProvider` menjadi true dan tetap true selama sesi.
+- **Alasan:** 120 frame sekitar 2 detik pada 60 fps, cukup untuk tidak mematikan kaca karena satu lonjakan sesaat.
+- **Dampak:** Angka ini keputusan M6 dan perlu diuji di HP lemah (lihat `docs/todo/waiting.md` bagian M6).
