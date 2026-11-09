@@ -15,6 +15,7 @@ import '../../core/theme/tokens.g.dart';
 import '../../core/toast/toast_controller.dart';
 import '../../ui/glass_panel.dart';
 import '../../ui/status_pill.dart';
+import '../settings/widgets/repair_confirm.dart';
 import 'power/power_flow_host.dart';
 import 'power/power_flow_state.dart';
 import 'power/power_providers.dart';
@@ -86,7 +87,15 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
     );
   }
 
-  void _repair() => context.go(AppRoutes.pairing);
+  /// Pairing ulang dari offline (C08 → C22 → Q01). Nama laptop dari status,
+  /// atau dari data pairing bila status belum ada.
+  void _repair() {
+    final name =
+        ref.read(connectionControllerProvider).status?.name ??
+        ref.read(pairingProvider)?.laptopName ??
+        '';
+    unawaited(runRepairFlow(context, ref, laptopName: name));
+  }
 
   @override
   Widget build(BuildContext context) {
