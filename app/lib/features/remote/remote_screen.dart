@@ -40,7 +40,8 @@ class RemoteScreen extends ConsumerStatefulWidget {
   ConsumerState<RemoteScreen> createState() => _RemoteScreenState();
 }
 
-class _RemoteScreenState extends ConsumerState<RemoteScreen> {
+class _RemoteScreenState extends ConsumerState<RemoteScreen>
+    with WidgetsBindingObserver {
   // Stored in initState so dispose does not use `ref`.
   late final ConnectionController _connection;
   late final ToastBottomInset _toastInset;
@@ -51,6 +52,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
     super.initState();
     _connection = ref.read(connectionControllerProvider.notifier);
     _toastInset = ref.read(toastBottomInsetProvider.notifier);
+    WidgetsBinding.instance.addObserver(this);
     // start() changes a provider; Riverpod forbids that in initState. Run
     // after the first frame. If the screen was already closed, nothing starts.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -60,12 +62,30 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connection.stop();
     // dispose runs during the tree update, where Riverpod rejects provider
     // changes. The reset runs right after it.
     final toastInset = _toastInset;
     Future.microtask(() => toastInset.set(0));
     super.dispose();
+  }
+
+  /// Polling stops in the background (FR-6.6) and restarts on return. inactive
+  /// and hidden are ignored: a notification shade or system dialog must not
+  /// stop polling.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _connection.pause();
+      case AppLifecycleState.resumed:
+        _connection.resume();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        break;
+    }
   }
 
   /// Lifts toasts above the dock. Changing a provider is not allowed during

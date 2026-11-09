@@ -677,4 +677,224 @@ void main() {
       expect(h.state.status, isNull);
     });
   });
+
+  group('pause dan resume (FR-6.6, BR-21)', () {
+    test('pause membatalkan jadwal dan poll yang sedang jalan', () async {
+      final repo = _ManualRepository();
+      final h = _harness(repo);
+
+      h.ctrl.start();
+      await h.settle();
+      expect(repo.requests, hasLength(1));
+
+      h.ctrl.pause();
+      expect(h.sched.periodicJob, isNull);
+      expect(h.sched.hasLiveOnce(RBehavior.resumeWait), isFalse);
+
+      // The late reply from the paused poll is ignored.
+      repo.requests.single.complete(
+        const AgentStatus(
+          name: 'Laptop-Kamil',
+          version: '1.0.0',
+          uptimeSeconds: 10,
+          volume: null,
+          pending: null,
+        ),
+      );
+      await h.settle();
+      expect(h.phase, ConnectionPhase.connecting);
+      expect(h.state.status, isNull);
+    });
+
+    test('pause lalu resume menjaga polling cepat tetap aktif', () async {
+      final h = _harness(FakeStatusRepository([_ok()]));
+      await h.start();
+      h.ctrl.setFastPoll(enabled: true);
+      expect(h.sched.periodicJob?.delay, RBehavior.fastPoll);
+
+      h.ctrl.pause();
+      expect(h.sched.periodicJob, isNull);
+
+      h.ctrl.resume();
+      await h.settle();
+      expect(h.sched.periodicJob?.delay, RBehavior.fastPoll);
+    });
+
+    test(
+      'resume dari Online: Connecting dan poll pertama 2 detik (BR-21)',
+      () async {
+        final repo = _ManualRepository();
+        final h = _harness(repo);
+
+        h.ctrl.start();
+        await h.settle();
+        repo.requests.single.complete(
+          const AgentStatus(
+            name: 'Laptop-Kamil',
+            version: '1.0.0',
+            uptimeSeconds: 10,
+            volume: null,
+            pending: null,
+          ),
+        );
+        await h.settle();
+        expect(h.phase, ConnectionPhase.online);
+
+        h.ctrl.pause();
+        h.ctrl.resume();
+        await h.settle();
+
+        expect(h.phase, ConnectionPhase.connecting);
+        expect(repo.requests, hasLength(2));
+        expect(h.sched.hasLiveOnce(RBehavior.resumeWait), isTrue);
+      },
+    );
+
+    test(
+      'resume dari Offline: Connecting dan poll pertama 2 detik (BR-21)',
+      () async {
+        final repo = _ManualRepository();
+        final h = _harness(repo);
+
+        h.ctrl.start();
+        await h.settle();
+        repo.requests.last.completeError(const UnreachableFailure());
+        await h.settle();
+        await h.tick();
+        repo.requests.last.completeError(const UnreachableFailure());
+        await h.settle();
+        expect(h.phase, ConnectionPhase.offline);
+
+        h.ctrl.pause();
+        h.ctrl.resume();
+        await h.settle();
+
+        expect(h.phase, ConnectionPhase.connecting);
+        expect(repo.requests, hasLength(3));
+        expect(h.sched.hasLiveOnce(RBehavior.resumeWait), isTrue);
+      },
+    );
+
+    test(
+      'resume dari PoweredOff: Connecting dan poll pertama 2 detik (BR-21)',
+      () async {
+        final repo = _ManualRepository();
+        final h = _harness(repo);
+        h.container
+            .read(lastPowerCommandProvider.notifier)
+            .record(
+              LastPowerCommand(
+                action: 'shutdown',
+                sentAt: h.clock.now.subtract(const Duration(minutes: 1)),
+              ),
+            );
+
+        h.ctrl.start();
+        await h.settle();
+        repo.requests.last.completeError(const UnreachableFailure());
+        await h.settle();
+        await h.tick();
+        repo.requests.last.completeError(const UnreachableFailure());
+        await h.settle();
+        expect(h.phase, ConnectionPhase.poweredOff);
+
+        h.ctrl.pause();
+        h.ctrl.resume();
+        await h.settle();
+
+        expect(h.phase, ConnectionPhase.connecting);
+        expect(repo.requests, hasLength(3));
+        expect(h.sched.hasLiveOnce(RBehavior.resumeWait), isTrue);
+      },
+    );
+
+    test('resume dari Online: poll pertama habis waktu tetap Connecting, poll kedua gagal jadi Offline (FR-6.6, BR-21)', () async {
+      final repo = _ManualRepository();
+      final h = _harness(repo);
+
+      h.ctrl.start();
+      await h.settle();
+      repo.requests.single.complete(
+        const AgentStatus(
+          name: 'Laptop-Kamil',
+          version: '1.0.0',
+          uptimeSeconds: 10,
+          volume: null,
+          pending: null,
+        ),
+      );
+      await h.settle();
+      expect(h.phase, ConnectionPhase.online);
+
+      h.ctrl.pause();
+      h.ctrl.resume();
+      await h.settle();
+      expect(h.phase, ConnectionPhase.connecting);
+
+      // Poll pertama habis waktu 2 detik: satu kegagalan, masih Connecting.
+      h.sched.fireOnce(RBehavior.resumeWait);
+      await h.settle();
+      expect(h.phase, ConnectionPhase.connecting);
+
+      // Poll kedua gagal: dua kegagalan berturut, jadi Offline.
+      await h.tick();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await h.settle();
+      expect(h.phase, ConnectionPhase.offline);
+    });
+
+    test('resume dari PoweredOff: dua poll gagal kembali PoweredOff selama perintah daya masih berlaku (FR-6.6, P15)', () async {
+      final repo = _ManualRepository();
+      final h = _harness(repo);
+      h.container
+          .read(lastPowerCommandProvider.notifier)
+          .record(
+            LastPowerCommand(
+              action: 'shutdown',
+              sentAt: h.clock.now.subtract(const Duration(minutes: 1)),
+            ),
+          );
+
+      h.ctrl.start();
+      await h.settle();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await h.settle();
+      await h.tick();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await h.settle();
+      expect(h.phase, ConnectionPhase.poweredOff);
+
+      h.ctrl.pause();
+      h.ctrl.resume();
+      await h.settle();
+      expect(h.phase, ConnectionPhase.connecting);
+
+      // Poll pertama habis waktu: masih Connecting.
+      h.sched.fireOnce(RBehavior.resumeWait);
+      await h.settle();
+      expect(h.phase, ConnectionPhase.connecting);
+
+      // Poll kedua gagal: kembali PoweredOff karena perintah daya kurang dari 10 menit.
+      await h.tick();
+      repo.requests.last.completeError(const UnreachableFailure());
+      await h.settle();
+      expect(h.phase, ConnectionPhase.poweredOff);
+    });
+
+    test('resume saat TokenRejected tidak melakukan apa-apa (BR-9)', () async {
+      final repo = FakeStatusRepository([fakeErrorReply(401, 'invalid_token')]);
+      final h = _harness(repo);
+      await h.start();
+      expect(h.phase, ConnectionPhase.tokenRejected);
+
+      final callsBefore = repo.calls;
+      h.ctrl.resume();
+      await h.settle();
+
+      expect(h.phase, ConnectionPhase.tokenRejected);
+      expect(repo.calls, callsBefore);
+      expect(h.sched.periodicJob, isNull);
+      expect(h.sched.hasLiveOnce(RBehavior.resumeWait), isFalse);
+    });
+  });
 }

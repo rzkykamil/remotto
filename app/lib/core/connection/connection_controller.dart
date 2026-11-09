@@ -59,8 +59,9 @@ final class _InFlightPoll {
 /// Non-autoDispose: state survives screen changes. [start] and [stop]
 /// are called from SCR-010.
 final class ConnectionController extends Notifier<ConnectionState> {
-  /// Regular polling (technical-spec §5). 3 second timeout.
-  static const Duration _pollTimeout = Duration(seconds: 3);
+  /// Timeout for a regular poll. Source: `RMotion.commandTimeout` from
+  /// `design/tokens.json` (technical-spec §6).
+  static const Duration _pollTimeout = RMotion.commandTimeout;
 
   late StatusRepository _repository;
   late PollScheduler _scheduler;
@@ -98,6 +99,18 @@ final class ConnectionController extends Notifier<ConnectionState> {
   void stop() {
     _fast = false;
     _halt();
+  }
+
+  /// Stop polling while the app is in the background (FR-6.6). Unlike [stop],
+  /// the fast poll flag is kept, so [resume] restores the same interval.
+  /// The phase is not changed.
+  void pause() => _halt();
+
+  /// Poll again after the app returns to the foreground (FR-6.6, BR-21).
+  /// Does nothing while the token is rejected; the router handles that state.
+  void resume() {
+    if (state.phase == ConnectionPhase.tokenRejected) return;
+    start();
   }
 
   /// One manual poll, e.g. the "Coba lagi" button. Waits for the poll in
