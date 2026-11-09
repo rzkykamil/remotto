@@ -2,7 +2,7 @@ $kind: http-request
 name: Set Mute
 method: POST
 url: "{{baseUrl}}/volume/mute"
-description: "Mengatur mute secara eksplisit. Idempoten."
+description: "Mengatur mute secara eksplisit: true untuk mute, false untuk unmute. Bukan toggle. Level tidak berubah. Idempoten, aman di-retry. Respons 200 berisi Volume terbaru. Body tanpa field muted yang boolean, body rusak, atau Content-Type salah: 400 invalid_request. Gagal dengan 500 audio_failed."
 order: 5000
 headers:
   Authorization: Bearer {{token}}

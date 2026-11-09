@@ -2,7 +2,7 @@ $kind: http-request
 name: Set Volume
 method: PUT
 url: "{{baseUrl}}/volume"
-description: "Mengubah level 0-100 dan mematikan mute. Idempoten. Di luar rentang menghasilkan 400."
+description: "Mengatur level ke nilai 0-100 (BR-3) dan mematikan mute (BR-15). Idempoten, aman di-retry 1 kali. Respons 200 berisi Volume terbaru. Nilai di luar rentang atau bukan bilangan bulat ditolak 400 invalid_level dan tidak di-clamp. Body tanpa field level, body rusak, atau Content-Type salah: 400 invalid_request. Gagal dengan 500 audio_failed."
 order: 2000
 headers:
   Authorization: Bearer {{token}}

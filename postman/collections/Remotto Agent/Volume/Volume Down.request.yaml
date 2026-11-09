@@ -2,7 +2,7 @@ $kind: http-request
 name: Volume Down
 method: POST
 url: "{{baseUrl}}/volume/down"
-description: "Turun 5 poin dan mematikan mute. Tidak idempoten."
+description: "Turun 5 poin dan mematikan mute (BR-16, BR-15). Tanpa body. Di batas 0 nilai tetap 0 dan respons tetap 200. Respons 200 berisi Volume terbaru. Gagal dengan 500 audio_failed; detail OS tidak dikirim ke app. Tidak idempoten: jangan di-retry otomatis."
 order: 4000
 headers:
   Authorization: Bearer {{token}}

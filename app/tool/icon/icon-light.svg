@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Ikon app Remotto, terang">
+<defs>
+<radialGradient id="lA" cx="0.86" cy="0.12" r="0.75"><stop offset="0" stop-color="#FF6A2B" stop-opacity="0.34"/><stop offset="1" stop-color="#FF6A2B" stop-opacity="0"/></radialGradient>
+<radialGradient id="lB" cx="0.1" cy="0.95" r="0.7"><stop offset="0" stop-color="#FFAA5A" stop-opacity="0.45"/><stop offset="1" stop-color="#FFAA5A" stop-opacity="0"/></radialGradient>
+<linearGradient id="lG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.75"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.40"/></linearGradient>
+<linearGradient id="lO" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9160"/><stop offset="1" stop-color="#FF6A2B"/></linearGradient>
+</defs>
+<rect width="1024" height="1024" fill="#EDE7DF"/><rect width="1024" height="1024" fill="url(#lA)"/><rect width="1024" height="1024" fill="url(#lB)"/>
+<rect x="352" y="168" width="320" height="688" rx="160" fill="url(#lG)" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="6"/>
+<circle cx="512" cy="330" r="34" fill="#1C1A17" fill-opacity="0.10"/>
+<circle cx="512" cy="440" r="34" fill="#1C1A17" fill-opacity="0.10"/>
+<circle cx="512" cy="672" r="120" fill="url(#lO)"/>
+<path d="M452 612 A120 120 0 0 1 572 612" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="6" stroke-linecap="round"/>
+<path d="M488 624 V720 a8 8 0 0 0 12 7 L572 680 a8 8 0 0 0 0 -16 L500 617 a8 8 0 0 0 -12 7 Z" fill="#1C1A17"/>
+</svg>

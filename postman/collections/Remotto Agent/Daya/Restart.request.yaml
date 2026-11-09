@@ -2,7 +2,7 @@ $kind: http-request
 name: Restart
 method: POST
 url: "{{baseUrl}}/power/restart"
-description: "PERINGATAN: akan benar-benar me-restart laptop setelah 5 detik, panggil Cancel untuk batal."
+description: "PERINGATAN: akan BENAR-BENAR me-restart laptop setelah 5 detik. Panggil Cancel untuk batal. Jangan di-retry otomatis. Tidak idempoten. Respons 202 berisi pending (action, remainingMs, delayMs, scheduledAt). 409 power_pending kalau sudah ada jadwal; jadwal lama tidak berubah. 500 power_failed kalau penjadwalan gagal. Kegagalan OS setelah jeda tidak dibalas lewat request ini."
 order: 2000
 headers:
   Authorization: Bearer {{token}}

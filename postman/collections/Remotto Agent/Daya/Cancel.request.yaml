@@ -2,7 +2,7 @@ $kind: http-request
 name: Cancel
 method: POST
 url: "{{baseUrl}}/power/cancel"
-description: "Membatalkan jadwal daya aktif. 409 kalau tidak ada jadwal atau sudah dieksekusi."
+description: "PERINGATAN: membatalkan jadwal daya aktif. Kalau perintah sudah dieksekusi, Cancel ditolak 409 power_executing. Tanpa body. Respons 200 berisi cancelled (aksi yang dibatalkan) dan pending null. 409 no_pending_power kalau tidak ada jadwal. Idempoten dari sisi efek, aman di-retry."
 order: 4000
 headers:
   Authorization: Bearer {{token}}

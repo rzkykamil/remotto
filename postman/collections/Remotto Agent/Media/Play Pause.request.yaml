@@ -2,7 +2,7 @@ $kind: http-request
 name: Play Pause
 method: POST
 url: "{{baseUrl}}/media/play-pause"
-description: "Mengirim media key play/pause ke sesi media aktif Windows. Tidak idempoten. Gagal saat layar terkunci."
+description: "Mengirim media key play/pause ke sesi media aktif Windows. Tanpa body. Respons 200 berisi {\"data\": {\"action\": \"play-pause\"}}. Gagal dengan 500 media_failed, misalnya saat layar terkunci. Tidak idempoten; app tidak boleh mengulang otomatis."
 order: 1000
 headers:
   Authorization: Bearer {{token}}

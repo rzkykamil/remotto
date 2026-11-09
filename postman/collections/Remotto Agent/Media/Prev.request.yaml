@@ -2,7 +2,7 @@ $kind: http-request
 name: Prev
 method: POST
 url: "{{baseUrl}}/media/prev"
-description: "Pindah ke lagu sebelumnya. Tidak idempoten."
+description: "Pindah ke lagu sebelumnya di sesi media aktif Windows. Tanpa body. Respons 200 berisi {\"data\": {\"action\": \"prev\"}}. Gagal dengan 500 media_failed, misalnya saat layar terkunci. Tidak idempoten; app tidak boleh mengulang otomatis."
 order: 3000
 headers:
   Authorization: Bearer {{token}}

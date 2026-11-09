@@ -2,7 +2,7 @@ $kind: http-request
 name: Get Volume
 method: GET
 url: "{{baseUrl}}/volume"
-description: "Membaca level dan status mute."
+description: "Membaca level dan status mute. Idempoten. Respons 200 berisi {\"data\": {\"level\": 35, \"muted\": false}}. Gagal dengan 500 audio_failed saat Core Audio tidak bisa dibaca; detail OS tidak dikirim ke app."
 order: 1000
 headers:
   Authorization: Bearer {{token}}

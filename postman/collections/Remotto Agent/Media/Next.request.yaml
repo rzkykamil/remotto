@@ -2,7 +2,7 @@ $kind: http-request
 name: Next
 method: POST
 url: "{{baseUrl}}/media/next"
-description: "Pindah ke lagu berikutnya. Tidak idempoten."
+description: "Pindah ke lagu berikutnya di sesi media aktif Windows. Tanpa body. Respons 200 berisi {\"data\": {\"action\": \"next\"}}. Gagal dengan 500 media_failed, misalnya saat layar terkunci. Tidak idempoten; app tidak boleh mengulang otomatis."
 order: 2000
 headers:
   Authorization: Bearer {{token}}
