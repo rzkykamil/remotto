@@ -19,6 +19,9 @@ enum GlassPanelVariant {
 
   /// Toast: radius `sm`, isi `glass.toast`, blur `sheet`, tanpa saturasi.
   toast,
+
+  /// Grup Pengaturan (C19): radius `md`, isi `glass.fill`, blur `glass`.
+  group,
 }
 
 /// Bayangan luar kaca. Bukan token: nilainya dari `Remote-360-dark.dc.html`
@@ -121,6 +124,7 @@ class GlassPanel extends ConsumerWidget {
     GlassPanelVariant.dock => RRadius.full,
     GlassPanelVariant.pill => RRadius.full,
     GlassPanelVariant.toast => RRadius.sm,
+    GlassPanelVariant.group => RRadius.md,
   };
 
   /// Blur dibagi dua untuk sigma (`design-system.md` section 9).

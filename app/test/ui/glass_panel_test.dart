@@ -54,6 +54,7 @@ void main() {
       GlassPanelVariant.dock: RRadius.full,
       GlassPanelVariant.pill: RRadius.full,
       GlassPanelVariant.toast: RRadius.sm,
+      GlassPanelVariant.group: RRadius.md,
     };
     for (final entry in expected.entries) {
       await pumpApp(tester, GlassPanel(variant: entry.key, child: _child));

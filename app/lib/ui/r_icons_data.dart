@@ -5,6 +5,9 @@ import 'r_icon.dart';
 abstract final class RIcons {
   static const back = RIconData(['m15 18-6-6 6-6']);
 
+  /// Chevron baris navigasi Pengaturan (`Settings-light.dc.html`).
+  static const chevronRight = RIconData(['m9 18 6-6-6-6']);
+
   static const flashlight = RIconData([
     'M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12z',
     'M6 6h12',
