@@ -371,6 +371,64 @@ void main() {
     });
   });
 
+  group('rate limited (429)', () {
+    test('429 on schedule: PowerNotScheduled, exactly one request, phase unchanged, no retry', () async {
+      boot();
+      final phaseBefore = phase();
+      server.mode = FakeAgentMode.rateLimited;
+
+      await flow().begin(PowerAction.sleep);
+
+      final notScheduled = result();
+      expect(notScheduled, isA<PowerNotScheduled>());
+      expect((notScheduled as PowerNotScheduled).action, PowerAction.sleep);
+      expect(server.requests, 1, reason: 'no /status read and no retry');
+      expect(server.powerPaths, [sleepPath]);
+      expect(server.pending, isNull);
+      expect(lastCommand(), isNull);
+      expect(
+        phase(),
+        phaseBefore,
+        reason: 'a 429 does not change the connection',
+      );
+      expect(sink.calls, contains('vibrate'));
+    });
+
+    test('429 on cancel: cancelFailed countdown continues, one cancel until the user repeats it', () async {
+      boot();
+      await flow().begin(PowerAction.shutdown);
+      server.mode = FakeAgentMode.rateLimited;
+      final before = server.requests;
+
+      await flow().cancel();
+
+      final state = counting();
+      expect(state.cancelFailed, isTrue);
+      expect(state.remaining, 5);
+      expect(server.requests - before, 1, reason: 'one cancel, no retry');
+      expect(server.powerPaths, [shutdownPath, cancelPath]);
+      expect(
+        server.pending,
+        isNotNull,
+        reason: 'the laptop still has the schedule',
+      );
+
+      tick(2);
+      expect(counting().remaining, 3);
+      expect(server.powerPaths, [
+        shutdownPath,
+        cancelPath,
+      ], reason: 'no automatic retry');
+
+      server.mode = FakeAgentMode.ok;
+      await flow().cancel();
+
+      expect(result(), isA<PowerCancelled>());
+      expect(server.powerPaths, [shutdownPath, cancelPath, cancelPath]);
+      expect(server.pending, isNull);
+    });
+  });
+
   test('/status with pending is parsed by the HTTP repository and resumes counting', () async {
     boot();
     server.pending = const FakePending(

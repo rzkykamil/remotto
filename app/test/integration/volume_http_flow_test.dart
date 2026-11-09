@@ -176,7 +176,7 @@ void main() {
   test('PUT gagal 500: toast volume gagal, rollback ke 35', () async {
     boot();
     await connect();
-    server.failNextVolumeRequests = 2;
+    server.failNextVolumeRequests = 1;
 
     vctrl()
       ..dragStart(60)
