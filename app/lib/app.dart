@@ -6,6 +6,8 @@ import 'core/router/app_router.dart';
 import 'core/strings/strings.dart';
 import 'core/storage/storage_providers.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/reduce_transparency_channel.dart';
+import 'core/theme/tokens.g.dart';
 import 'ui/light_backdrop.dart';
 import 'ui/toast_host.dart';
 
@@ -15,12 +17,24 @@ class RemottoApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Sumber reduce transparency dipasang sekali; nilainya tidak dipakai di sini.
+    ref.watch(reduceTransparencyBootstrapProvider);
+    // MaterialApp ada di bawah context ini, jadi MediaQuery belum tersedia.
+    // Membaca flag OS yang sama dengan MediaQuery.disableAnimations.
+    final disableAnimations = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations;
     return MaterialApp.router(
       routerConfig: ref.watch(routerProvider),
       title: AppStrings.appName,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ref.watch(themeModeProvider),
+      // Crossfade tema 200 ms (C20); instan bila reduced motion aktif.
+      themeAnimationDuration: disableAnimations ? Duration.zero : RMotion.toast,
+      themeAnimationCurve: Curves.easeOut,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         // Status bar dan navigation bar transparan; ikon mengikuti tema.

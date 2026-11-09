@@ -13,7 +13,7 @@ import 'package:remotto/core/router/app_router.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/strings/pairing_strings.dart';
-import 'package:remotto/core/strings/strings.dart';
+import 'package:remotto/core/strings/settings_strings.dart';
 import 'package:remotto/features/pairing/data/camera_permission_service.dart';
 import 'package:remotto/features/pairing/data/pairing_repository.dart';
 import 'package:remotto/features/pairing/domain/pairing_target.dart';
@@ -273,7 +273,7 @@ void main() {
           .path,
       AppRoutes.remote,
     );
-    expect(find.text(AppStrings.placeholderSettings), findsNothing);
+    expect(find.text(SettingsStrings.title), findsNothing);
   });
 
   group('alur pairing penuh (Q01 -> Q09 -> /remote)', () {

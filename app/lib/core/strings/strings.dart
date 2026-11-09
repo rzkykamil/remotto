@@ -7,7 +7,4 @@ abstract final class AppStrings {
 
   // TODO(M2): replace placeholder with artboard copy.
   static const placeholderRemote = 'Remote';
-
-  // TODO(M5): replace placeholder with artboard copy.
-  static const placeholderSettings = 'Pengaturan';
 }

@@ -15,7 +15,7 @@ import 'package:remotto/core/router/app_router.dart';
 import 'package:remotto/core/storage/connection_storage.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
-import 'package:remotto/core/strings/strings.dart';
+import 'package:remotto/core/strings/settings_strings.dart';
 import 'package:remotto/features/pairing/state/pairing_flow_controller.dart';
 import 'package:remotto/features/pairing/state/pairing_flow_state.dart';
 import 'package:remotto/features/remote/power/power_providers.dart';
@@ -181,12 +181,12 @@ void main() {
     // push does not update currentConfiguration, so check the screen shown.
     unawaited(router.push(AppRoutes.settings));
     await tester.pumpAndSettle();
-    expect(find.text(AppStrings.placeholderSettings), findsOneWidget);
+    expect(find.text(SettingsStrings.title), findsOneWidget);
     expect(router.canPop(), isTrue);
 
     router.pop();
     await tester.pumpAndSettle();
-    expect(find.text(AppStrings.placeholderSettings), findsNothing);
+    expect(find.text(SettingsStrings.title), findsNothing);
     expect(find.byType(RemoteScreen), findsOneWidget);
     expect(router.canPop(), isFalse);
   });
@@ -294,7 +294,7 @@ void main() {
     unawaited(container.read(routerProvider).push(AppRoutes.settings));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
-    final finder = find.text(AppStrings.placeholderSettings);
+    final finder = find.text(SettingsStrings.title);
     final during = tester.getTopLeft(finder).dy;
     await tester.pumpAndSettle();
     return (during, tester.getTopLeft(finder).dy);
