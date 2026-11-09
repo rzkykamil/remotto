@@ -42,6 +42,17 @@ func writeRunConfig(t *testing.T, path string, port int, token string) {
 	}
 }
 
+// bumpConfigMtime moves the config mtime 2 seconds ahead. Two writes of
+// same-length tokens can share one file-time tick on Windows, so this
+// guarantees the agent's stat-based reload sees the change.
+func bumpConfigMtime(t *testing.T, path string) {
+	t.Helper()
+	now := time.Now().Add(2 * time.Second)
+	if err := os.Chtimes(path, now, now); err != nil {
+		t.Fatalf("chtimes config: %v", err)
+	}
+}
+
 // freePort returns a loopback TCP port that was free a moment ago.
 func freePort(t *testing.T) int {
 	t.Helper()
@@ -297,6 +308,7 @@ func TestBR10_ServeAgentTokenResetWithoutRestart(t *testing.T) {
 
 	const newToken = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
 	writeRunConfig(t, cfgPath, 8765, newToken)
+	bumpConfigMtime(t, cfgPath)
 
 	if code, _ := getStatus(t, base, e2eToken); code != http.StatusUnauthorized {
 		t.Errorf("old token after reset = %d, want 401", code)
@@ -492,6 +504,7 @@ func TestServeAgentMediaWithFakeOS(t *testing.T) {
 	t.Run("old token is rejected after reset without restart (BR-10)", func(t *testing.T) {
 		const newToken = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
 		writeRunConfig(t, cfgPath, 8765, newToken)
+		bumpConfigMtime(t, cfgPath)
 		before := len(media.Calls())
 		if code, _ := postMedia(t, base, "play-pause", e2eToken); code != http.StatusUnauthorized {
 			t.Errorf("old token status = %d, want 401", code)
@@ -809,4 +822,183 @@ func TestServeAgentRateLimitWithFakeOS(t *testing.T) {
 			}
 		}
 	})
+}
+
+// wrongToken is a well-formed token that is not the configured one.
+const wrongToken = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+
+// apiReply is one API response with the parts the envelope tests check.
+type apiReply struct {
+	status      int
+	contentType string
+	retryAfter  string
+	body        map[string]any
+}
+
+// apiCall sends method to base+/api/v1+path with the bearer token (an empty
+// token sends no Authorization header) and an optional JSON body.
+func apiCall(t *testing.T, base, method, path, token, body string) apiReply {
+	t.Helper()
+	var reader io.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	}
+	req, err := http.NewRequest(method, base+"/api/v1"+path, reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, path, err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatalf("%s %s: body is not JSON: %v", method, path, err)
+	}
+	return apiReply{
+		status:      resp.StatusCode,
+		contentType: resp.Header.Get("Content-Type"),
+		retryAfter:  resp.Header.Get("Retry-After"),
+		body:        out,
+	}
+}
+
+// exhaustBurst sends GET /status with the good token until the bucket answers
+// 429. It fails if that does not happen within 100 requests.
+func exhaustBurst(t *testing.T, base string) {
+	t.Helper()
+	for i := 0; i < 100; i++ {
+		if code, _ := statusResponse(t, base, e2eToken); code == http.StatusTooManyRequests {
+			return
+		}
+	}
+	t.Fatal("bucket did not run out within 100 requests")
+}
+
+// requireRateLimited checks one 429 reply: JSON content type, error.code
+// rate_limited, and an integer Retry-After of at least 1.
+func requireRateLimited(t *testing.T, name string, r apiReply) {
+	t.Helper()
+	if r.status != http.StatusTooManyRequests {
+		t.Fatalf("%s status = %d, want 429", name, r.status)
+	}
+	if !strings.HasPrefix(r.contentType, "application/json") {
+		t.Errorf("%s Content-Type = %q, want application/json", name, r.contentType)
+	}
+	if code := errorCode(t, r.body); code != server.CodeRateLimited {
+		t.Errorf("%s error.code = %q, want %q", name, code, server.CodeRateLimited)
+	}
+	if n, err := strconv.Atoi(r.retryAfter); err != nil || n < 1 {
+		t.Errorf("%s Retry-After = %q, want integer >= 1", name, r.retryAfter)
+	}
+}
+
+// TestServeAgentRateLimitEnvelopeAllRoutes checks that every route answers the
+// rate limit with the same 429 envelope. The rate limit runs before auth, so the
+// bad-token subtest also gets 429 once the bucket is empty.
+func TestServeAgentRateLimitEnvelopeAllRoutes(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, 8765, e2eToken)
+	cfg, _, err := loadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfigFile: %v", err)
+	}
+	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: fake.NewAudio(0, false)}
+
+	t.Run("every route gets 429 envelope with valid token", func(t *testing.T) {
+		base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, &fake.Power{})
+		defer stop()
+		exhaustBurst(t, base)
+
+		// Route paths and bodies follow docs/api-spec.md. The spec has no
+		// /power/schedule; its schedule endpoints are /power/sleep, /restart and
+		// /shutdown, so /power/shutdown is used here.
+		routes := []struct {
+			name, method, path, body string
+		}{
+			{"media play-pause", http.MethodPost, "/media/play-pause", ""},
+			{"volume set", http.MethodPut, "/volume", `{"level":35}`},
+			{"power shutdown", http.MethodPost, "/power/shutdown", ""},
+			{"status", http.MethodGet, "/status", ""},
+		}
+		for _, rt := range routes {
+			r := apiCall(t, base, rt.method, rt.path, e2eToken, rt.body)
+			requireRateLimited(t, rt.name, r)
+		}
+	})
+
+	t.Run("no token or wrong token gets 429 when bucket is empty", func(t *testing.T) {
+		base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, &fake.Power{})
+		defer stop()
+
+		// Before the burst is spent, a wrong token must reach auth and get 401.
+		// This shows the 429 below comes from the rate limit, not from auth.
+		if r := apiCall(t, base, http.MethodGet, "/status", wrongToken, ""); r.status != http.StatusUnauthorized {
+			t.Fatalf("wrong token with bucket full = %d, want 401", r.status)
+		}
+		exhaustBurst(t, base)
+
+		requireRateLimited(t, "no token", apiCall(t, base, http.MethodGet, "/status", "", ""))
+		requireRateLimited(t, "wrong token", apiCall(t, base, http.MethodGet, "/status", wrongToken, ""))
+	})
+}
+
+// TestServeAgentResetTokenRejectsAllRoutes checks that after a token reset the
+// old token gets 401 invalid_token on every kind of route, and the new token
+// works. The reset uses the same config write as TestBR10.
+func TestServeAgentResetTokenRejectsAllRoutes(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, 8765, e2eToken)
+	cfg, _, err := loadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("loadConfigFile: %v", err)
+	}
+	status := server.StatusDeps{Name: "x", Version: "test", StartedAt: time.Now(), Audio: fake.NewAudio(0, false)}
+	power := &fake.Power{}
+	base, stop := startAgentWith(t, cfgPath, cfg, status, &fake.Media{}, power)
+	defer stop()
+
+	if code, _ := getStatus(t, base, e2eToken); code != http.StatusOK {
+		t.Fatalf("old token before reset = %d, want 200", code)
+	}
+
+	const newToken = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+	writeRunConfig(t, cfgPath, 8765, newToken)
+	bumpConfigMtime(t, cfgPath)
+
+	oldRoutes := []struct {
+		name, method, path, body string
+	}{
+		{"status", http.MethodGet, "/status", ""},
+		{"media play-pause", http.MethodPost, "/media/play-pause", ""},
+		{"volume set", http.MethodPut, "/volume", `{"level":35}`},
+		// Spec path for schedule, see the note in the rate limit test.
+		{"power shutdown", http.MethodPost, "/power/shutdown", ""},
+	}
+	for _, rt := range oldRoutes {
+		t.Run("old token rejected on "+rt.name, func(t *testing.T) {
+			r := apiCall(t, base, rt.method, rt.path, e2eToken, rt.body)
+			if r.status != http.StatusUnauthorized {
+				t.Fatalf("status = %d, want 401", r.status)
+			}
+			if code := errorCode(t, r.body); code != server.CodeInvalidToken {
+				t.Errorf("error.code = %q, want %q", code, server.CodeInvalidToken)
+			}
+		})
+	}
+
+	if code, _ := getStatus(t, base, newToken); code != http.StatusOK {
+		t.Errorf("new token after reset = %d, want 200", code)
+	}
+	if got := power.Calls(); len(got) != 0 {
+		t.Errorf("power calls = %v, want none: rejected requests must not schedule power", got)
+	}
 }
