@@ -17,12 +17,19 @@ import (
 
 // Options configures New.
 type Options struct {
-	Level   string    // debug|info|warn|error; empty means info
-	File    string    // full path of the log file; empty means no file
-	Console io.Writer // nil means no console output
+	Level    string    // debug|info|warn|error; empty means info
+	File     string    // full path of the log file; empty means no file
+	Console  io.Writer // nil means no console output
+	MaxBytes int64     // rotate the file before it exceeds this size; zero means 5 MiB
+	Backups  int       // number of rotated files kept (path.1..path.N); zero means 3
 }
 
-const redacted = "[redacted]"
+const (
+	redacted = "[redacted]"
+
+	defaultMaxBytes int64 = 5 << 20
+	defaultBackups        = 3
+)
 
 // sensitiveKeys lists attribute keys whose values are never written.
 var sensitiveKeys = []string{"token", "authorization", "password"}
@@ -63,12 +70,20 @@ func New(opts Options) (*slog.Logger, io.Closer, error) {
 		if err := os.MkdirAll(filepath.Dir(opts.File), 0o700); err != nil {
 			return nil, nil, fmt.Errorf("logging: create log directory: %w", err)
 		}
-		f, err := os.OpenFile(opts.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+		maxBytes := opts.MaxBytes
+		if maxBytes <= 0 {
+			maxBytes = defaultMaxBytes
+		}
+		backups := opts.Backups
+		if backups <= 0 {
+			backups = defaultBackups
+		}
+		rf, err := openRotating(opts.File, maxBytes, backups)
 		if err != nil {
 			return nil, nil, fmt.Errorf("logging: open log file: %w", err)
 		}
-		writers = append(writers, f)
-		closer = f
+		writers = append(writers, rf)
+		closer = rf
 	}
 	if opts.Console != nil {
 		writers = append(writers, opts.Console)
