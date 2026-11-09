@@ -118,7 +118,7 @@ func (d *fakeDevice) snapshot() (opens, closes int) {
 func newTestAudio(t *testing.T, d *fakeDevice) *Audio {
 	t.Helper()
 	a := newAudioWith(d.factory)
-	t.Cleanup(a.Close)
+	t.Cleanup(func() { _ = a.Close() })
 	return a
 }
 

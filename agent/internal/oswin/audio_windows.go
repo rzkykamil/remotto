@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"runtime"
 	"sync"
@@ -43,7 +44,10 @@ type audioRequest struct {
 	res chan audioResult
 }
 
-var _ control.AudioController = (*Audio)(nil)
+var (
+	_ control.AudioController = (*Audio)(nil)
+	_ io.Closer               = (*Audio)(nil)
+)
 
 // Audio controls the master volume of the default render endpoint. Every COM
 // call runs on one goroutine locked to one OS thread, which COM requires.
@@ -198,12 +202,16 @@ func (a *Audio) SetMuted(ctx context.Context, muted bool) error {
 }
 
 // Close stops the worker and closes its backend. Later calls return an error
-// that matches control.ErrAudio. Close waits at most a.timeout for the worker.
-func (a *Audio) Close() {
+// that matches control.ErrAudio. Close waits at most a.timeout for the worker;
+// if the worker is still stuck in a COM call after that, Close returns an error
+// that matches control.ErrAudio and the goroutine is left to finish on its own.
+func (a *Audio) Close() error {
 	a.once.Do(func() { close(a.quit) })
 	select {
 	case <-a.done:
+		return nil
 	case <-time.After(a.timeout):
+		return control.Wrap(control.ErrAudio, errors.New("audio worker did not stop in time"))
 	}
 }
 

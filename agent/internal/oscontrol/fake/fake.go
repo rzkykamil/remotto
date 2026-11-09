@@ -51,9 +51,34 @@ type Audio struct {
 	mu        sync.Mutex
 	err       error
 	muteErr   error
+	closeErr  error
+	closed    int
 	volume    control.Volume
 	levelCall []int
 	muteCalls []bool
+}
+
+// SetCloseErr makes every later Close return err. Passing nil restores success.
+func (a *Audio) SetCloseErr(err error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.closeErr = err
+}
+
+// Close records the call and returns the configured error. It does not touch
+// any device.
+func (a *Audio) Close() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.closed++
+	return a.closeErr
+}
+
+// CloseCalls returns how many times Close was called.
+func (a *Audio) CloseCalls() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.closed
 }
 
 // NewAudio returns an Audio with the given initial state.
