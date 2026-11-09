@@ -6,4 +6,4 @@
 | 3 | M3 Volume | Selesai | Menunggu kamu: lihat waiting.md |
 | 4 | M4 Daya | Selesai | Menunggu kamu: lihat waiting.md |
 | 5 | M5 Pengaturan & Tema | Selesai | Menunggu kamu: lihat waiting.md |
-| 6 | M6 Ketahanan & Startup | QA | Menunggu kamu: lihat waiting.md |
+| 6 | M6 Ketahanan & Startup | Selesai | Menunggu kamu: lihat waiting.md |

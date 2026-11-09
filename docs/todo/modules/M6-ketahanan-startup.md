@@ -23,3 +23,10 @@
 - Tes baru: `app/test/integration/connection_resume_http_test.dart` dan 429 di media, volume, power, poll status (`agent/cmd/agent/run_e2e_test.go`).
 - Keputusan `[Integrasi M6]` di `docs/decision-log.md`. Saran di `docs/todo/backlog/integration.md` bagian M6.
 - Item pembuktian di HP ditambah di `docs/todo/waiting.md` bagian M6 (Integrasi).
+
+## QA
+
+- Semua enam `[O]` di `docs/todo/qa.md` tercakup tes, dengan bukti per item di file itu.
+- Tidak ada bug baru. `docs/todo/backlog/qa.md` M6 tetap "Belum ada temuan".
+- Item `[M]` (auto-start, kedip konsol, APK dari CI) ada di `docs/todo/waiting.md`.
+- Fase M6 Selesai setelah push akhir.

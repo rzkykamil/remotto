@@ -70,12 +70,12 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 
 ## M6 Ketahanan & Startup
 
-- [ ] [O] Rate limit → 429 + `Retry-After`
-- [ ] [O] Panic handler tidak menjatuhkan proses
-- [ ] [O] Graceful shutdown membuang jadwal
-- [ ] [O] Rotasi log
-- [ ] [O] Polling berhenti di background, jalan saat resume
-- [ ] [O] BR-21: kontrol tidak bisa ditekan selama S02
+- [x] [O] Rate limit → 429 + `Retry-After`. Bukti: `TestRateLimitBurstThenTooManyRequests`, `TestRateLimitRetryAfterRounding`, `TestRateLimitBodyIsRateLimitedEnvelope` (`agent/internal/server/ratelimit_test.go`); `TestRateLimitBeforeAuth` (`agent/internal/server/server_test.go`); `TestServeAgentRateLimitWithFakeOS`, `TestServeAgentRateLimitEnvelopeAllRoutes` (`agent/cmd/agent/run_e2e_test.go`); grup `429 dan timeout pada poll` (`app/test/integration/connection_resume_http_test.dart`)
+- [x] [O] Panic handler tidak menjatuhkan proses. Bukti: `TestRecoverPanicReturnsInternalEnvelope` (`agent/internal/server/middleware_test.go`), `TestPanicInOneHandlerDoesNotStopServer` (`agent/internal/server/server_test.go`)
+- [x] [O] Graceful shutdown membuang jadwal. Bukti: `TestCloseDiscardsSchedule` (`agent/internal/control/power_test.go`); `TestServeAgentStopDiscardsPendingPower` (`agent/cmd/agent/run_e2e_test.go`); `TestServeStopsGracefully`, `TestServeFinishesInFlightRequest` (`agent/internal/server/server_test.go`)
+- [x] [O] Rotasi log. Bukti: `TestFR64_RotatesIntoBackupsAndDropsOldest`, `TestFR64_RotateFailureKeepsLogging` (`agent/internal/logging/rotate_test.go`)
+- [x] [O] Polling berhenti di background, jalan saat resume. Bukti: `app/test/features/remote/remote_lifecycle_test.dart`; grup `pause dan resume (FR-6.6, BR-21)` (`app/test/core/connection/connection_controller_test.dart`)
+- [x] [O] BR-21: kontrol tidak bisa ditekan selama S02. Bukti: `dock nonaktif saat menyambung (S02)` (`app/test/features/remote/remote_screen_test.dart`); `connecting shows the waiting hint and disables controls` (`app/test/features/remote/widgets/volume_panel_test.dart`); `still connecting` (`app/test/features/remote/power_flow_test.dart`)
 - [ ] [M] Auto-start, kedip konsol, APK dari CI
 
 ## Bugs Ditemukan
