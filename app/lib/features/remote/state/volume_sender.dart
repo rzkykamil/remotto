@@ -13,9 +13,12 @@ import '../../../core/theme/tokens.g.dart';
 ///   otherwise it waits for the throttle timer.
 /// - [finish] always sends the final level after the running request, without
 ///   throttle. It is skipped when the level equals the last successful send.
-/// - A failure (timeout or [ApiFailure] other than [UnauthorizedFailure]) is
-///   retried once silently. A second failure calls [onFailed] once and drops
-///   the pending level. [UnauthorizedFailure] is not retried.
+/// - A transient failure ([TimeoutFailure], [UnreachableFailure], or
+///   [TimeoutException]) is retried once silently. A second failure calls
+///   [onFailed] once and drops the pending level.
+/// - Any other failure ([UnauthorizedFailure], [RateLimitedFailure],
+///   [ForbiddenFailure], [ServerFailure], or an unknown error) is not retried:
+///   [onFailed] is called at once and the pending level is dropped.
 /// - [onIdle] is called once after everything settles, following at least one
 ///   send.
 ///
@@ -152,21 +155,13 @@ final class VolumeSender {
         _inFlight = false;
         _flush();
         return;
-      } on UnauthorizedFailure {
+      } catch (error) {
         if (_disposed) return;
         if (generation != _generation) {
           _discard();
           return;
         }
-        _fail(level);
-        return;
-      } catch (_) {
-        if (_disposed) return;
-        if (generation != _generation) {
-          _discard();
-          return;
-        }
-        if (retried) {
+        if (retried || !_isTransient(error)) {
           _fail(level);
           return;
         }
@@ -174,6 +169,12 @@ final class VolumeSender {
       }
     }
   }
+
+  /// Only these failures are retried silently. Every other failure is final.
+  static bool _isTransient(Object error) =>
+      error is TimeoutFailure ||
+      error is UnreachableFailure ||
+      error is TimeoutException;
 
   /// Ends a run whose result was cancelled: no retry, no [onFailed].
   void _discard() {

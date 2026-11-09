@@ -132,7 +132,7 @@ void main() {
     test('gagal sekali lalu sukses: tanpa onFailed', () async {
       final h = _Harness();
       h.sender.submit(7);
-      await h.fail(0, const ServerFailure());
+      await h.fail(0, const TimeoutFailure());
       expect(h.calls, [7, 7], reason: 'retry diam-diam nilai sama');
       expect(h.failed, isEmpty);
 
@@ -144,7 +144,7 @@ void main() {
     test('gagal dua kali: onFailed sekali dan tertunda dibuang', () async {
       final h = _Harness();
       h.sender.submit(7);
-      await h.fail(0, const ServerFailure());
+      await h.fail(0, const TimeoutFailure());
       await h.fail(1, const UnreachableFailure());
       expect(h.calls, [7, 7]);
       expect(h.failed, [7]);
@@ -156,6 +156,49 @@ void main() {
       final h = _Harness();
       h.sender.submit(7);
       await h.fail(0, const UnauthorizedFailure(code: 'invalid_token'));
+      expect(h.calls, [7]);
+      expect(h.failed, [7]);
+    });
+
+    test(
+      'TimeoutFailure di-retry sekali lalu onFailed pada gagal kedua',
+      () async {
+        final h = _Harness();
+        h.sender.submit(7);
+        await h.fail(0, const TimeoutFailure());
+        expect(h.calls, [7, 7], reason: 'retry diam-diam sekali');
+        expect(h.failed, isEmpty);
+
+        await h.fail(1, const TimeoutFailure());
+        expect(h.calls, [7, 7], reason: 'tanpa retry ketiga');
+        expect(h.failed, [7]);
+      },
+    );
+
+    test(
+      '429 (RateLimitedFailure) tidak di-retry, langsung onFailed',
+      () async {
+        final h = _Harness();
+        h.sender.submit(7);
+        await h.fail(0, const RateLimitedFailure());
+        expect(h.calls, [7]);
+        expect(h.failed, [7]);
+        expect(h.idleCount, 1);
+      },
+    );
+
+    test('403 (ForbiddenFailure) tidak di-retry, langsung onFailed', () async {
+      final h = _Harness();
+      h.sender.submit(7);
+      await h.fail(0, const ForbiddenFailure());
+      expect(h.calls, [7]);
+      expect(h.failed, [7]);
+    });
+
+    test('500 (ServerFailure) tidak di-retry, langsung onFailed', () async {
+      final h = _Harness();
+      h.sender.submit(7);
+      await h.fail(0, const ServerFailure());
       expect(h.calls, [7]);
       expect(h.failed, [7]);
     });

@@ -239,9 +239,7 @@ void main() {
   test(
     'gagal slider dua kali: rollback, toast berisi persen laptop, haptic gagal',
     () async {
-      final repo = FakeVolumeRepository(
-        script: [fakeVolumeError(500, 'audio_failed')],
-      );
+      final repo = FakeVolumeRepository(script: [const FakeVolumeTimeout()]);
       final c = makeContainer(repo: repo);
       await startPolling(c);
 
@@ -263,8 +261,8 @@ void main() {
   test('Ulangi mengirim ulang nilai yang gagal', () async {
     final repo = FakeVolumeRepository(
       script: [
-        fakeVolumeError(500, 'audio_failed'),
-        fakeVolumeError(500, 'audio_failed'),
+        const FakeVolumeTimeout(),
+        const FakeVolumeTimeout(),
         const FakeVolumeOk(),
       ],
     );

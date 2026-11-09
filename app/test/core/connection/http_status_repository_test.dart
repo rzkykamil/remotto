@@ -9,6 +9,7 @@ import 'package:remotto/core/connection/http_status_repository.dart';
 import 'package:remotto/core/network/agent_http_client.dart';
 import 'package:remotto/core/network/api_failure.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
+import 'package:remotto/core/theme/tokens.g.dart';
 
 const _token =
     '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
@@ -170,6 +171,12 @@ void main() {
     final error = await _errorOf(built.repo.fetchStatus);
 
     expect(error, isA<UnreachableFailure>());
+  });
+
+  test('timeout default sama dengan RMotion.commandTimeout', () {
+    final built = _build();
+
+    expect(built.repo.timeout, RMotion.commandTimeout);
   });
 
   test('timeout polling diteruskan sebagai TimeoutFailure', () async {

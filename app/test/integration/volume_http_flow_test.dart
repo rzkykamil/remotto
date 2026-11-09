@@ -154,7 +154,7 @@ void main() {
   );
 
   test(
-    'PUT gagal sekali: retry silent, dua PUT, tanpa toast, level 60',
+    'PUT gagal 500 sekali: tanpa retry, satu PUT, toast gagal, rollback ke 35',
     () async {
       boot();
       await connect();
@@ -163,18 +163,17 @@ void main() {
       vctrl()
         ..dragStart(60)
         ..dragEnd(60);
-      await waitUntil(() => vol().confirmed?.level == 60, 'level 60 reply');
+      await waitUntil(() => toast() != null, 'failure toast');
 
-      expect(server.volumeRequests.length, 2);
-      expect(server.volumeRequests.map((r) => r.method), everyElement('PUT'));
-      expect(server.volumeLevel, 60);
-      expect(vol().level, 60);
-      expect(toast(), isNull);
-      expect(sink.calls, isEmpty);
+      expect(server.volumeRequests.length, 1, reason: '500 tidak di-retry');
+      expect(server.volumeRequests.single.method, 'PUT');
+      expect(vol().level, 35);
+      expect(vol().confirmed?.level, 35);
+      expect(toast()?.text, RemoteStrings.toastVolumeFailed(35));
     },
   );
 
-  test('PUT gagal dua kali: toast volume gagal, rollback ke 35', () async {
+  test('PUT gagal 500: toast volume gagal, rollback ke 35', () async {
     boot();
     await connect();
     server.failNextVolumeRequests = 2;
@@ -184,7 +183,7 @@ void main() {
       ..dragEnd(60);
     await waitUntil(() => toast() != null, 'failure toast');
 
-    expect(server.volumeRequests.length, 2);
+    expect(server.volumeRequests.length, 1, reason: '500 tidak di-retry');
     expect(toast()?.text, RemoteStrings.toastVolumeFailed(35));
     expect(toast()?.actionLabel, RemoteStrings.toastRetry);
     expect(vol().level, 35);

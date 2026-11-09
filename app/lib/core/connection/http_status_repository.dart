@@ -2,6 +2,7 @@ import '../network/agent_http_client.dart';
 import '../network/agent_status.dart';
 import '../network/api_failure.dart';
 import '../storage/pairing_data.dart';
+import '../theme/tokens.g.dart';
 import 'status_repository.dart';
 
 /// `GET /status` over HTTP to the paired laptop.
@@ -12,13 +13,14 @@ final class HttpStatusRepository implements StatusRepository {
   HttpStatusRepository(
     this._client,
     this._readPairing, {
-    this.timeout = const Duration(seconds: 3),
+    this.timeout = RMotion.commandTimeout,
   });
 
   final AgentHttpClient _client;
   final PairingData? Function() _readPairing;
 
-  /// Per-request limit for polling (technical-spec §6).
+  /// Per-request limit for polling. Source: `RMotion.commandTimeout` from
+  /// `design/tokens.json` (technical-spec §6).
   final Duration timeout;
 
   @override

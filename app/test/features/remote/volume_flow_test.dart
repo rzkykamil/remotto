@@ -252,8 +252,8 @@ void main() {
     ) async {
       final volume = FakeVolumeRepository(
         script: [
-          fakeVolumeError(500, 'audio_failed'),
-          fakeVolumeError(500, 'audio_failed'),
+          const FakeVolumeTimeout(),
+          const FakeVolumeTimeout(),
           const FakeVolumeOk(),
         ],
       );
