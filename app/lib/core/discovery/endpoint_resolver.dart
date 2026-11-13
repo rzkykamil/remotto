@@ -90,17 +90,17 @@ interface class EndpointResolver {
       final client = _ref.read(agentHttpClientProvider);
       for (final candidate in candidates.take(_maxCandidates)) {
         final verified = await _verify(client, candidate, pairing.token);
+        // The user may have re-paired during the run. A 401 or a match only
+        // counts while the stored pairing still belongs to the same agent with
+        // the same token.
         if (verified == _Verdict.rejected) {
-          return RediscoverResult.tokenRejected;
+          return _stillPairedWith(agentId, pairing.token)
+              ? RediscoverResult.tokenRejected
+              : RediscoverResult.none;
         }
         if (verified != _Verdict.matched) continue;
 
-        // The user may have re-paired during the run. Save only if the stored
-        // pairing still belongs to the same agent with the same token.
-        final current = _ref.read(pairingProvider);
-        if (current == null ||
-            current.agentId != agentId ||
-            current.token != pairing.token) {
+        if (!_stillPairedWith(agentId, pairing.token)) {
           return RediscoverResult.none;
         }
         await _ref
@@ -112,6 +112,15 @@ interface class EndpointResolver {
     } on Object {
       return RediscoverResult.none;
     }
+  }
+
+  /// True while the stored pairing still has [agentId] and [token]. Read
+  /// after every await, because the pairing may change during a run.
+  bool _stillPairedWith(String agentId, String token) {
+    final current = _ref.read(pairingProvider);
+    return current != null &&
+        current.agentId == agentId &&
+        current.token == token;
   }
 
   Future<_Verdict> _verify(

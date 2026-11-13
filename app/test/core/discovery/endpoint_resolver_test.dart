@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +15,7 @@ import 'package:remotto/core/network/network_providers.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/theme/r_behavior.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_agent_discovery.dart';
 import '../../support/fakes.dart';
@@ -22,6 +24,8 @@ const _agentId = '0123456789abcdef0123456789abcdef';
 const _otherAgentId = 'fedcba9876543210fedcba9876543210';
 const _token =
     '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+const _otherToken =
+    'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210';
 
 const _oldHost = '192.168.1.10';
 const _oldPort = 8765;
@@ -66,20 +70,43 @@ http.Response _statusResponse({String agentId = _agentId}) {
   );
 }
 
+http.Response _errorResponse(int status, String code) => http.Response(
+  jsonEncode({
+    'error': {'code': code},
+  }),
+  status,
+  headers: {'content-type': 'application/json'},
+);
+
+/// The stored pairing after a re-pair: same laptop, other token or agentId.
+PairingData _repairedWith({String token = _token, String agentId = _agentId}) =>
+    PairingData(
+      host: _oldHost,
+      port: _oldPort,
+      token: token,
+      laptopName: 'Laptop-Kamil',
+      agentId: agentId,
+    );
+
+/// Preferences for the save path (save clears the last power command).
+late SharedPreferences _prefs;
+
 final class _Clock {
   DateTime now = DateTime(2026, 11, 13, 10);
 }
 
 /// Wiring for one test: container, fake discovery, and every request the
-/// HTTP client sees. [handler] answers each request.
+/// HTTP client sees. [handler] answers each request; it may await, so a test
+/// can re-pair the laptop before the reply.
 final class _Harness {
   _Harness({
     required PairingData? pairing,
     required this.discovery,
-    required http.Response Function(http.Request request) handler,
+    required FutureOr<http.Response> Function(http.Request request) handler,
   }) : storage = InMemoryConnectionStorage(pairing) {
     container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(_prefs),
         initialPairingProvider.overrideWithValue(pairing),
         connectionStorageProvider.overrideWithValue(storage),
         agentDiscoveryProvider.overrideWithValue(discovery),
@@ -113,7 +140,7 @@ _Harness _harness({
   PairingData? pairing = _paired,
   List<List<DiscoveredAgent>> results = const [],
   Completer<void>? gate,
-  http.Response Function(http.Request request)? handler,
+  FutureOr<http.Response> Function(http.Request request)? handler,
 }) {
   return _Harness(
     pairing: pairing,
@@ -125,6 +152,11 @@ _Harness _harness({
 void main() {
   group('rediscover', () {
     late _Harness h;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      _prefs = await SharedPreferences.getInstance();
+    });
 
     tearDown(() => h.dispose());
 
@@ -211,6 +243,78 @@ void main() {
         expect(h.requests, hasLength(1));
       },
     );
+
+    test(
+      'a 401 gives none when the token was replaced during the run',
+      () async {
+        h = _harness(
+          results: [
+            [_found()],
+          ],
+          handler: (request) async {
+            await h.container
+                .read(pairingProvider.notifier)
+                .save(_repairedWith(token: _otherToken));
+            return _errorResponse(401, 'invalid_token');
+          },
+        );
+
+        expect(await h.resolver.rediscover(), RediscoverResult.none);
+        expect(h.pairing, _repairedWith(token: _otherToken));
+        expect(h.storage.data, _repairedWith(token: _otherToken));
+        expect(h.requests, hasLength(1));
+      },
+    );
+
+    test(
+      'a 401 gives none when the agentId was replaced during the run',
+      () async {
+        h = _harness(
+          results: [
+            [_found()],
+          ],
+          handler: (request) async {
+            await h.container
+                .read(pairingProvider.notifier)
+                .save(_repairedWith(agentId: _otherAgentId));
+            return _errorResponse(401, 'invalid_token');
+          },
+        );
+
+        expect(await h.resolver.rediscover(), RediscoverResult.none);
+        expect(h.pairing, _repairedWith(agentId: _otherAgentId));
+        expect(h.requests, hasLength(1));
+      },
+    );
+
+    for (final (name, reply)
+        in <(String, FutureOr<http.Response> Function(http.Request))>[
+          ('403 forbidden', (_) => _errorResponse(403, 'forbidden')),
+          ('429 rate limited', (_) => _errorResponse(429, 'rate_limited')),
+          ('500 server error', (_) => _errorResponse(500, 'internal_error')),
+          ('timeout', (_) => throw TimeoutException('slow')),
+          (
+            'socket unreachable',
+            (_) => throw const SocketException('unreachable'),
+          ),
+        ]) {
+      test(
+        'a candidate answering $name is skipped and the pairing stays unchanged',
+        () async {
+          h = _harness(
+            results: [
+              [_found()],
+            ],
+            handler: reply,
+          );
+
+          expect(await h.resolver.rediscover(), RediscoverResult.none);
+          expect(h.pairing, _paired);
+          expect(h.storage.data, _paired);
+          expect(h.requests, hasLength(1));
+        },
+      );
+    }
 
     test(
       'a legacy pairing without agentId gives none and runs no discovery',

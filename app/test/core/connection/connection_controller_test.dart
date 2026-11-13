@@ -1038,6 +1038,39 @@ void main() {
       expect(h.phase, ConnectionPhase.tokenRejected);
     });
 
+    test('stop saat rediscover tertahan: tokenRejected yang datang kemudian tidak mengubah fase', () async {
+      final h = _harness(
+        FakeStatusRepository([_down]),
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(manual: true),
+      );
+      await h.start();
+      expect(h.resolver.held, hasLength(1));
+      expect(h.phase, ConnectionPhase.connecting);
+
+      h.ctrl.stop();
+      h.resolver.held.single.complete(RediscoverResult.tokenRejected);
+      await h.settle();
+
+      expect(h.phase, ConnectionPhase.connecting);
+    });
+
+    test('pause saat rediscover tertahan: tokenRejected yang datang kemudian tidak mengubah fase', () async {
+      final h = _harness(
+        FakeStatusRepository([_down]),
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(manual: true),
+      );
+      await h.start();
+      expect(h.resolver.held, hasLength(1));
+
+      h.ctrl.pause();
+      h.resolver.held.single.complete(RediscoverResult.tokenRejected);
+      await h.settle();
+
+      expect(h.phase, ConnectionPhase.connecting);
+    });
+
     test('resolver tanpa kandidat (legacy, none) tidak mengubah fase pada kegagalan', () async {
       final h = _harness(
         FakeStatusRepository([_down, _ok()]),

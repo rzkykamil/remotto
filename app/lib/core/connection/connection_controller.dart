@@ -264,6 +264,8 @@ final class ConnectionController extends Notifier<ConnectionState> {
       case RediscoverResult.none:
         break;
       case RediscoverResult.tokenRejected:
+        // Stopped or paused while the run was held: a late 401 is ignored.
+        if (!_running) break;
         _enterTokenRejected();
       case RediscoverResult.updated:
         // The endpoint is already saved; only poll when still running.

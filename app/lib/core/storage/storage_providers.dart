@@ -34,44 +34,57 @@ final pairingProvider = NotifierProvider<PairingNotifier, PairingData?>(
 );
 
 final class PairingNotifier extends Notifier<PairingData?> {
+  /// Antrean tulis: setiap operasi menunggu operasi sebelumnya selesai, sehingga
+  /// dua tulis tidak saling menimpa storage maupun state.
+  Future<void> _tail = Future.value();
+
   @override
   PairingData? build() => ref.read(initialPairingProvider);
 
+  /// Menjalankan [body] setelah semua operasi tulis sebelumnya selesai. Error
+  /// satu operasi hanya dilempar ke pemanggilnya; antrean tetap berjalan.
+  Future<void> _serialized(Future<void> Function() body) {
+    final run = _tail.then((_) => body());
+    _tail = run.catchError((Object _) {});
+    return run;
+  }
+
   /// Menulis storage dulu, baru mengubah state. Bila tulis gagal, state tetap.
   /// Pairing baru menghapus `lastPowerCommand` milik laptop lama.
-  Future<void> save(PairingData data) async {
+  Future<void> save(PairingData data) => _serialized(() async {
     await ref.read(connectionStorageProvider).write(data);
     state = data;
     ref.read(lastPowerCommandProvider.notifier).clear();
-  }
+  });
 
   /// Penghapusan pairing juga menghapus `lastPowerCommand`.
-  Future<void> clear() async {
+  Future<void> clear() => _serialized(() async {
     await ref.read(connectionStorageProvider).clear();
     state = null;
     ref.read(lastPowerCommandProvider.notifier).clear();
-  }
+  });
 
   /// Mengganti host dan port saja (hasil discovery). Token, nama, dan agentId
   /// tetap; `lastPowerCommand` tidak disentuh. Tulis storage dulu, baru state.
   /// Tanpa pairing, tidak ada yang dilakukan.
-  Future<void> updateEndpoint({required String host, required int port}) async {
-    final current = state;
-    if (current == null) return;
-    final next = PairingData(
-      host: host,
-      port: port,
-      token: current.token,
-      laptopName: current.laptopName,
-      agentId: current.agentId,
-    );
-    await ref.read(connectionStorageProvider).write(next);
-    state = next;
-  }
+  Future<void> updateEndpoint({required String host, required int port}) =>
+      _serialized(() async {
+        final current = state;
+        if (current == null) return;
+        final next = PairingData(
+          host: host,
+          port: port,
+          token: current.token,
+          laptopName: current.laptopName,
+          agentId: current.agentId,
+        );
+        await ref.read(connectionStorageProvider).write(next);
+        state = next;
+      });
 
   /// Mengisi `agentId` untuk pairing lama (backfill, data-design §2). Hanya bila
   /// state ada dan `agentId` masih null. Id yang tidak 32 hex diabaikan.
-  Future<void> backfillAgentId(String id) async {
+  Future<void> backfillAgentId(String id) => _serialized(() async {
     final current = state;
     if (current == null || current.agentId != null) return;
     if (!agentIdPattern.hasMatch(id)) return;
@@ -84,7 +97,7 @@ final class PairingNotifier extends Notifier<PairingData?> {
     );
     await ref.read(connectionStorageProvider).write(next);
     state = next;
-  }
+  });
 }
 
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(

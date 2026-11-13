@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remotto/core/storage/connection_storage.dart';
 import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fakes.dart';
 
@@ -52,6 +55,56 @@ final class _FailOnAgentIdStorage extends FlutterSecureStorage {
       wOptions: wOptions,
     );
   }
+}
+
+/// Storage in-memory yang menahan tulis pertama lewat [gate] dan bisa dibuat
+/// gagal sekali lewat [failNextWrite].
+final class _GatedStorage implements ConnectionStorage {
+  _GatedStorage([this.data]);
+
+  PairingData? data;
+  Completer<void>? gate;
+  bool failNextWrite = false;
+
+  @override
+  Future<PairingData?> read() async => data;
+
+  @override
+  Future<void> write(PairingData value) async {
+    final pending = gate;
+    if (pending != null) {
+      gate = null;
+      await pending.future;
+    }
+    if (failNextWrite) {
+      failNextWrite = false;
+      throw StateError('tulis gagal');
+    }
+    data = value;
+  }
+
+  @override
+  Future<void> clear() async => data = null;
+}
+
+/// Seperti [_containerWith], tetapi juga meng-override SharedPreferences agar
+/// `save` dan `clear` (yang menyentuh lastPowerCommand) bisa dijalankan.
+Future<ProviderContainer> _containerWithPrefs(
+  PairingData? initial,
+  ConnectionStorage storage,
+) async {
+  SharedPreferences.setMockInitialValues({});
+  final container = ProviderContainer(
+    overrides: [
+      initialPairingProvider.overrideWithValue(initial),
+      connectionStorageProvider.overrideWithValue(storage),
+      sharedPreferencesProvider.overrideWithValue(
+        await SharedPreferences.getInstance(),
+      ),
+    ],
+  );
+  addTearDown(container.dispose);
+  return container;
 }
 
 ProviderContainer _containerWith(
@@ -199,5 +252,74 @@ void main() {
         expect(legacy.read(pairingProvider), _legacy);
       },
     );
+  });
+
+  group('PairingNotifier serialisasi tulis', () {
+    test(
+      'updateEndpoint tertahan, lalu clear: state null dan storage kosong',
+      () async {
+        final fake = _GatedStorage(_withId);
+        final container = await _containerWithPrefs(_withId, fake);
+        final notifier = container.read(pairingProvider.notifier);
+
+        fake.gate = Completer<void>();
+        final endpoint = notifier.updateEndpoint(host: '10.0.0.7', port: 9000);
+        final cleared = notifier.clear();
+
+        // clear menunggu updateEndpoint yang masih tertahan di storage.
+        expect(container.read(pairingProvider), _withId);
+
+        fake.gate!.complete();
+        await endpoint;
+        await cleared;
+
+        expect(container.read(pairingProvider), isNull);
+        expect(fake.data, isNull);
+      },
+    );
+
+    test(
+      'backfillAgentId tertahan, lalu save pairing baru: pairing baru utuh',
+      () async {
+        final fake = _GatedStorage(_legacy);
+        final container = await _containerWithPrefs(_legacy, fake);
+        final notifier = container.read(pairingProvider.notifier);
+        const replacement = PairingData(
+          host: '10.0.0.9',
+          port: 8443,
+          token: 'token-baru-456',
+          laptopName: 'LAPTOP-BARU',
+          agentId: _agentId,
+        );
+
+        fake.gate = Completer<void>();
+        final backfill = notifier.backfillAgentId('1' * 32);
+        final saved = notifier.save(replacement);
+
+        fake.gate!.complete();
+        await backfill;
+        await saved;
+
+        expect(container.read(pairingProvider), replacement);
+        expect(fake.data, replacement);
+      },
+    );
+
+    test('tulis yang gagal tidak meracuni antrean berikutnya', () async {
+      final fake = _GatedStorage(_withId);
+      final container = _containerWith(_withId, fake);
+      final notifier = container.read(pairingProvider.notifier);
+
+      fake.failNextWrite = true;
+      await expectLater(
+        notifier.updateEndpoint(host: '10.0.0.7', port: 9000),
+        throwsStateError,
+      );
+      expect(container.read(pairingProvider), _withId);
+
+      await notifier.updateEndpoint(host: '10.0.0.8', port: 9001);
+      expect(container.read(pairingProvider)!.host, '10.0.0.8');
+      expect(fake.data!.host, '10.0.0.8');
+    });
   });
 }
