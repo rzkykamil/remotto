@@ -3,6 +3,8 @@ package discovery
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"log/slog"
 	"regexp"
 	"strings"
 	"testing"
@@ -135,6 +137,112 @@ func TestBR22_RunAdvertisementHasNoToken(t *testing.T) {
 			if !containsEntry(svc.TXT, want) {
 				t.Errorf("TXT = %v, want entry %q", svc.TXT, want)
 			}
+		})
+	}
+}
+
+// BR-22 / discovery-flow: the agent logs while it advertises, so the log
+// output must hold no token material on any path: normal run, disabled,
+// invalid agent id, register failure, list failure, interface gone and back,
+// and stop. The config that holds the token is passed in, but Run receives
+// only the agent id and the name, so the buffer must stay clean.
+func TestBR22_RunLogsHaveNoTokenMaterial(t *testing.T) {
+	forbidden := forbiddenStrings()
+	cfg := config.Default("LAPTOP-KANTOR", time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	cfg.Token = secretToken
+	cfg.TokenCreatedAt = "2026-01-01T00:00:00Z"
+	cfg.AgentID = testAgentID
+
+	lan := func() []Iface {
+		return []Iface{lanIface("Wi-Fi", 3, "192.168.1.10")}
+	}
+	cases := []struct {
+		name string
+		// setup adjusts the options or the fakes before Run starts.
+		setup func(o *Options, h *runHarness)
+		// drive runs the scenario; it must end with Run stopped.
+		drive func(h *runHarness)
+	}{
+		{
+			name:  "normal run and stop",
+			setup: func(o *Options, h *runHarness) { h.lister.set(lan(), nil) },
+			drive: func(h *runHarness) {
+				h.start()
+				h.park()
+				h.poll()
+				h.stop()
+			},
+		},
+		{
+			name:  "discovery disabled",
+			setup: func(o *Options, h *runHarness) { o.Enabled = false },
+			drive: func(h *runHarness) {
+				h.start()
+				h.waitDone()
+			},
+		},
+		{
+			name:  "agent id invalid",
+			setup: func(o *Options, h *runHarness) { o.AgentID = strings.ToUpper(testAgentID) },
+			drive: func(h *runHarness) {
+				h.start()
+				h.waitDone()
+			},
+		},
+		{
+			name: "register fails",
+			setup: func(o *Options, h *runHarness) {
+				h.reg.failNext = 3
+				h.lister.set(lan(), nil)
+			},
+			drive: func(h *runHarness) {
+				h.start()
+				h.park()
+				h.poll()
+				h.poll()
+				h.stop()
+			},
+		},
+		{
+			name:  "list fails",
+			setup: func(o *Options, h *runHarness) { h.lister.set(nil, errors.New("fake list failure")) },
+			drive: func(h *runHarness) {
+				h.start()
+				h.park()
+				h.poll()
+				h.stop()
+			},
+		},
+		{
+			name:  "interface gone and back",
+			setup: func(o *Options, h *runHarness) { h.lister.set(lan(), nil) },
+			drive: func(h *runHarness) {
+				h.start()
+				h.park()
+				h.lister.set(nil, nil)
+				h.poll()
+				h.lister.set(lan(), nil)
+				h.poll()
+				h.stop()
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			o := testOptions()
+			o.AgentID = cfg.AgentID
+			o.Name = cfg.LaptopName
+			buf := &syncBuffer{}
+			o.Logger = slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+			h := newHarness(t, o)
+			tc.setup(&h.opts, h)
+			tc.drive(h)
+
+			logs := buf.String()
+			if logs == "" {
+				t.Fatal("log buffer is empty, the scenario logged nothing to check")
+			}
+			assertNoSecret(t, "log output", logs, forbidden)
 		})
 	}
 }
