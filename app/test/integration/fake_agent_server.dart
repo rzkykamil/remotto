@@ -112,6 +112,10 @@ final class FakeAgentServer {
   /// Nama laptop di `data.name`.
   String name = 'Laptop-Kamil';
 
+  /// Agent ID sent as `data.agentId`. Null means a legacy agent without an ID,
+  /// and the field is omitted.
+  String? agentId;
+
   /// False: `data.volume` null (Core Audio gagal di laptop).
   bool volumeAvailable = true;
 
@@ -180,6 +184,7 @@ final class FakeAgentServer {
       ..token = token
       ..mode = mode
       ..name = name
+      ..agentId = agentId
       ..volumeAvailable = volumeAvailable
       ..volumeLevel = volumeLevel
       ..volumeMuted = volumeMuted
@@ -428,6 +433,7 @@ final class FakeAgentServer {
 
   Map<String, Object?> _statusData() => {
     'name': name,
+    if (agentId != null) 'agentId': agentId,
     'version': '1.0.0',
     'uptimeSeconds': 120,
     'volume': volumeAvailable && mode != FakeAgentMode.audioFailed
