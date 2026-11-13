@@ -1240,3 +1240,134 @@ func TestRunDiscoveryDisabledIsPassedThrough(t *testing.T) {
 		t.Errorf("discovery AgentID %q is not valid", fd.starts[0].AgentID)
 	}
 }
+
+// TestRunStatusAgentIDMatchesPairOutputAndSurvivesTokenChange follows one agentId
+// from a config without one through the pair output (ID line and QR), GET
+// /status and the discovery options. A token change in config.json must keep
+// the same agentId (BR-10), and a request with a wrong token must get 401 with
+// no agent data.
+func TestRunStatusAgentIDMatchesPairOutputAndSurvivesTokenChange(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	port := freePort(t)
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, port, e2eToken)
+	if id := readAgentIDFromConfig(t, cfgPath); id != "" {
+		t.Fatalf("precondition: old config has agentId %q, want empty", id)
+	}
+
+	// pair creates and saves the agentId, then prints it and the QR for it.
+	code, stdout, stderr := pairOut(t, cfgPath)
+	if code != 0 {
+		t.Fatalf("pair exit = %d (stderr %q)", code, stderr)
+	}
+	savedID := readAgentIDFromConfig(t, cfgPath)
+	if !discovery.ValidAgentID(savedID) {
+		t.Fatalf("saved agentId %q is not valid", savedID)
+	}
+	pairedID := ""
+	for _, line := range strings.Split(stdout, "\n") {
+		if rest, ok := strings.CutPrefix(strings.TrimSpace(line), "ID agent:"); ok {
+			pairedID = strings.TrimSpace(rest)
+		}
+	}
+	if pairedID != savedID {
+		t.Fatalf("pair ID line = %q, saved = %q (stdout %q)", pairedID, savedID, stdout)
+	}
+	cfg, err := config.Load(cfgPath, config.Default("host", time.Now()))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	raw, err := pairing.BuildPayloadWithID(savedID, cfg.LaptopName, "192.168.1.10", cfg.Port, cfg.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(raw, `"id":"`+savedID+`"`) {
+		t.Fatalf("pair payload %q lacks the saved agent id", raw)
+	}
+	var qr bytes.Buffer
+	if err := pairing.RenderQR(&qr, raw); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout, qr.String()) {
+		t.Errorf("pair QR is not the payload with the saved agentId")
+	}
+
+	// run serves the same agentId on /status and passes it to discovery.
+	stubAcquire(t, func() (instance.Release, error) { return func() {}, nil })
+	fd := stubDiscovery(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var out, errOut bytes.Buffer
+	done := make(chan int, 1)
+	go func() {
+		done <- run(ctx, []string{"run", "--config", cfgPath}, &out, &errOut)
+	}()
+
+	base := "http://127.0.0.1:" + strconv.Itoa(port)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		code, body := tryStatus(base, e2eToken)
+		if code == http.StatusOK {
+			if got, _ := body["data"].(map[string]any)["agentId"].(string); got != savedID {
+				t.Errorf("GET /status agentId = %q, want %q", got, savedID)
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			cancel()
+			t.Fatalf("agent did not answer 200 within 5s (stderr %q)", errOut.String())
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Replace the token in config.json (same agentId kept by Load and Save).
+	const newToken = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+	cfg, err = config.Load(cfgPath, config.Default("host", time.Now()))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	cfg.Token = newToken
+	if err := config.Save(cfgPath, cfg); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+	bumpConfigMtime(t, cfgPath)
+
+	if code, _ := getStatus(t, base, e2eToken); code != http.StatusUnauthorized {
+		t.Errorf("old token after reset = %d, want 401", code)
+	}
+	code2, body := getStatus(t, base, newToken)
+	if code2 != http.StatusOK {
+		t.Fatalf("new token after reset = %d, want 200", code2)
+	}
+	if got, _ := body["data"].(map[string]any)["agentId"].(string); got != savedID {
+		t.Errorf("GET /status agentId after token change = %q, want %q", got, savedID)
+	}
+	if got := readAgentIDFromConfig(t, cfgPath); got != savedID {
+		t.Errorf("agentId in config after token change = %q, want %q", got, savedID)
+	}
+
+	// A wrong token gets 401 and nothing about the agent.
+	code3, wrongBody := getStatus(t, base, wrongToken)
+	if code3 != http.StatusUnauthorized {
+		t.Fatalf("wrong token status = %d, want 401", code3)
+	}
+	if got := errorCode(t, wrongBody); got != server.CodeInvalidToken {
+		t.Errorf("wrong token error code = %q, want %q", got, server.CodeInvalidToken)
+	}
+	if strings.Contains(stringify(wrongBody), savedID) {
+		t.Errorf("401 response contains the agentId: %s", stringify(wrongBody))
+	}
+
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("exit code = %d, want 0 (stderr %q)", code, errOut.String())
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("run did not return within 10s after cancel")
+	}
+	if len(fd.starts) != 1 || fd.starts[0].AgentID != savedID {
+		t.Errorf("discovery starts = %+v, want one start with agentId %q", fd.starts, savedID)
+	}
+}

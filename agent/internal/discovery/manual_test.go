@@ -14,7 +14,10 @@ import (
 
 // TestManualAdvertiseAndBrowse advertises the agent on the real LAN with
 // multicast DNS and browses for it. It is not run automatically: it needs a
-// network that allows multicast and UDP 5353. Run it by hand with
+// network that allows multicast and UDP 5353, and the Windows firewall must let
+// the agent and the browser use UDP 5353. Only the owner of the laptop runs it,
+// by hand, on their own LAN; CI and automated runs never use this tag. Run it
+// with
 //
 //	go test -tags manual ./internal/discovery -run Manual -v
 func TestManualAdvertiseAndBrowse(t *testing.T) {
