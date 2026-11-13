@@ -74,13 +74,13 @@ Setiap task endpoint menyertakan sub-task "sinkronkan `postman/`".
 
 ## M7 Auto-Discovery Jaringan
 
-- [ ] B1: Config `agentId` (32 hex `crypto/rand`, atomik, `reset-token` tak mengubah) dan `discovery.enabled` (default true)
-- [ ] B2: `GET /status` memuat `agentId` + test
-  - [ ] Sinkronkan `postman/`
-- [ ] B3: Payload QR dengan field opsional `id`, ukuran < 256 byte, QR lama tetap valid
-- [ ] B4: Paket `internal/discovery` (zeroconf, interface `Registrar`, filter interface D10, `Run(ctx)`, poll alamat 10 dtk, daftar ulang)
-- [ ] B5: `cmd/agent/app.go` menjalankan discovery; `pair` menampilkan agentId
-- [ ] B6: Test: TXT tak berisi token, semua rute tetap tolak tanpa token, daftar ulang saat alamat berubah, `enabled=false` tak mendaftar
-- [ ] B7: `postman/` contoh respons Status + agentId
-- [ ] B8: `docs/release.md` aturan firewall UDP 5353 profil Private
-- [ ] B9: Decision-log pilihan library final (zeroconf atau fallback libp2p)
+- [x] B1: Config `agentId` (32 hex `crypto/rand`, atomik, diisi `EnsureAgentID` untuk config lama, tak berubah saat token dibuat ulang) dan `discovery.enabled` (default true)
+- [x] B2: `GET /status` memuat `agentId` + test
+  - [x] Sinkronkan `postman/`
+- [x] B3: Payload QR dengan field opsional `id`, ukuran < 256 byte, QR lama tetap valid
+- [x] B4: Paket `internal/discovery` (zeroconf, interface `Registrar`, filter interface D10, `Run(ctx)`, poll alamat 10 dtk, daftar ulang)
+- [x] B5: `cmd/agent/app.go` menjalankan discovery; `pair` menampilkan agentId
+- [x] B6: Test: TXT tak berisi token, semua rute tetap tolak tanpa token, daftar ulang saat alamat berubah, `enabled=false` tak mendaftar
+- [x] B7: `postman/` contoh respons Status + agentId
+- [x] B8: `docs/release.md` aturan firewall UDP 5353 profil Private
+- [x] B9: Decision-log pilihan library final (zeroconf atau fallback libp2p)

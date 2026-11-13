@@ -541,9 +541,34 @@ Catatan: item yang butuh laptop mengiklankan (hampir semua) baru bisa dites sete
   Harusnya: app menemukan IP baru dan kembali "Nyambung" tanpa tindakan apa pun.
 
 - [ ] M7 (Backend): firewall mengizinkan UDP 5353 di profil Private.
-  Buka: PowerShell Administrator di laptop, dan `docs/release.md` bagian firewall M7.
+  Buka: PowerShell Administrator di laptop, dan `docs/release.md` Bagian B langkah 3.
   Lakukan: jalankan aturan UDP 5353 profil Private dari `docs/release.md`, lalu ulangi tes ganti WiFi. Lalu coba tanpa aturan itu.
   Harusnya: dengan aturan, app menemukan laptop. Tanpa aturan, app tetap offline dan pesan atau cadangan scan QR ulang muncul dengan jelas, tanpa crash.
+
+- [ ] M7 (Backend): agentId dibuat sekali dan stabil.
+  Buka: config agent lama (`%APPDATA%\Remotto\config.json`, dari sebelum M7), dan PowerShell di laptop.
+  Lakukan: jalankan agent versi terbaru, lalu `.\remotto-agent.exe pair`. Catat baris `ID agent`. Jalankan `pair` sekali lagi.
+  Harusnya: field `agentId` tertulis di config setelah run pertama. Baris `ID agent` sama di kedua pemanggilan `pair`. Pairing QR memuat `id` yang sama dengan config.
+
+- [ ] M7 (Backend): iklan mDNS terlihat tanpa token dan hanya memuat v, id, name.
+  Buka: laptop kedua di WiFi yang sama dengan laptop agent, dan alat browse mDNS (mis. Bonjour Browser).
+  Lakukan: browse `_remotto._tcp` dari laptop kedua.
+  Harusnya: instance `Remotto-<8 hex>` terlihat. TXT hanya `v=1`, `id`, dan `name`, tanpa token. Alamat yang diiklankan hanya IP WiFi atau Ethernet, tanpa WSL, Hyper-V, atau Tailscale.
+
+- [ ] M7 (Backend): adapter berganti tanpa restart agent, dan agent tetap hidup tanpa WiFi.
+  Buka: PowerShell di laptop, dan log `%APPDATA%\Remotto\logs\agent.log`.
+  Lakukan: ganti WiFi atau jalankan `ipconfig /release` lalu `ipconfig /renew`, tunggu 10 sampai 20 detik. Ulangi dengan mematikan WiFi laptop sebentar.
+  Harusnya: instance yang sama muncul lagi dengan IP baru, dan log mencatat daftar ulang tanpa nilai token. Saat WiFi mati, agent tetap hidup dan HTTP lokal tetap menjawab.
+
+- [ ] M7 (Backend): `discovery.enabled=false` dan register gagal tidak menghentikan HTTP.
+  Buka: `%APPDATA%\Remotto\config.json` dan log agent.
+  Lakukan: set `"discovery": {"enabled": false}`, jalankan agent, lalu browse. Ulangi dengan enabled true dan firewall UDP 5353 diblokir.
+  Harusnya: dengan enabled false, instance tidak muncul. Saat register gagal, log menulis warning sekali, dan HTTP tetap menjawab di port 8765.
+
+- [ ] M7 (Backend): tes manual mDNS nyata lulus dengan firewall UDP 5353 aktif.
+  Buka: PowerShell di laptop agent, dengan aturan UDP 5353 profil Private aktif.
+  Lakukan: `cd agent` lalu `go test -tags manual ./internal/discovery -run Manual -v`.
+  Harusnya: tes lulus. Instance terlihat saat browse, TXT hanya v dan id, dan tidak ada 64 hex di TXT.
 
 - [ ] M7 (Integrasi): dua laptop agent di WiFi yang sama tidak tertukar.
   Buka: dua laptop yang menjalankan agent Remotto, dan HP yang sudah dipairing ke laptop A.

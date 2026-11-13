@@ -64,6 +64,13 @@ Belum ada temuan.
 - `NetworkFilter` mencatat warn per penolakan; pertimbangkan dedupe. Sama dengan backlog M1 (`agent/internal/server/netfilter.go`).
 - `ConfigTokenSource` (`agent/internal/server/auth.go`) memuat ulang config hanya bila mtime atau ukuran berubah. Dua penulisan token berukuran sama dalam satu tick mtime Windows (sekitar 15 ms) bisa terlewat. Tes sudah diberi `bumpConfigMtime` di `run_e2e_test.go`. Pertimbangkan membandingkan isi (hash) saat reload; SARAN, tidak mendesak.
 
+## M7 Auto-Discovery Jaringan
+
+- `laptopName` buatan user bisa memuat teks (mis. token yang tertempel) ke TXT `name`; tolak `laptopName` yang cocok `[0-9a-f]{64}` di `config.Validate` atau abaikan `name` bila mirip token (`agent/internal/config/validate.go`, `agent/internal/discovery/txt.go`).
+- Aturan firewall UDP 5353 di `docs/release.md` tanpa `-Program` membuka 5353 untuk semua program di profil Private, sama dengan aturan TCP yang ada; bisa diketatkan (`docs/release.md`).
+- `Lister.List()` tidak membaca ctx, sehingga stop discovery bisa menunggu maks 2 dtk (catatan, `agent/internal/discovery`).
+- Pantau `govulncheck` dan dependensi `grandcat/zeroconf` yang tidak dirawat, dengan `miekg/dns` v1.1.27. Fallback libp2p tetap tercatat di `[Backend M7] Library mDNS agent` (`agent/go.mod`).
+
 ## Stretch
 
 Hanya dikerjakan kalau pemilik menyebutnya.
