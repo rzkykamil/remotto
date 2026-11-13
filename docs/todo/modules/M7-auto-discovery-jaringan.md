@@ -43,3 +43,8 @@
 - Checklist penutup siklus modul dicek dan lunas. Fase aktif: Selesai.
 - Sisa yang menunggu pemilik ada di `docs/todo/waiting.md` bagian M7. Pembuktian itu tidak menahan Selesai.
 - Tidak ada fase yang tidak relevan. Semua fase M7 (Frontend, Backend, Integrasi, QA, Fixing) dijalankan.
+
+## CI (setelah push akhir)
+
+- Run CI `43381256379` merah di `agent-test` (langkah govulncheck) dan `app-test` (langkah analyze, info `deprecated_member_use`). Job `build` skipped. Dugaan penyebab drift toolchain, belum diverifikasi sebagai bukan akibat M7.
+- Detail dan langkah perbaikan di `docs/todo/blockers.md`. Status fase tetap Selesai.
