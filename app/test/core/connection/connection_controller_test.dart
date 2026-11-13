@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,15 +7,21 @@ import 'package:remotto/core/connection/connection_controller.dart';
 import 'package:remotto/core/connection/connection_providers.dart';
 import 'package:remotto/core/connection/connection_state.dart';
 import 'package:remotto/core/connection/status_repository.dart';
+import 'package:remotto/core/discovery/discovery_providers.dart';
+import 'package:remotto/core/discovery/endpoint_resolver.dart';
 import 'package:remotto/core/network/agent_status.dart';
 import 'package:remotto/core/network/api_failure.dart';
 import 'package:remotto/core/network/network_providers.dart';
+import 'package:remotto/core/storage/pairing_data.dart';
 import 'package:remotto/core/storage/storage_providers.dart';
 import 'package:remotto/core/theme/r_behavior.dart';
 import 'package:remotto/core/theme/tokens.g.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../support/fake_endpoint_resolver.dart';
+import '../../support/fake_network_change_source.dart';
 import '../../support/fake_status_repository.dart';
+import '../../support/fakes.dart';
 
 final class _FakeJob implements ScheduledJob {
   _FakeJob(this.delay, this.callback, {required this.periodic});
@@ -97,21 +104,38 @@ final class _Clock {
 }
 
 final class _Harness {
-  _Harness(StatusRepository repo, {DateTime? now})
-    : clock = _Clock(now ?? DateTime(2026, 11, 8, 12)) {
+  _Harness(
+    StatusRepository repo, {
+    DateTime? now,
+    PairingData? pairing,
+    FakeEndpointResolver? resolver,
+    FakeNetworkChangeSource? network,
+  }) : clock = _Clock(now ?? DateTime(2026, 11, 8, 12)),
+       resolver = resolver ?? FakeEndpointResolver(),
+       network = network ?? FakeNetworkChangeSource() {
     container = ProviderContainer(
       overrides: [
         statusRepositoryProvider.overrideWithValue(repo),
         pollSchedulerProvider.overrideWithValue(sched),
         connectionClockProvider.overrideWithValue(() => clock.now),
         sharedPreferencesProvider.overrideWithValue(_prefs),
+        initialPairingProvider.overrideWithValue(pairing),
+        connectionStorageProvider.overrideWithValue(
+          InMemoryConnectionStorage(pairing),
+        ),
+        endpointResolverProvider.overrideWithValue(this.resolver),
+        networkChangeSourceProvider.overrideWithValue(this.network),
       ],
     );
   }
 
   final _FakeScheduler sched = _FakeScheduler();
   final _Clock clock;
+  final FakeEndpointResolver resolver;
+  final FakeNetworkChangeSource network;
   late final ProviderContainer container;
+
+  PairingData? get pairing => container.read(pairingProvider);
 
   ConnectionController get ctrl =>
       container.read(connectionControllerProvider.notifier);
@@ -140,11 +164,39 @@ final class _Harness {
   void dispose() => container.dispose();
 }
 
-_Harness _harness(StatusRepository repo, {DateTime? now}) {
-  final harness = _Harness(repo, now: now);
+_Harness _harness(
+  StatusRepository repo, {
+  DateTime? now,
+  PairingData? pairing,
+  FakeEndpointResolver? resolver,
+  FakeNetworkChangeSource? network,
+}) {
+  final harness = _Harness(
+    repo,
+    now: now,
+    pairing: pairing,
+    resolver: resolver,
+    network: network,
+  );
   addTearDown(harness.dispose);
+  addTearDown(() => harness.network.close());
   return harness;
 }
+
+const _agentId = '0123456789abcdef0123456789abcdef';
+const _pairedNoId = PairingData(
+  host: '192.168.1.10',
+  port: 8765,
+  token: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  laptopName: 'Laptop-Kamil',
+);
+final _pairedWithId = PairingData(
+  host: _pairedNoId.host,
+  port: _pairedNoId.port,
+  token: _pairedNoId.token,
+  laptopName: _pairedNoId.laptopName,
+  agentId: _agentId,
+);
 
 FakeHttpReply _ok({int uptime = 60, bool volumeUnavailable = false}) =>
     fakeStatusOk(uptimeSeconds: uptime, volumeUnavailable: volumeUnavailable);
@@ -895,6 +947,218 @@ void main() {
       expect(repo.calls, callsBefore);
       expect(h.sched.periodicJob, isNull);
       expect(h.sched.hasLiveOnce(RBehavior.resumeWait), isFalse);
+    });
+  });
+
+  group('penemuan ulang endpoint (M7, D6)', () {
+    test('satu poll gagal memicu rediscover tanpa paksa, lalu poll ke endpoint baru', () async {
+      final h = _harness(
+        FakeStatusRepository([_down, _ok()]),
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(results: [RediscoverResult.updated]),
+      );
+      await h.start();
+
+      expect(h.resolver.forceCalls, [false]);
+      expect(h.phase, ConnectionPhase.online);
+      expect(h.state.status?.name, 'Laptop-Kamil');
+    });
+
+    test('rediscover tidak memblokir poll: poll berikutnya tetap jalan saat rediscover masih menunggu', () async {
+      final h = _harness(
+        FakeStatusRepository([_down, _ok()]),
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(manual: true),
+      );
+      await h.start();
+      expect(h.resolver.held, hasLength(1));
+      expect(h.phase, ConnectionPhase.connecting);
+
+      await h.tick();
+      expect(h.phase, ConnectionPhase.online);
+      expect(h.resolver.callCount, 1);
+    });
+
+    test(
+      'updated saat Online: fase tetap Online setelah poll ke endpoint baru',
+      () async {
+        final h = _harness(
+          FakeStatusRepository([_ok(), _down, _ok()]),
+          pairing: _pairedWithId,
+          resolver: FakeEndpointResolver(results: [RediscoverResult.updated]),
+        );
+        await h.start();
+        expect(h.phase, ConnectionPhase.online);
+
+        await h.tick();
+        expect(h.resolver.forceCalls, [false]);
+        expect(h.phase, ConnectionPhase.online);
+      },
+    );
+
+    test('none saat Offline: fase tidak berubah, rediscover dicoba lagi tanpa paksa', () async {
+      final h = _harness(
+        FakeStatusRepository([_down, _down, _down]),
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(),
+      );
+      await h.start();
+      await h.tick();
+      expect(h.phase, ConnectionPhase.offline);
+
+      await h.tick();
+      expect(h.phase, ConnectionPhase.offline);
+      expect(h.resolver.forceCalls, [false, false, false]);
+    });
+
+    test('tokenRejected dari rediscover: fase TokenRejected, polling berhenti, tidak ada rediscover lagi', () async {
+      final repo = FakeStatusRepository([_ok(), _down]);
+      final h = _harness(
+        repo,
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(
+          results: [RediscoverResult.tokenRejected],
+        ),
+      );
+      await h.start();
+      await h.tick();
+
+      expect(h.phase, ConnectionPhase.tokenRejected);
+      expect(h.sched.periodicJob, isNull);
+      expect(h.network.subscribed, isFalse);
+
+      final callsBefore = repo.calls;
+      await h.poll();
+      h.network.emit();
+      h.ctrl.resume();
+      await h.settle();
+
+      expect(repo.calls, callsBefore);
+      expect(h.resolver.callCount, 1);
+      expect(h.phase, ConnectionPhase.tokenRejected);
+    });
+
+    test('resolver tanpa kandidat (legacy, none) tidak mengubah fase pada kegagalan', () async {
+      final h = _harness(
+        FakeStatusRepository([_down, _ok()]),
+        pairing: _pairedNoId,
+        resolver: FakeEndpointResolver(results: [RediscoverResult.none]),
+      );
+      await h.start();
+      expect(h.phase, ConnectionPhase.connecting);
+
+      await h.tick();
+      expect(h.phase, ConnectionPhase.online);
+    });
+
+    test(
+      'event jaringan lokal: debounce 1 detik lalu rediscover paksa dan poll',
+      () async {
+        final repo = FakeStatusRepository([_ok(), _ok()]);
+        final h = _harness(
+          repo,
+          pairing: _pairedWithId,
+          resolver: FakeEndpointResolver(results: [RediscoverResult.none]),
+        );
+        await h.start();
+        final callsBefore = repo.calls;
+
+        h.network.emit();
+        await h.settle();
+        expect(h.sched.hasLiveOnce(RBehavior.networkChangeDebounce), isTrue);
+        expect(h.resolver.callCount, 0);
+
+        h.sched.fireOnce(RBehavior.networkChangeDebounce);
+        await h.settle();
+
+        expect(h.resolver.forceCalls, [true]);
+        expect(repo.calls, callsBefore + 1);
+        expect(h.phase, ConnectionPhase.online);
+      },
+    );
+
+    test('event jaringan bukan Wi-Fi/Ethernet: tidak ada rediscover dan tidak ada poll', () async {
+      final repo = FakeStatusRepository([_ok()]);
+      final network = FakeNetworkChangeSource(onLocal: false);
+      final h = _harness(
+        repo,
+        pairing: _pairedWithId,
+        network: network,
+        resolver: FakeEndpointResolver(),
+      );
+      await h.start();
+      final callsBefore = repo.calls;
+
+      network.emit();
+      await h.settle();
+      h.sched.fireOnce(RBehavior.networkChangeDebounce);
+      await h.settle();
+
+      expect(h.resolver.callCount, 0);
+      expect(repo.calls, callsBefore);
+    });
+
+    test(
+      'pause menghentikan langganan jaringan, resume memasangnya lagi',
+      () async {
+        final h = _harness(
+          FakeStatusRepository([_ok()]),
+          pairing: _pairedWithId,
+          resolver: FakeEndpointResolver(),
+        );
+        await h.start();
+        expect(h.network.subscribed, isTrue);
+
+        h.ctrl.pause();
+        expect(h.network.subscribed, isFalse);
+        expect(h.sched.hasLiveOnce(RBehavior.networkChangeDebounce), isFalse);
+
+        h.ctrl.resume();
+        await h.settle();
+        expect(h.network.subscribed, isTrue);
+      },
+    );
+
+    test(
+      'backfill: poll sukses dengan agentId mengisi pairing lama sekali',
+      () async {
+        final h = _harness(
+          FakeStatusRepository([
+            FakeHttpReply(
+              200,
+              jsonEncode({
+                'data': {
+                  'name': 'Laptop-Kamil',
+                  'version': '1.0.0',
+                  'uptimeSeconds': 1,
+                  'volume': {'level': 35, 'muted': false},
+                  'pending': null,
+                  'agentId': _agentId,
+                },
+              }),
+            ),
+          ]),
+          pairing: _pairedNoId,
+        );
+        await h.start();
+
+        expect(h.pairing?.agentId, _agentId);
+        expect(h.pairing?.host, _pairedNoId.host);
+        expect(h.pairing?.token, _pairedNoId.token);
+        expect(h.state.status?.agentId, _agentId);
+
+        await h.tick();
+        expect(h.pairing?.agentId, _agentId);
+        expect(h.phase, ConnectionPhase.online);
+      },
+    );
+
+    test('backfill tidak terjadi bila agent belum mengirim agentId', () async {
+      final h = _harness(FakeStatusRepository([_ok()]), pairing: _pairedNoId);
+      await h.start();
+
+      expect(h.pairing?.agentId, isNull);
+      expect(h.state.status?.agentId, isNull);
     });
   });
 }

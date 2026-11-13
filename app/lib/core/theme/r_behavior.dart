@@ -26,4 +26,13 @@ abstract final class RBehavior {
 
   /// Maximum wait for each pairing test step.
   static const Duration stepTimeout = Duration(seconds: 5);
+
+  /// How long one mDNS discovery session collects agent announcements.
+  static const Duration discoveryTimeout = Duration(seconds: 3);
+
+  /// Minimum gap between two background rediscovery runs while offline.
+  static const Duration discoveryInterval = Duration(seconds: 15);
+
+  /// Debounce for network change events before forcing a rediscovery.
+  static const Duration networkChangeDebounce = Duration(seconds: 1);
 }

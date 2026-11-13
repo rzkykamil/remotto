@@ -2,9 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../discovery/discovery_providers.dart';
+import '../discovery/endpoint_resolver.dart';
+import '../discovery/network_change_source.dart';
 import '../network/agent_status.dart';
 import '../network/api_failure.dart';
 import '../network/network_providers.dart';
+import '../storage/storage_providers.dart';
 import '../theme/r_behavior.dart';
 import '../theme/tokens.g.dart';
 import 'connection_providers.dart';
@@ -66,6 +70,8 @@ final class ConnectionController extends Notifier<ConnectionState> {
   late StatusRepository _repository;
   late PollScheduler _scheduler;
   late DateTime Function() _now;
+  late EndpointResolver _resolver;
+  late NetworkChangeSource _networkChanges;
 
   bool _running = false;
   bool _fast = false;
@@ -73,12 +79,16 @@ final class ConnectionController extends Notifier<ConnectionState> {
   ScheduledJob? _pollJob;
   ScheduledJob? _phaseJob;
   _InFlightPoll? _inFlight;
+  StreamSubscription<void>? _networkSub;
+  ScheduledJob? _networkDebounce;
 
   @override
   ConnectionState build() {
     _repository = ref.read(statusRepositoryProvider);
     _scheduler = ref.read(pollSchedulerProvider);
     _now = ref.read(connectionClockProvider);
+    _resolver = ref.read(endpointResolverProvider);
+    _networkChanges = ref.read(networkChangeSourceProvider);
     ref.onDispose(_halt);
     return const ConnectionState(phase: ConnectionPhase.connecting);
   }
@@ -91,6 +101,7 @@ final class ConnectionController extends Notifier<ConnectionState> {
     _failures = 0;
     _setPhase(ConnectionPhase.connecting);
     _schedulePoll();
+    _subscribeNetwork();
     unawaited(_poll(timeout: RBehavior.resumeWait));
   }
 
@@ -175,6 +186,7 @@ final class ConnectionController extends Notifier<ConnectionState> {
 
   void _onSuccess(AgentStatus status) {
     _failures = 0;
+    _backfillAgentId(status.agentId);
     final previous = state.status;
     // Null volume means Core Audio failed; the last value is kept.
     final merged = AgentStatus(
@@ -183,6 +195,7 @@ final class ConnectionController extends Notifier<ConnectionState> {
       uptimeSeconds: status.uptimeSeconds,
       volume: status.volume ?? previous?.volume,
       pending: status.pending,
+      agentId: status.agentId,
     );
 
     switch (state.phase) {
@@ -227,6 +240,70 @@ final class ConnectionController extends Notifier<ConnectionState> {
       case ConnectionPhase.tokenRejected:
         break;
     }
+    _triggerRediscover(force: false);
+  }
+
+  /// Saves the agentId of a pairing made before M7 (D2 backfill). The token
+  /// already authenticated this answer, so the id is taken once.
+  void _backfillAgentId(String? agentId) {
+    if (agentId == null) return;
+    final pairing = ref.read(pairingProvider);
+    if (pairing == null || pairing.agentId != null) return;
+    unawaited(ref.read(pairingProvider.notifier).backfillAgentId(agentId));
+  }
+
+  /// Rediscovery runs beside the poll, never in front of it (D6). The poll
+  /// keeps its own schedule and timeout; the result is handled when it comes.
+  void _triggerRediscover({required bool force}) {
+    if (!_running || state.phase == ConnectionPhase.tokenRejected) return;
+    unawaited(_resolver.rediscover(force: force).then(_onRediscovered));
+  }
+
+  void _onRediscovered(RediscoverResult result) {
+    switch (result) {
+      case RediscoverResult.none:
+        break;
+      case RediscoverResult.tokenRejected:
+        _enterTokenRejected();
+      case RediscoverResult.updated:
+        // The endpoint is already saved; only poll when still running.
+        if (!_running) break;
+        _failures = 0;
+        unawaited(_poll(timeout: _pollTimeout));
+    }
+  }
+
+  void _subscribeNetwork() {
+    _networkSub ??= _networkChanges.changes.listen((_) => _onNetworkChanged());
+  }
+
+  void _unsubscribeNetwork() {
+    _networkSub?.cancel();
+    _networkSub = null;
+    _networkDebounce?.cancel();
+    _networkDebounce = null;
+  }
+
+  /// Debounced on the poll scheduler so tests can fire it with the fake timer.
+  void _onNetworkChanged() {
+    _networkDebounce?.cancel();
+    _networkDebounce = _scheduler.after(RBehavior.networkChangeDebounce, () {
+      _networkDebounce = null;
+      unawaited(_handleNetworkChange());
+    });
+  }
+
+  /// Wi-Fi or Ethernet only (D6 point 5). Forced rediscovery, then a poll
+  /// unless the rediscovery already polled or the token was rejected.
+  Future<void> _handleNetworkChange() async {
+    if (!_running) return;
+    if (!await _networkChanges.onLocalNetwork) return;
+    if (!_running) return;
+    final result = await _resolver.rediscover(force: true);
+    _onRediscovered(result);
+    if (_running && result == RediscoverResult.none) {
+      unawaited(_poll(timeout: _pollTimeout));
+    }
   }
 
   /// Plain offline, or poweredOff when the power command is still recent (P15).
@@ -262,6 +339,7 @@ final class ConnectionController extends Notifier<ConnectionState> {
     _pollJob = null;
     _phaseJob?.cancel();
     _phaseJob = null;
+    _unsubscribeNetwork();
     final running = _inFlight;
     if (running != null) {
       running.settled = true;

@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../connection/connection_providers.dart';
+import '../network/agent_status.dart';
 import 'app_preferences.dart';
 import 'connection_storage.dart';
 import 'pairing_data.dart';
@@ -49,6 +50,40 @@ final class PairingNotifier extends Notifier<PairingData?> {
     await ref.read(connectionStorageProvider).clear();
     state = null;
     ref.read(lastPowerCommandProvider.notifier).clear();
+  }
+
+  /// Mengganti host dan port saja (hasil discovery). Token, nama, dan agentId
+  /// tetap; `lastPowerCommand` tidak disentuh. Tulis storage dulu, baru state.
+  /// Tanpa pairing, tidak ada yang dilakukan.
+  Future<void> updateEndpoint({required String host, required int port}) async {
+    final current = state;
+    if (current == null) return;
+    final next = PairingData(
+      host: host,
+      port: port,
+      token: current.token,
+      laptopName: current.laptopName,
+      agentId: current.agentId,
+    );
+    await ref.read(connectionStorageProvider).write(next);
+    state = next;
+  }
+
+  /// Mengisi `agentId` untuk pairing lama (backfill, data-design §2). Hanya bila
+  /// state ada dan `agentId` masih null. Id yang tidak 32 hex diabaikan.
+  Future<void> backfillAgentId(String id) async {
+    final current = state;
+    if (current == null || current.agentId != null) return;
+    if (!agentIdPattern.hasMatch(id)) return;
+    final next = PairingData(
+      host: current.host,
+      port: current.port,
+      token: current.token,
+      laptopName: current.laptopName,
+      agentId: id,
+    );
+    await ref.read(connectionStorageProvider).write(next);
+    state = next;
   }
 }
 

@@ -11,6 +11,7 @@ final class PairingTarget {
     required this.port,
     required this.token,
     this.name,
+    this.agentId,
   });
 
   /// IPv4 in a private or Tailscale range (BR-12).
@@ -22,6 +23,10 @@ final class PairingTarget {
 
   /// Laptop name from the QR (already trimmed). Null for manual input.
   final String? name;
+
+  /// `id` from the QR (32 lowercase hex). Null if the QR has no `id` (before M7)
+  /// and always null for manual input.
+  final String? agentId;
 }
 
 /// Reason validation failed. The UI maps this reason to copy in `lib/core/strings/`.
@@ -34,6 +39,7 @@ enum PairingInvalidReason {
   invalidPort,
   invalidToken,
   invalidAddress,
+  invalidAgentId,
 }
 
 sealed class PairingValidation {

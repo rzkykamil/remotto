@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../../core/network/agent_status.dart';
 import 'pairing_target.dart';
 
 /// QR text size limit in UTF-8 bytes (data-design §5).
@@ -58,7 +59,24 @@ PairingValidation validateQrPayload(String raw) {
     return const PairingInvalid(PairingInvalidReason.invalidToken);
   }
 
+  // `id` is optional (QR before M7 has none). If the key is present, the value
+  // must be a valid agentId; null or any other type is rejected.
+  String? agentId;
+  if (decoded.containsKey('id')) {
+    final rawId = decoded['id'];
+    if (rawId is! String || !agentIdPattern.hasMatch(rawId)) {
+      return const PairingInvalid(PairingInvalidReason.invalidAgentId);
+    }
+    agentId = rawId;
+  }
+
   return PairingValid(
-    PairingTarget(host: rawHost, port: port, token: token, name: name),
+    PairingTarget(
+      host: rawHost,
+      port: port,
+      token: token,
+      name: name,
+      agentId: agentId,
+    ),
   );
 }

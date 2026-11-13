@@ -65,6 +65,10 @@
 	<string>Kamera dipakai untuk memindai QR pairing dari laptop.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Remotto perlu terhubung ke laptop di jaringan yang sama.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_remotto._tcp</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

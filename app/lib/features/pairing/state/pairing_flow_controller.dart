@@ -258,6 +258,16 @@ final class PairingFlowController extends Notifier<PairingFlowState> {
           .timeout(timeout);
       if (attempt != _attempt) return;
 
+      // QR carries an id but the agent that answered has another one: this is
+      // not the laptop in the QR. Fails through the Q10 path (catch below).
+      final targetAgentId = target.agentId;
+      final statusAgentId = status.agentId;
+      if (targetAgentId != null &&
+          statusAgentId != null &&
+          targetAgentId != statusAgentId) {
+        throw const _AgentIdMismatch();
+      }
+
       _emit(state.copyWith(testStep: PairingTestStep.checkToken));
       _emit(state.copyWith(testStep: PairingTestStep.save));
 
@@ -270,6 +280,7 @@ final class PairingFlowController extends Notifier<PairingFlowState> {
               port: target.port,
               token: target.token,
               laptopName: status.name,
+              agentId: statusAgentId,
             ),
           );
       if (attempt != _attempt) return;
@@ -306,4 +317,9 @@ final class PairingFlowController extends Notifier<PairingFlowState> {
     _codes?.cancel();
     _codes = null;
   }
+}
+
+/// The `id` in the QR does not match the `agentId` from `GET /status`.
+final class _AgentIdMismatch implements Exception {
+  const _AgentIdMismatch();
 }

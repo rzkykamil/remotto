@@ -2,7 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:remotto/core/discovery/discovery_providers.dart';
 import 'package:remotto/core/theme/app_theme.dart';
+
+import 'fake_agent_discovery.dart';
+import 'fake_endpoint_resolver.dart';
+import 'fake_network_change_source.dart';
+
+/// Default fake untuk discovery (M7): tanpa plugin nsd atau connectivity nyata.
+/// Ditaruh di depan [overrides] supaya override tes tetap menang.
+List<Override> discoveryFakes() => [
+  agentDiscoveryProvider.overrideWithValue(FakeAgentDiscovery()),
+  endpointResolverProvider.overrideWithValue(FakeEndpointResolver()),
+  networkChangeSourceProvider.overrideWithValue(
+    FakeNetworkChangeSource(onLocal: false),
+  ),
+];
 
 /// Membungkus [child] dengan tema app, ProviderScope, dan MediaQuery uji.
 Future<void> pumpApp(
@@ -23,7 +38,7 @@ Future<void> pumpApp(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: overrides,
+      overrides: [...discoveryFakes(), ...overrides],
       child: MaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,

@@ -1,5 +1,8 @@
 import 'api_failure.dart';
 
+/// `agentId` contract (data-design §3, api-spec Status): 32 lowercase hex.
+final agentIdPattern = RegExp(r'^[0-9a-f]{32}$');
+
 /// Laptop volume from `GET /status` (api-spec, `Volume` object).
 final class VolumeStatus {
   const VolumeStatus({required this.level, required this.muted});
@@ -88,6 +91,7 @@ final class AgentStatus {
     required this.uptimeSeconds,
     required this.volume,
     required this.pending,
+    this.agentId,
   });
 
   final String name;
@@ -100,6 +104,10 @@ final class AgentStatus {
   /// Null if there is no power schedule.
   final Pending? pending;
 
+  /// Public agent identity (32 lowercase hex). Null if the agent does not send
+  /// it yet (agent before M7).
+  final String? agentId;
+
   /// Builds a status from the `data` content. Fields that do not match the contract
   /// throw [ServerFailure].
   factory AgentStatus.fromData(Map<String, Object?> data) {
@@ -109,6 +117,7 @@ final class AgentStatus {
       uptimeSeconds: _requireInt(data, 'uptimeSeconds', min: 0),
       volume: _parseVolume(data),
       pending: _parsePending(data),
+      agentId: _parseAgentId(data),
     );
   }
 
@@ -119,16 +128,18 @@ final class AgentStatus {
       other.version == version &&
       other.uptimeSeconds == uptimeSeconds &&
       other.volume == volume &&
-      other.pending == pending;
+      other.pending == pending &&
+      other.agentId == agentId;
 
   @override
   int get hashCode =>
-      Object.hash(name, version, uptimeSeconds, volume, pending);
+      Object.hash(name, version, uptimeSeconds, volume, pending, agentId);
 
   @override
   String toString() =>
       'AgentStatus(name: $name, version: $version, '
-      'uptimeSeconds: $uptimeSeconds, volume: $volume, pending: $pending)';
+      'uptimeSeconds: $uptimeSeconds, volume: $volume, pending: $pending, '
+      'agentId: $agentId)';
 }
 
 /// Single parser for `GET /status`, used by the later HTTP and the mock.
@@ -155,6 +166,15 @@ Pending? _parsePending(Map<String, Object?> data) {
   final raw = data['pending'];
   if (raw == null) return null;
   return Pending.fromData(_asMap(raw));
+}
+
+/// `agentId` is optional: absent or null gives null (agent before M7). A value
+/// that is not a string or not 32 lowercase hex is a contract failure.
+String? _parseAgentId(Map<String, Object?> data) {
+  final raw = data['agentId'];
+  if (raw == null) return null;
+  if (raw is String && agentIdPattern.hasMatch(raw)) return raw;
+  throw const ServerFailure();
 }
 
 void _requireKey(Map<String, Object?> map, String key) {

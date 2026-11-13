@@ -13,7 +13,8 @@ abstract interface class ConnectionStorage {
   Future<void> clear();
 }
 
-/// Menyimpan empat key sambungan di secure storage (data-design.md §6).
+/// Menyimpan key sambungan di secure storage (data-design.md §2). Empat key
+/// wajib sebagai satu kesatuan; `remotto.agentId` opsional.
 final class SecureConnectionStorage implements ConnectionStorage {
   const SecureConnectionStorage(this._storage);
 
@@ -21,11 +22,13 @@ final class SecureConnectionStorage implements ConnectionStorage {
   static const keyPort = 'remotto.port';
   static const keyToken = 'remotto.token';
   static const keyLaptopName = 'remotto.laptopName';
+  static const keyAgentId = 'remotto.agentId';
 
   final FlutterSecureStorage _storage;
 
-  /// Keempat key dibaca sebagai satu kesatuan. Salah satu hilang, port tidak
+  /// Empat key wajib dibaca sebagai satu kesatuan. Salah satu hilang, port tidak
   /// valid, atau storage melempar exception: hasilnya null (dianggap kosong).
+  /// `agentId` yang hilang tidak membuat hasil null (pairing lama, sebelum M7).
   @override
   Future<PairingData?> read() async {
     try {
@@ -47,7 +50,17 @@ final class SecureConnectionStorage implements ConnectionStorage {
         port: port,
         token: token,
         laptopName: laptopName,
+        agentId: await _readAgentId(),
       );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Gagal baca `agentId` dianggap tidak ada, sama seperti key hilang.
+  Future<String?> _readAgentId() async {
+    try {
+      return await _storage.read(key: keyAgentId);
     } catch (_) {
       return null;
     }
@@ -59,6 +72,12 @@ final class SecureConnectionStorage implements ConnectionStorage {
     await _storage.write(key: keyPort, value: data.port.toString());
     await _storage.write(key: keyToken, value: data.token);
     await _storage.write(key: keyLaptopName, value: data.laptopName);
+    final agentId = data.agentId;
+    if (agentId != null) {
+      await _storage.write(key: keyAgentId, value: agentId);
+    } else {
+      await _storage.delete(key: keyAgentId);
+    }
   }
 
   @override
@@ -67,5 +86,6 @@ final class SecureConnectionStorage implements ConnectionStorage {
     await _storage.delete(key: keyPort);
     await _storage.delete(key: keyToken);
     await _storage.delete(key: keyLaptopName);
+    await _storage.delete(key: keyAgentId);
   }
 }
