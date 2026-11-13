@@ -1193,5 +1193,95 @@ void main() {
       expect(h.pairing?.agentId, isNull);
       expect(h.state.status?.agentId, isNull);
     });
+
+    test('tiga event jaringan berturut lalu satu debounce: rediscover paksa tepat sekali', () async {
+      final repo = FakeStatusRepository([_ok(), _ok()]);
+      final h = _harness(
+        repo,
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(),
+      );
+      await h.start();
+      final callsBefore = repo.calls;
+
+      h.network.emit();
+      h.network.emit();
+      h.network.emit();
+      await h.settle();
+      expect(h.resolver.callCount, 0);
+
+      h.sched.fireOnce(RBehavior.networkChangeDebounce);
+      await h.settle();
+
+      expect(h.resolver.callCount, 1);
+      expect(h.resolver.forceCalls, [true]);
+      expect(repo.calls, callsBefore + 1);
+    });
+
+    test('event baru saat debounce masih hidup mereset timer: belum ada rediscover', () async {
+      final h = _harness(
+        FakeStatusRepository([_ok()]),
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(),
+      );
+      await h.start();
+
+      h.network.emit();
+      await h.settle();
+      h.network.emit();
+      await h.settle();
+
+      expect(h.sched.hasLiveOnce(RBehavior.networkChangeDebounce), isTrue);
+      expect(h.resolver.callCount, 0);
+    });
+
+    test('tokenRejected: event jaringan dan debounce yang dibatalkan tidak memicu rediscover atau poll', () async {
+      final repo = FakeStatusRepository([_ok()]);
+      final h = _harness(
+        repo,
+        pairing: _pairedWithId,
+        resolver: FakeEndpointResolver(),
+      );
+      await h.start();
+      h.network.emit();
+      await h.settle();
+      expect(h.sched.hasLiveOnce(RBehavior.networkChangeDebounce), isTrue);
+
+      h.ctrl.reportUnauthorized();
+      await h.settle();
+      expect(h.phase, ConnectionPhase.tokenRejected);
+      final callsBefore = repo.calls;
+
+      h.network.emit();
+      await h.settle();
+
+      expect(h.sched.hasLiveOnce(RBehavior.networkChangeDebounce), isFalse);
+      expect(h.resolver.callCount, 0);
+      expect(repo.calls, callsBefore);
+      expect(h.phase, ConnectionPhase.tokenRejected);
+    });
+
+    test('onLocalNetwork sudah false saat debounce habis: tidak ada rediscover dan poll', () async {
+      final repo = FakeStatusRepository([_ok()]);
+      final network = FakeNetworkChangeSource(onLocal: true);
+      final h = _harness(
+        repo,
+        pairing: _pairedWithId,
+        network: network,
+        resolver: FakeEndpointResolver(),
+      );
+      await h.start();
+      final callsBefore = repo.calls;
+
+      network.emit();
+      await h.settle();
+      network.onLocal = false;
+      h.sched.fireOnce(RBehavior.networkChangeDebounce);
+      await h.settle();
+
+      expect(h.resolver.callCount, 0);
+      expect(repo.calls, callsBefore);
+      expect(h.phase, ConnectionPhase.online);
+    });
   });
 }
