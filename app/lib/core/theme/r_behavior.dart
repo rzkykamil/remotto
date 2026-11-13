@@ -30,6 +30,14 @@ abstract final class RBehavior {
   /// How long one mDNS discovery session collects agent announcements.
   static const Duration discoveryTimeout = Duration(seconds: 3);
 
+  /// Slack on top of [discoveryTimeout] before a search that has not answered
+  /// is abandoned.
+  static const Duration discoveryGuardMargin = Duration(seconds: 1);
+
+  /// A search taking longer than this counts as no result.
+  static final Duration discoveryHardLimit =
+      discoveryTimeout + discoveryGuardMargin;
+
   /// Minimum gap between two background rediscovery runs while offline.
   static const Duration discoveryInterval = Duration(seconds: 15);
 

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remotto/core/discovery/agent_discovery.dart';
@@ -198,6 +201,52 @@ void main() {
         port: 8765,
       );
       expect(result!.name, 'x' * 32);
+    });
+  });
+
+  group('decodeTxt', () {
+    Uint8List bytes(String value) => Uint8List.fromList(utf8.encode(value));
+
+    // 0xff can never appear in valid UTF-8.
+    final malformed = Uint8List.fromList([0xff, 0xfe, 0xfd]);
+
+    test('gives an empty map for raw null', () {
+      expect(decodeTxt(null), isEmpty);
+    });
+
+    test('skips a key whose value is null', () {
+      expect(decodeTxt({'v': null}), isEmpty);
+      expect(decodeTxt({'v': bytes('1'), 'name': null}), {'v': '1'});
+    });
+
+    test('decodes valid UTF-8, including non-ASCII text', () {
+      expect(decodeTxt({'name': bytes('Laptop Rizky ünï')}), {
+        'name': 'Laptop Rizky ünï',
+      });
+    });
+
+    test('drops a key with malformed UTF-8', () {
+      expect(decodeTxt({'name': malformed}), isEmpty);
+    });
+
+    test('keeps the other keys when one key is malformed', () {
+      expect(decodeTxt({'name': malformed, 'v': bytes('1')}), {'v': '1'});
+    });
+
+    test('parseCandidate rejects when a malformed id drops the key', () {
+      final txt = decodeTxt({'v': bytes('1'), 'id': malformed});
+      expect(
+        parseCandidate(txt: txt, addresses: const ['192.168.1.2'], port: 8765),
+        isNull,
+      );
+    });
+
+    test('parseCandidate rejects when a malformed v drops the key', () {
+      final txt = decodeTxt({'v': malformed, 'id': bytes(_agentId)});
+      expect(
+        parseCandidate(txt: txt, addresses: const ['192.168.1.2'], port: 8765),
+        isNull,
+      );
     });
   });
 

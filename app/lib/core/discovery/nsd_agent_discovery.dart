@@ -1,6 +1,5 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:nsd/nsd.dart';
 
@@ -17,11 +16,23 @@ final class NsdAgentDiscovery implements AgentDiscovery {
   Future<List<DiscoveredAgent>> find({required Duration timeout}) async {
     Discovery? discovery;
     try {
-      discovery = await startDiscovery(
+      final starting = startDiscovery(
         agentServiceType,
         autoResolve: true,
         ipLookupType: IpLookupType.v4,
       );
+      try {
+        discovery = await starting.timeout(timeout);
+      } on TimeoutException {
+        // A session that starts late must still be stopped, or it leaks.
+        unawaited(
+          starting.then(
+            (late) => _stopQuietly(late, timeout),
+            onError: (Object _) {},
+          ),
+        );
+        rethrow;
+      }
       await Future<void>.delayed(timeout);
 
       final found = <DiscoveredAgent>[];
@@ -34,7 +45,7 @@ final class NsdAgentDiscovery implements AgentDiscovery {
       return const [];
     } finally {
       if (discovery != null) {
-        await _stopQuietly(discovery);
+        await _stopQuietly(discovery, timeout);
       }
     }
   }
@@ -48,7 +59,7 @@ final class NsdAgentDiscovery implements AgentDiscovery {
           address.address,
       ];
       return parseCandidate(
-        txt: _decodeTxt(service.txt),
+        txt: decodeTxt(service.txt),
         addresses: addresses,
         port: service.port ?? 0,
       );
@@ -57,24 +68,9 @@ final class NsdAgentDiscovery implements AgentDiscovery {
     }
   }
 
-  /// Malformed UTF-8 values are dropped; their keys then count as missing.
-  Map<String, String> _decodeTxt(Map<String, Uint8List?>? raw) {
-    final decoded = <String, String>{};
-    if (raw == null) return decoded;
-    raw.forEach((key, value) {
-      if (value == null) return;
-      try {
-        decoded[key] = utf8.decode(value, allowMalformed: false);
-      } on FormatException {
-        // Skip this key.
-      }
-    });
-    return decoded;
-  }
-
-  Future<void> _stopQuietly(Discovery discovery) async {
+  Future<void> _stopQuietly(Discovery discovery, Duration timeout) async {
     try {
-      await stopDiscovery(discovery);
+      await stopDiscovery(discovery).timeout(timeout);
     } on Object {
       // Nothing to recover; the session is already over.
     }

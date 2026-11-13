@@ -77,9 +77,12 @@ interface class EndpointResolver {
 
   Future<RediscoverResult> _execute(PairingData pairing, String agentId) async {
     try {
+      // A find that answers after the hard limit is ignored: the timeout below
+      // throws, and the catch turns that into RediscoverResult.none.
       final found = await _ref
           .read(agentDiscoveryProvider)
-          .find(timeout: RBehavior.discoveryTimeout);
+          .find(timeout: RBehavior.discoveryTimeout)
+          .timeout(RBehavior.discoveryHardLimit);
       final candidates = selectCandidates(
         found,
         agentId: agentId,

@@ -140,11 +140,18 @@ _Harness _harness({
   PairingData? pairing = _paired,
   List<List<DiscoveredAgent>> results = const [],
   Completer<void>? gate,
+  Set<int> throwOnCalls = const {},
+  Set<int> hangOnCalls = const {},
   FutureOr<http.Response> Function(http.Request request)? handler,
 }) {
   return _Harness(
     pairing: pairing,
-    discovery: FakeAgentDiscovery(resultsPerCall: results, gate: gate),
+    discovery: FakeAgentDiscovery(
+      resultsPerCall: results,
+      gate: gate,
+      throwOnCalls: throwOnCalls,
+      hangOnCalls: hangOnCalls,
+    ),
     handler: handler ?? (_) => _statusResponse(),
   );
 }
@@ -456,5 +463,190 @@ void main() {
       await h.resolver.rediscover(force: true);
       expect(h.discovery.callCount, 2);
     });
+  });
+
+  group('edge cases', () {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      _prefs = await SharedPreferences.getInstance();
+    });
+
+    late _Harness h;
+
+    tearDown(() => h.dispose());
+
+    /// Status body with a raw `agentId` value; [agentId] null omits the key
+    /// (agent before M7).
+    http.Response rawStatus({Object? agentId}) {
+      final data = <String, Object?>{
+        'name': 'Laptop-Kamil',
+        'version': '1.0.0',
+        'uptimeSeconds': 120,
+        'volume': {'level': 35, 'muted': false},
+        'pending': null,
+        'agentId': ?agentId,
+      };
+      return http.Response(
+        jsonEncode({'data': data}),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    }
+
+    test('a matching candidate with a malformed agentId in its status is '
+        'skipped and the next candidate can succeed (D5)', () async {
+      h = _harness(
+        results: [
+          [_found(), _found(host: '192.168.1.30', port: 9001)],
+        ],
+        handler: (request) => request.url.host == _newHost
+            ? rawStatus(agentId: 'NOT-A-VALID-ID')
+            : _statusResponse(),
+      );
+
+      expect(await h.resolver.rediscover(), RediscoverResult.updated);
+      expect(h.pairing!.host, '192.168.1.30');
+      expect(h.pairing!.port, 9001);
+      expect(h.pairing!.token, _token);
+      expect(h.requests, hasLength(2));
+    });
+
+    test('a candidate answering 200 without agentId (agent before M7) is '
+        'skipped and gives none', () async {
+      h = _harness(
+        results: [
+          [_found()],
+        ],
+        handler: (_) => rawStatus(),
+      );
+
+      expect(await h.resolver.rediscover(), RediscoverResult.none);
+      expect(h.pairing, _paired);
+      expect(h.storage.data, _paired);
+      expect(h.requests, hasLength(1));
+    });
+
+    test('a candidate answering 200 with a non-JSON body gives none without '
+        'throwing', () async {
+      h = _harness(
+        results: [
+          [_found()],
+        ],
+        handler: (_) => http.Response(
+          '<html>not the agent</html>',
+          200,
+          headers: {'content-type': 'text/html'},
+        ),
+      );
+
+      expect(await h.resolver.rediscover(), RediscoverResult.none);
+      expect(h.pairing, _paired);
+      expect(h.storage.data, _paired);
+      expect(h.requests, hasLength(1));
+    });
+
+    test('a find that throws gives none, and the next run after the interval '
+        'still works', () async {
+      h = _harness(
+        results: [
+          [],
+          [_found()],
+        ],
+        throwOnCalls: const {0},
+      );
+
+      expect(await h.resolver.rediscover(), RediscoverResult.none);
+      expect(h.pairing, _paired);
+      expect(h.requests, isEmpty);
+
+      h.clock.now = h.clock.now.add(RBehavior.discoveryInterval);
+      expect(await h.resolver.rediscover(), RediscoverResult.updated);
+      expect(h.discovery.callCount, 2);
+      expect(h.pairing!.host, _newHost);
+      expect(h.pairing!.port, _newPort);
+    });
+
+    test(
+      'a find that never completes must not block rediscover forever',
+      () async {
+        // Bug candidate: `_inFlight` is cleared only by whenComplete, and
+        // NsdAgentDiscovery has no timeout around startDiscovery. A hung find
+        // keeps the run open. The window is twice discoveryTimeout.
+        h = _harness(gate: Completer<void>());
+
+        await expectLater(
+          h.resolver.rediscover().timeout(RBehavior.discoveryTimeout * 2),
+          completion(RediscoverResult.none),
+        );
+        expect(h.requests, isEmpty);
+        expect(h.pairing, _paired);
+      },
+    );
+
+    // Real time is used here: fake_async is only a transitive dependency.
+    test('a hung find gives none at discoveryHardLimit, and a non-forced run '
+        'before discoveryInterval stays none', () async {
+      h = _harness(
+        results: [
+          [],
+          [_found()],
+        ],
+        hangOnCalls: const {0},
+      );
+
+      expect(await h.resolver.rediscover(), RediscoverResult.none);
+      expect(h.discovery.callCount, 1);
+
+      expect(await h.resolver.rediscover(), RediscoverResult.none);
+      expect(h.discovery.callCount, 1);
+
+      h.clock.now = h.clock.now.add(RBehavior.discoveryInterval);
+      expect(await h.resolver.rediscover(), RediscoverResult.updated);
+      expect(h.discovery.callCount, 2);
+    });
+
+    test('after a hung find times out, a forced run starts a new discovery '
+        'at once', () async {
+      h = _harness(
+        results: [
+          [],
+          [_found()],
+        ],
+        hangOnCalls: const {0},
+      );
+
+      final first = h.resolver.rediscover();
+      expect(await first, RediscoverResult.none);
+
+      final second = h.resolver.rediscover(force: true);
+      expect(identical(first, second), isFalse);
+      expect(await second, RediscoverResult.updated);
+      expect(h.discovery.callCount, 2);
+      expect(h.pairing!.host, _newHost);
+      expect(h.pairing!.port, _newPort);
+    });
+
+    test(
+      'a late answer from a hung find is ignored after the timeout',
+      () async {
+        h = _harness(
+          results: [
+            [_found()],
+          ],
+          hangOnCalls: const {0},
+        );
+
+        expect(await h.resolver.rediscover(), RediscoverResult.none);
+        expect(h.pairing, _paired);
+        expect(h.storage.data, _paired);
+
+        h.discovery.hung.complete();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(h.pairing, _paired);
+        expect(h.storage.data, _paired);
+        expect(h.requests, isEmpty);
+      },
+    );
   });
 }

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'agent_discovery.dart';
 
 /// DNS-SD service type advertised by the agent (technical-spec, D3).
@@ -98,6 +101,22 @@ bool _isPrivate(List<int> o) {
   if (a == 10) return true;
   if (a == 172 && b >= 16 && b <= 31) return true;
   return a == 192 && b == 168;
+}
+
+/// Decodes raw TXT values as UTF-8. A null value is skipped. Malformed UTF-8
+/// drops only its own key, so the key then counts as missing.
+Map<String, String> decodeTxt(Map<String, Uint8List?>? raw) {
+  final decoded = <String, String>{};
+  if (raw == null) return decoded;
+  raw.forEach((key, value) {
+    if (value == null) return;
+    try {
+      decoded[key] = utf8.decode(value, allowMalformed: false);
+    } on FormatException {
+      // Skip this key.
+    }
+  });
+  return decoded;
 }
 
 String? _cleanName(String? raw) {
