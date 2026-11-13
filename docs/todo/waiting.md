@@ -525,3 +525,57 @@ Hal yang hanya bisa dicek dengan laptop dan HP sungguhan. Simpan pekerjaan sebel
   Buka: app Remotto di HP.
   Lakukan: tekan play/pause atau next berulang cepat.
   Harusnya: toast "Ulangi" muncul jika kena 429, dan tidak ada retry otomatis.
+
+## M7 Auto-Discovery Jaringan
+
+Catatan: item yang butuh laptop mengiklankan (hampir semua) baru bisa dites setelah fase Backend M7 selesai dan agent versi terbaru berjalan.
+
+- [ ] M7 (Integrasi): ganti WiFi, app menemukan laptop lagi tanpa scan QR.
+  Buka: app Remotto di HP dan laptop yang sama-sama di WiFi A.
+  Lakukan: pastikan app tersambung (layar Remote, status "Nyambung"). Pindahkan HP dan laptop ke WiFi B, lalu tunggu. Setelah agent versi terbaru berjalan.
+  Harusnya: app pindah dari S10 ke S11 sekitar 15 sampai 20 detik, tanpa scan QR ulang dan tanpa restart app.
+
+- [ ] M7 (Integrasi): laptop dapat IP baru tanpa ganti WiFi.
+  Buka: PowerShell di laptop, dan app Remotto di HP di layar Remote.
+  Lakukan: jalankan `ipconfig /release` lalu `ipconfig /renew` di laptop (PowerShell sebagai Administrator bila diminta). Setelah agent versi terbaru berjalan.
+  Harusnya: app menemukan IP baru dan kembali "Nyambung" tanpa tindakan apa pun.
+
+- [ ] M7 (Backend): firewall mengizinkan UDP 5353 di profil Private.
+  Buka: PowerShell Administrator di laptop, dan `docs/release.md` bagian firewall M7.
+  Lakukan: jalankan aturan UDP 5353 profil Private dari `docs/release.md`, lalu ulangi tes ganti WiFi. Lalu coba tanpa aturan itu.
+  Harusnya: dengan aturan, app menemukan laptop. Tanpa aturan, app tetap offline dan pesan atau cadangan scan QR ulang muncul dengan jelas, tanpa crash.
+
+- [ ] M7 (Integrasi): dua laptop agent di WiFi yang sama tidak tertukar.
+  Buka: dua laptop yang menjalankan agent Remotto, dan HP yang sudah dipairing ke laptop A.
+  Lakukan: pastikan kedua laptop di WiFi yang sama, lalu matikan WiFi laptop A dan nyalakan laptop B di WiFi yang sama. Ulangi dengan membalik urutan.
+  Harusnya: app tidak pindah ke laptop B, token tidak terkirim ke laptop B, dan app tetap offline sampai laptop A kembali.
+
+- [ ] M7 (Frontend): iOS meminta izin jaringan lokal dan discovery jalan.
+  Buka: iPhone yang memasang app hasil build di Mac, dan layar Remote.
+  Lakukan: buka app pertama kali setelah instal. Lalu ganti WiFi laptop dan tunggu.
+  Harusnya: prompt "jaringan lokal" muncul sekali, dan setelah diizinkan discovery menemukan laptop. Build iOS dicek di Mac (`flutter build ios`).
+
+- [ ] M7 (Frontend): Android HP nyata, termasuk mode hemat baterai.
+  Buka: HP Android yang dipakai sehari-hari, layar Remote.
+  Lakukan: ganti WiFi laptop dengan HP di mode hemat baterai, lalu tunggu. Ulangi tanpa mode hemat.
+  Harusnya: app menemukan laptop di kedua kondisi. Bila hanya gagal saat hemat baterai, catat di sini.
+
+- [ ] M7 (Integrasi): WiFi tamu dengan client isolation.
+  Buka: HP di WiFi tamu yang memblokir antar-perangkat, dan layar Remote.
+  Lakukan: buka app saat laptop di WiFi utama, lalu cek layar Remote.
+  Harusnya: app tetap offline, muncul tombol "Pairing ulang" sebagai cadangan scan QR, dan app tidak crash.
+
+- [ ] M7 (Integrasi): reset token lalu ganti WiFi.
+  Buka: PowerShell di laptop (`remotto-agent reset-token`), app Remotto di HP.
+  Lakukan: jalankan `reset-token` di laptop, lalu ganti WiFi, lalu buka layar Remote. Bukan lewat endpoint daya.
+  Harusnya: app masuk Q12 (token ditolak), tidak menyimpan endpoint baru, dan token lama tidak dipakai ke laptop mana pun.
+
+- [ ] M7 (Integrasi): upgrade dari pairing lama, agentId terisi lewat backfill.
+  Buka: app Remotto di HP yang dipairing sebelum M7, dan agent versi terbaru di laptop.
+  Lakukan: buka layar Remote saat laptop nyala. Lalu ganti WiFi laptop.
+  Harusnya: setelah beberapa detik app mengisi agentId (tidak terlihat di layar). Setelah ganti WiFi, app menemukan laptop lagi.
+
+- [ ] M7 (Integrasi): ukur waktu ganti WiFi sampai app kembali online.
+  Buka: stopwatch di HP atau laptop, dan layar Remote di HP.
+  Lakukan: ganti WiFi laptop tiga kali, catat detik dari WiFi berganti sampai layar berubah ke S01 setiap kali.
+  Harusnya: angka tercatat di bagian M7 `docs/todo/modules/M7-auto-discovery-jaringan.md`. Tidak ada batas lulus; angka dipakai untuk menilai 15 sampai 20 detik.

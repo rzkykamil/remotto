@@ -57,8 +57,15 @@ Belum ada temuan.
 - [ ] Koneksi: kegagalan kedua saat server mati memakan sekitar 2 detik (`connection_resume_http_test.dart` tes C), bukan "connect cepat" seperti spec. Perlu diselidiki (dugaan: koneksi keep-alive).
 - [ ] `POST /power/schedule` tidak ada di `docs/api-spec.md`; tes memakai `/power/shutdown`. Perlu klarifikasi spec.
 
+## M7 Auto-Discovery Jaringan
+
+- [ ] Peringatan build: plugin nsd_android masih memakai Kotlin Gradle Plugin; Flutter mendatang akan gagal build bila belum dimigrasi ke built-in Kotlin. Pantau pembaruan nsd (T2 M7).
+- [ ] `endpoint_resolver.dart` jalur 401 ke `tokenRejected` belum meng-guard re-read pairing: user re-pair saat discovery berjalan bisa salah masuk tokenRejected. SARAN reviewer M7.
+- [ ] `connection_controller.dart` `_onRediscovered` cabang tokenRejected belum memeriksa `_running`. SARAN reviewer M7.
+- [ ] `storage_providers.dart` `updateEndpoint` dan `backfillAgentId` memakai read-await-write; reset atau re-pair yang masuk saat await bisa tertimpa. SARAN reviewer M7.
+
 ## Stretch
 
 Hanya dikerjakan kalau pemilik menyebutnya.
 
-- [ ] mDNS discovery agar IP berubah tidak perlu pairing ulang
+- [x] mDNS discovery agar IP berubah tidak perlu pairing ulang (dikerjakan di M7)

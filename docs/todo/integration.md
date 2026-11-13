@@ -56,3 +56,14 @@ Tidak ada endpoint. Fase ini dicatat "tidak relevan" saat dijalankan.
 |---|---|---|---|
 | Resume app | `GET /status` | Selesai | S02 maksimal 2 detik. `connection_resume_http_test.dart` (HTTP asli, scheduler asli, batas 2 detik sebagai asersi). Pembuktian nyata di HP di `waiting.md` |
 | Semua repository | Semua endpoint | Selesai | 429 dan timeout konsisten. Tes 429 di media, volume, power, dan poll status; agent asli di `run_e2e_test.go` |
+
+## M7 Auto-Discovery Jaringan
+
+| Screen/Widget | Endpoint | Status | Catatan |
+|---|---|---|---|
+| I1 Discovery nsd asli | mDNS `_remotto._tcp` | Belum | Pastikan jalur produksi memakai `nsd` asli, bukan fake. Butuh agent yang mengiklankan (fase Backend) |
+| I2 Pindah endpoint | `GET /status` | Belum | Loopback: server 1 mati, server 2 di port lain, FakeAgentDiscovery menunjuk server 2. Pairing berubah, token sama, S10 ke S11 ke S01 |
+| I3 agentId beda dan 401 | `GET /status` | Belum | Kandidat agentId beda dibuang. 401 pada kandidat cocok masuk Q12 |
+| I4 agent e2e | `GET /status` | Belum | `agentId` di `/status` sama dengan `id` di QR. Reset-token tidak mengubahnya |
+| I5 mDNS nyata | mDNS | Belum | Test Go nyata dengan build tag `manual` |
+| I6 Backfill pairing lama | `GET /status` | Belum | Pairing tanpa `agentId` terisi lewat backfill, lalu discovery aktif |

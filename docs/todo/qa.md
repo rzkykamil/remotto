@@ -78,6 +78,12 @@ Tanda: **[O]** otomatis, **[M]** manual oleh pemilik lewat `waiting.md`.
 - [x] [O] BR-21: kontrol tidak bisa ditekan selama S02. Bukti: `dock nonaktif saat menyambung (S02)` (`app/test/features/remote/remote_screen_test.dart`); `connecting shows the waiting hint and disables controls` (`app/test/features/remote/widgets/volume_panel_test.dart`); `still connecting` (`app/test/features/remote/power_flow_test.dart`)
 - [ ] [M] Auto-start, kedip konsol, APK dari CI
 
+## M7 Auto-Discovery Jaringan
+
+- [ ] [O] BR-22: token tidak ada di iklan mDNS (TXT) dan tidak ada di log discovery
+- [ ] [O] LAN only: iklan dan kandidat hanya IPv4 privat (BR-12), IPv6 dan IP publik diabaikan
+- [ ] [O] Dua laptop tak tertukar: kandidat dengan `agentId` berbeda ditolak dan tidak disimpan
+
 ## Bugs Ditemukan
 
 | Bug | Status | Referensi |

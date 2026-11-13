@@ -93,3 +93,14 @@ Semua task memakai mock repository dengan bentuk respons persis `docs/api-spec.m
 - [x] Konsistensi timeout semua repository
 - [x] Pemantauan waktu raster untuk `GlassMode`
 - [x] Unit test siklus hidup
+
+## M7 Auto-Discovery Jaringan
+
+- [x] T1: Dokumen kontrak M7 (api-spec, data-design, technical-spec, flows, prd, decision-log, backlog)
+- [x] T2: Dependensi `nsd` dan `connectivity_plus`, izin Android dan `NSBonjourServices` iOS
+- [x] T3: `agentId` di `PairingData`, storage opsional `remotto.agentId`, `AgentStatus`, validator QR `id`
+- [x] T4: `AgentDiscovery`, `parseCandidate`, `selectCandidates`, implementasi `nsd`, `NetworkChangeSource`, konstanta `RBehavior`
+- [x] T5: `EndpointResolver` dengan gating interval, satu proses bersamaan, verifikasi `/status`
+- [x] T6: Integrasi ke `ConnectionController`: rediscover saat gagal, perubahan jaringan, resume, backfill
+- [x] T7: Test alur `RemoteScreen` (S10 ke S11 ke S01, agentId beda, resume)
+- [x] T8: Gerbang akhir Frontend (format, analyze, test, build APK debug)
