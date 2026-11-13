@@ -51,9 +51,12 @@ flutter build apk --release
    ```powershell
    Get-NetConnectionProfile
    New-NetFirewallRule -DisplayName "Remotto Agent" -Direction Inbound -Protocol TCP -LocalPort 8765 -Action Allow -Profile Private
+   New-NetFirewallRule -DisplayName "Remotto Agent mDNS" -Direction Inbound -Protocol UDP -LocalPort 5353 -Action Allow -Profile Private
    ```
 
    Jangan izinkan profil Public.
+
+   Aturan UDP 5353 dipakai supaya app bisa menemukan laptop lewat mDNS setelah WiFi atau IP laptop berubah. Tanpa aturan ini, discovery tidak jalan dan app kembali ke scan QR. Agent tetap berjalan dan HTTP tetap bisa dipakai.
 
 4. Pasang startup, dari terminal Administrator:
 
@@ -82,6 +85,7 @@ flutter build apk --release
 .\remotto-agent.exe uninstall-startup
 Stop-Process -Name remotto-agent
 Remove-NetFirewallRule -DisplayName "Remotto Agent"
+Remove-NetFirewallRule -DisplayName "Remotto Agent mDNS"
 Remove-Item -Recurse "$env:APPDATA\Remotto"
 ```
 
@@ -132,3 +136,5 @@ Jangan port-forward port agent ke internet.
    ```
 
 App hanya menyimpan satu laptop, jadi berpindah antara IP LAN dan IP Tailscale berarti pairing ulang.
+
+Tailscale tidak diiklankan lewat mDNS, jadi app tidak menemukan laptop lewat Tailscale secara otomatis. Pakai pairing manual di atas.

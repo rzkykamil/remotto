@@ -1294,3 +1294,52 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Manifest app hanya menambah `CHANGE_WIFI_MULTICAST_STATE`. `ACCESS_WIFI_STATE` tidak ditambahkan. Keputusan ini mengoreksi `[Gate M7] Izin platform` pada bagian izin Android.
 - **Alasan:** Izin yang tidak dipakai menambah permintaan izin tanpa manfaat. README `nsd` hanya meminta multicast untuk discovery.
 - **Dampak:** Bila suatu saat discovery butuh info WiFi, izin `ACCESS_WIFI_STATE` harus ditambahkan lagi dan dicatat.
+
+## [Backend M7] Library mDNS agent: grandcat/zeroconf tanpa fallback
+
+- **Konteks:** `[Gate M7] Library nsd dan connectivity_plus` menyebut `github.com/grandcat/zeroconf` dengan fallback `github.com/libp2p/zeroconf/v2`. Fallback disiapkan untuk kasus library utama gagal build atau resolve di Go 1.27.
+- **Keputusan:** Agent memakai `github.com/grandcat/zeroconf v1.0.0`. Fallback libp2p tidak dipakai. Iklan memakai `zeroconf.RegisterProxy`, bukan `Register`, dengan host `remotto-<8 hex>` tanpa sufiks `.local.` (library yang menambahkannya). `Ifaces` selalu diisi dan tidak pernah kosong, karena kosong membuat library memilih semua interface. Dependensi tidak langsung yang ikut masuk: `miekg/dns v1.1.27` dan `cenkalti/backoff v2.2.1`. `golang.org/x/net` dan `golang.org/x/crypto` dinaikkan ke v0.62.0 dan v0.59.0 karena CVE, sehingga `golang.org/x/sys` menjadi v0.50.0 dan `golang.org/x/term` v0.48.0.
+- **Alasan:** Build dan resolve lancar di Go 1.27.3, sehingga fallback tidak perlu. `Register` mengiklankan hostname OS dan semua alamat interface, termasuk yang bukan LAN. `RegisterProxy` memakai nama host sendiri dan hanya alamat yang sudah difilter.
+- **Dampak:** `go.mod` dan `go.sum` bertambah dan dua modul `golang.org/x` naik versi. CI (`govulncheck`) harus tetap lolos. Bila library ini bermasalah nanti, fallback libp2p tetap menjadi rencana cadangan.
+
+## [Backend M7] Filter interface iklan wajib gateway
+
+- **Konteks:** WSL dan Hyper-V memakai 172.16/12 tanpa gateway. Tailscale memakai 100.64/10, yang bukan LAN. Filter IPv4 privat saja belum cukup untuk memilih adapter.
+- **Keputusan:** Interface ikut diiklankan bila Up, multicast, bukan loopback, punya gateway, dan punya minimal satu IPv4 LAN (`pairing.IsLANAddr`). Alamat yang diiklankan hanya IPv4 LAN dari interface tersebut. `pairing.ListAdapters` dan `pairing.IsLANAddr` diekspor agar iklan dan pairing QR memakai satu sumber kebenaran.
+- **Alasan:** Gateway menandakan interface terhubung ke jaringan nyata. Alamat 172.16/12 tanpa gateway hampir selalu adapter virtual. Satu sumber kebenaran mencegah QR dan iklan berbeda pendapat soal alamat LAN.
+- **Dampak:** Laptop yang hanya terhubung lewat adapter virtual tanpa gateway tidak diiklankan. Ini disengaja dan diuji di `waiting.md` M7 (tidak ada WSL, Hyper-V, atau Tailscale di hasil browse).
+
+## [Backend M7] AgentID dibuat di LoadOrInit lewat reader terinjeksi
+
+- **Konteks:** `agentId` harus ada di config. Config lama yang sudah valid tetapi belum punya `agentId` perlu diisi tanpa mengubah file yang sudah benar. Test config lama juga memastikan file valid tidak disentuh.
+- **Keputusan:** `LoadOrInit` membuat `agentId` hanya saat first run atau saat config rusak diganti. Sumber acak dipegang variabel paket `agentIDSource io.Reader` (default `crypto/rand.Reader`), sehingga signature `LoadOrInit` tidak berubah. Config lama diisi lewat `config.EnsureAgentID(path, cfg)`, yang dipanggil `run` dan `pair`. Pembuatan ini menulis event `agent_id_created` sekali. `agentId` tidak berubah saat token dibuat ulang. `reset-token` belum ada.
+- **Alasan:** Backfill di dalam `LoadOrInit` melanggar test lama, karena file valid harus tidak disentuh dan event hanya boleh satu. Signature yang tetap menjaga pemanggil lain.
+- **Dampak:** Config lama mendapat `agentId` saat `run` atau `pair` pertama kali, bukan saat dibaca. Saat `reset-token` ditambahkan nanti, `agentId` harus tetap dipertahankan. Test T1 sudah menjaga jalur ini lewat token kosong.
+
+## [Backend M7] BuildPayloadWithID, BuildPayload lama dipertahankan
+
+- **Konteks:** QR perlu field `id`, tetapi `BuildPayload` dan test lama sudah memakai signature yang ada.
+- **Keputusan:** Tambah `BuildPayloadWithID(agentID, name, host, port, token)`. `BuildPayload` tetap dengan signature lama dan mendelegasikan dengan agentID kosong. Field `id` bersifat `omitempty`. agentID yang tidak kosong dan tidak 32 hex ditolak tanpa menampilkan nilainya. Input terpanjang yang valid tetap di bawah 256 byte.
+- **Alasan:** Signature lama tidak berubah, sehingga pemanggil dan test lama tetap berjalan. Field opsional membuat QR lama tetap diterima app (lihat `[Frontend M7] QR dengan id tidak valid ditolak sebagai Q04`).
+- **Dampak:** `pair` memakai fungsi baru agar QR memuat `id`. Fungsi lama masih ada dan menghasilkan QR tanpa `id`.
+
+## [Backend M7] agentId omitempty di /status
+
+- **Konteks:** `docs/api-spec.md` menambah `data.agentId` pada `GET /status`. Respons dari agent lama, atau respons tanpa agentId, harus tetap valid.
+- **Keputusan:** `statusData.AgentID` memakai `json:"agentId,omitempty"` dan menjadi field pertama. `app.go` selalu mengisinya dari config. Bila kosong (hanya pada test atau config yang belum diisi), key tidak muncul.
+- **Alasan:** Field kosong yang selalu muncul bisa dibaca app sebagai `agentId` yang salah. `omitempty` menjaga respons lama tetap valid.
+- **Dampak:** App harus memperlakukan key yang tidak ada sebagai "belum ada agentId", bukan error. Ini sejalan dengan backfill di `[Gate M7] agentId 128 bit sebagai identitas agent`.
+
+## [Backend M7] Urutan shutdown: discovery ditarik sebelum HTTP ditutup
+
+- **Konteks:** Iklan mDNS masih terlihat sesaat setelah agent berhenti bila discovery ditarik bersama listener HTTP. Server berjalan memakai konteks yang sama dengan discovery.
+- **Keputusan:** Server memakai `srvCtx` terpisah. Saat shutdown, discovery ditarik lebih dulu, lalu listener HTTP ditutup. Dijaga test `TestRunWithdrawsDiscoveryBeforeHTTPCloses`.
+- **Alasan:** Klien yang browse tidak lagi menemukan agent yang sudah berhenti menerima koneksi. Pembatalan konteks tunggal membuat urutan ini tidak bisa dijamin.
+- **Dampak:** Shutdown menunggu penarikan iklan (maks sekitar 2 dtk) sebelum port HTTP ditutup. Graceful shutdown M6 tetap berlaku.
+
+## [Backend M7] Iklan ditarik saat tidak ada interface LAN
+
+- **Konteks:** Laptop bisa kehilangan semua interface LAN (WiFi putus, kabel dicabut) saat agent tetap hidup.
+- **Keputusan:** `discovery.Run` menarik iklan yang aktif bila daftar interface yang lolos filter kosong, lalu mendaftar ulang bila interface kembali. Pemeriksaan tetap berjalan setiap interval 10 dtk.
+- **Alasan:** Iklan dengan alamat yang tidak bisa dijangkau membuat app menemukan laptop yang sudah tidak terjangkau. Agent tetap melayani HTTP lokal walau iklan ditarik.
+- **Dampak:** Saat WiFi mati, instance hilang dari browse dan muncul lagi setelah interface kembali. Ini diuji di `waiting.md` M7 (Backend).
