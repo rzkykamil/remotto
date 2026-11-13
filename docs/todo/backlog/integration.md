@@ -60,9 +60,10 @@ Belum ada temuan.
 ## M7 Auto-Discovery Jaringan
 
 - [ ] Peringatan build: plugin nsd_android masih memakai Kotlin Gradle Plugin; Flutter mendatang akan gagal build bila belum dimigrasi ke built-in Kotlin. Pantau pembaruan nsd (T2 M7).
-- [ ] `endpoint_resolver.dart` jalur 401 ke `tokenRejected` belum meng-guard re-read pairing: user re-pair saat discovery berjalan bisa salah masuk tokenRejected. SARAN reviewer M7.
-- [ ] `connection_controller.dart` `_onRediscovered` cabang tokenRejected belum memeriksa `_running`. SARAN reviewer M7.
-- [ ] `storage_providers.dart` `updateEndpoint` dan `backfillAgentId` memakai read-await-write; reset atau re-pair yang masuk saat await bisa tertimpa. SARAN reviewer M7.
+- [x] `endpoint_resolver.dart` jalur 401 ke `tokenRejected` belum meng-guard re-read pairing: user re-pair saat discovery berjalan bisa salah masuk tokenRejected. SARAN reviewer M7. (diperbaiki di Integrasi M7)
+- [x] `connection_controller.dart` `_onRediscovered` cabang tokenRejected belum memeriksa `_running`. SARAN reviewer M7. (diperbaiki di Integrasi M7)
+- [x] `storage_providers.dart` `updateEndpoint` dan `backfillAgentId` memakai read-await-write; reset atau re-pair yang masuk saat await bisa tertimpa. SARAN reviewer M7. (diperbaiki di Integrasi M7: antrean serial `_serialized` di PairingNotifier)
+- [ ] Komentar `_tail` dan `_serialized` di `storage_providers.dart` dan komentar `quietWindow` di `discovery_http_flow_test.dart` berbahasa Indonesia, padahal aturan kode berbahasa Inggris. Jendela diam 400 ms di test "tidak ada request" memakai timer nyata, risiko false-pass hanya di mesin sangat lambat. SARAN reviewer Integrasi M7.
 
 ## Stretch
 

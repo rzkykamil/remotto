@@ -50,7 +50,7 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 ## M5 Pengaturan & Tema
 
-Belum ada temuan.
+- [ ] Perintah `reset-token` masih "belum tersedia" (`agent/cmd/agent/app.go` `plannedCommands`) padahal M5 Selesai. Perlu keputusan pemilik: tampilkan perintah atau catat sebagai ditunda. Ditemukan Integrasi M7.
 
 ## M6 Ketahanan & Startup
 

@@ -14,3 +14,11 @@
 - Dibangun: `agentId` di config (`EnsureAgentID` untuk config lama), `discovery.enabled`, `agentId` di `GET /status`, `id` opsional di QR, paket `internal/discovery` dengan `grandcat/zeroconf` v1.0.0, dan wiring di `run` dan `pair`.
 - Dicentang di `docs/todo/backend.md` bagian M7 (B1 sampai B9). Keputusan `[Backend M7]` di `docs/decision-log.md`. Saran di `docs/todo/backlog/backend.md` bagian M7.
 - Pembuktian mDNS nyata, adapter berganti, dan firewall UDP 5353 ada di `docs/todo/waiting.md` bagian M7 (Backend).
+
+## Integrasi
+
+- Selesai dengan Reviewer LOLOS DENGAN SARAN, tanpa temuan WAJIB. I1 sampai I6 di `docs/todo/integration.md` M7 berstatus Selesai.
+- Tes: `discovery_http_flow_test.dart` (I2, I3, I6; klien rewrite loopback), `discovery_providers_test.dart` (I1, audit provider), `run_e2e_test.go` `TestRunStatusAgentIDMatchesPairOutputAndSurvivesTokenChange` (I4), dan `agent/internal/discovery/manual_test.go` bertag `manual` (I5).
+- Gerbang lolos: `flutter test` 1162 hijau, analyze, format, `flutter build apk --debug`; agent gofmt, vet (termasuk tag `manual`), dan `go test ./...` hijau.
+- Keputusan `[Integrasi M7]` di `docs/decision-log.md`. Saran di `docs/todo/backlog/integration.md` bagian M7.
+- Pembuktian mDNS nyata, WiFi, iOS, dan HP ada di `docs/todo/waiting.md` bagian M7. Fase aktif pindah ke QA karena DoD Integrasi terpenuhi.

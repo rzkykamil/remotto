@@ -591,9 +591,9 @@ Catatan: item yang butuh laptop mengiklankan (hampir semua) baru bisa dites sete
   Harusnya: app tetap offline, muncul tombol "Pairing ulang" sebagai cadangan scan QR, dan app tidak crash.
 
 - [ ] M7 (Integrasi): reset token lalu ganti WiFi.
-  Buka: PowerShell di laptop (`remotto-agent reset-token`), app Remotto di HP.
-  Lakukan: jalankan `reset-token` di laptop, lalu ganti WiFi, lalu buka layar Remote. Bukan lewat endpoint daya.
-  Harusnya: app masuk Q12 (token ditolak), tidak menyimpan endpoint baru, dan token lama tidak dipakai ke laptop mana pun.
+  Buka: Notepad untuk `%APPDATA%\Remotto\config.json` di laptop, dan app Remotto di HP di layar Remote. Agent tetap jalan.
+  Lakukan: ganti isi `"token"` dengan 64 karakter lain, simpan, lalu ganti WiFi laptop, lalu buka layar Remote. Bukan lewat endpoint daya. Perintah `reset-token` belum tersedia, jadi pakai cara ini (sama dengan item M1 Integrasi).
+  Harusnya: app masuk Q12 (token ditolak), tidak menyimpan endpoint baru, token lama tidak dipakai ke laptop mana pun, dan `agentId` di config tidak berubah.
 
 - [ ] M7 (Integrasi): upgrade dari pairing lama, agentId terisi lewat backfill.
   Buka: app Remotto di HP yang dipairing sebelum M7, dan agent versi terbaru di laptop.

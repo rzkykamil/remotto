@@ -1343,3 +1343,24 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** `discovery.Run` menarik iklan yang aktif bila daftar interface yang lolos filter kosong, lalu mendaftar ulang bila interface kembali. Pemeriksaan tetap berjalan setiap interval 10 dtk.
 - **Alasan:** Iklan dengan alamat yang tidak bisa dijangkau membuat app menemukan laptop yang sudah tidak terjangkau. Agent tetap melayani HTTP lokal walau iklan ditarik.
 - **Dampak:** Saat WiFi mati, instance hilang dari browse dan muncul lagi setelah interface kembali. Ini diuji di `waiting.md` M7 (Backend).
+
+## [Integrasi M7] Klien rewrite loopback di test, filter privat D5 tidak dilonggarkan
+
+- **Konteks:** `selectCandidates` membuang host non-privat termasuk 127.0.0.1 (D5/BR-12). Kandidat discovery tidak bisa menunjuk loopback, padahal tes I2 dan I3 butuh server lokal.
+- **Keputusan:** Tes memakai `http.Client` pembungkus (`app/test/support/loopback_rewrite_client.dart`) yang menulis ulang host privat (mis. 192.168.1.20) ke 127.0.0.1. Alamat 203.0.113.7 (publik) juga dipetakan, supaya kandidat publik yang keliru tetap terlihat saat dihubungi.
+- **Alasan:** Filter privat adalah aturan keamanan dan tidak boleh dilonggarkan demi tes. Pemetaan di sisi klien tes menjaga aturan produksi tetap utuh.
+- **Dampak:** Tes membuktikan alur tanpa mengubah filter. Jaringan nyata tetap dibuktikan di `waiting.md`.
+
+## [Integrasi M7] Antrean serial `_serialized` di PairingNotifier
+
+- **Konteks:** `updateEndpoint` dan `backfillAgentId` memakai pola read-await-write. Reset atau re-pair yang masuk saat await bisa tertimpa oleh penulisan lama.
+- **Keputusan:** Operasi tulis storage diantrikan lewat `_serialized` (rantai `_tail` di `storage_providers.dart`).
+- **Alasan:** Antrean menghilangkan race pada sumbernya. Alternatif cek `identical(state)` setelah await tidak dipilih, karena storage sudah terlanjur ditulis sebelum cek.
+- **Dampak:** Operasi tulis berjalan berurutan.
+
+## [Integrasi M7] I4 lewat ganti token di config
+
+- **Konteks:** I4 ingin membuktikan `agentId` tetap setelah reset token. Perintah `reset-token` belum tersedia (M5 backend belum mengeksposnya).
+- **Keputusan:** `run_e2e_test.go` mengganti token lewat config, bukan lewat perintah CLI.
+- **Alasan:** Efek yang diuji (token diganti, agentId tidak berubah) sama dengan yang dilakukan pemilik lewat config. Perintah CLI tidak perlu dibuat untuk tes ini.
+- **Dampak:** Jalur `reset-token` nyata belum dites end-to-end. Masuk backlog `docs/todo/backlog/backend.md` M5.

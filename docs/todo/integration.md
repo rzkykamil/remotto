@@ -61,9 +61,9 @@ Tidak ada endpoint. Fase ini dicatat "tidak relevan" saat dijalankan.
 
 | Screen/Widget | Endpoint | Status | Catatan |
 |---|---|---|---|
-| I1 Discovery nsd asli | mDNS `_remotto._tcp` | Belum | Pastikan jalur produksi memakai `nsd` asli, bukan fake. Butuh agent yang mengiklankan (fase Backend) |
-| I2 Pindah endpoint | `GET /status` | Belum | Loopback: server 1 mati, server 2 di port lain, FakeAgentDiscovery menunjuk server 2. Pairing berubah, token sama, S10 ke S11 ke S01 |
-| I3 agentId beda dan 401 | `GET /status` | Belum | Kandidat agentId beda dibuang. 401 pada kandidat cocok masuk Q12 |
-| I4 agent e2e | `GET /status` | Belum | `agentId` di `/status` sama dengan `id` di QR. Reset-token tidak mengubahnya |
-| I5 mDNS nyata | mDNS | Belum | Test Go nyata dengan build tag `manual` |
-| I6 Backfill pairing lama | `GET /status` | Belum | Pairing tanpa `agentId` terisi lewat backfill, lalu discovery aktif |
+| I1 Discovery nsd asli | mDNS `_remotto._tcp` | Selesai | Audit: provider produksi memakai `NsdAgentDiscovery`, tanpa mock di `app/lib`. Tes `discovery_providers_test.dart`. mDNS nyata di `waiting.md` |
+| I2 Pindah endpoint | `GET /status` | Selesai | Loopback: server 1 mati, server 2 di port lain. Pairing berubah, token sama, S10 ke S11 ke S01. `discovery_http_flow_test.dart` |
+| I3 agentId beda dan 401 | `GET /status` | Selesai | Kandidat agentId beda dibuang. 401 pada kandidat cocok masuk Q12. 403, 429, 500 dilewati. `discovery_http_flow_test.dart` |
+| I4 agent e2e | `GET /status` | Selesai | `agentId` di `/status` sama dengan `id` di QR. Token diganti lewat config (`reset-token` belum ada), agentId tetap. `run_e2e_test.go` |
+| I5 mDNS nyata | mDNS | Selesai | Test Go nyata dengan build tag `manual`, hanya `go vet -tags manual` di sesi. Dijalankan pemilik lewat `waiting.md` |
+| I6 Backfill pairing lama | `GET /status` | Selesai | Pairing tanpa `agentId` terisi lewat backfill, lalu discovery aktif. `discovery_http_flow_test.dart` |
