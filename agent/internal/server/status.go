@@ -15,6 +15,9 @@ const statusTimeout = 2 * time.Second
 
 // StatusDeps holds what GET /status reports.
 type StatusDeps struct {
+	// AgentID is the public, stable agent identifier (32 lowercase hex). It is
+	// not a secret; empty means the field is omitted from the response.
+	AgentID   string
 	Name      string
 	Version   string
 	StartedAt time.Time
@@ -28,6 +31,7 @@ type StatusDeps struct {
 
 // statusData is the body of the 200 response, see docs/api-spec.md, section "Status".
 type statusData struct {
+	AgentID       string          `json:"agentId,omitempty"`
 	Name          string          `json:"name"`
 	Version       string          `json:"version"`
 	UptimeSeconds int64           `json:"uptimeSeconds"`
@@ -45,6 +49,7 @@ func newStatusHandler(deps StatusDeps, logger *slog.Logger) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data := statusData{
+			AgentID:       deps.AgentID,
 			Name:          deps.Name,
 			Version:       deps.Version,
 			UptimeSeconds: uptimeSeconds(now().Sub(deps.StartedAt)),

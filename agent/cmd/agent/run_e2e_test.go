@@ -20,6 +20,7 @@ import (
 
 	"remotto/agent/internal/config"
 	"remotto/agent/internal/control"
+	"remotto/agent/internal/discovery"
 	"remotto/agent/internal/instance"
 	"remotto/agent/internal/oscontrol/fake"
 	"remotto/agent/internal/pairing"
@@ -326,6 +327,7 @@ func TestRunStartsFromConfigAndStopsOnCancel(t *testing.T) {
 	cfgPath := filepath.Join(t.TempDir(), "config.json")
 	writeRunConfig(t, cfgPath, port, e2eToken)
 	stubAcquire(t, func() (instance.Release, error) { return func() {}, nil })
+	stubDiscovery(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -361,6 +363,74 @@ func TestRunStartsFromConfigAndStopsOnCancel(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("run did not return within 10s after cancel")
+	}
+}
+
+// TestRunWithdrawsDiscoveryBeforeHTTPCloses checks the shutdown order on
+// cancel: the advertisement is withdrawn while the HTTP listener still accepts
+// connections, and the listener is closed after that.
+func TestRunWithdrawsDiscoveryBeforeHTTPCloses(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	port := freePort(t)
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	writeRunConfig(t, cfgPath, port, e2eToken)
+	stubAcquire(t, func() (instance.Release, error) { return func() {}, nil })
+
+	addr := "127.0.0.1:" + strconv.Itoa(port)
+	var stops atomic.Int32
+	var listenerOpenAtStop atomic.Bool
+	prev := startDiscovery
+	startDiscovery = func(_ context.Context, _ discovery.Options) func() {
+		return func() {
+			stops.Add(1)
+			if c, err := net.DialTimeout("tcp", addr, time.Second); err == nil {
+				_ = c.Close()
+				listenerOpenAtStop.Store(true)
+			}
+		}
+	}
+	t.Cleanup(func() { startDiscovery = prev })
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var out, errOut bytes.Buffer
+	done := make(chan int, 1)
+	go func() {
+		done <- run(ctx, []string{"run", "--config", cfgPath}, &out, &errOut)
+	}()
+
+	base := "http://" + addr
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if code, _ := tryStatus(base, e2eToken); code == http.StatusOK {
+			break
+		}
+		if time.Now().After(deadline) {
+			cancel()
+			t.Fatalf("agent did not answer 200 within 5s (stderr %q)", errOut.String())
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("exit code = %d, want 0 (stderr %q)", code, errOut.String())
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("run did not return within 10s after cancel")
+	}
+
+	if got := stops.Load(); got != 1 {
+		t.Fatalf("discovery stop calls = %d, want 1", got)
+	}
+	if !listenerOpenAtStop.Load() {
+		t.Error("HTTP listener was already closed when discovery was withdrawn, want it open")
+	}
+	if c, err := net.DialTimeout("tcp", addr, time.Second); err == nil {
+		_ = c.Close()
+		t.Error("HTTP listener still accepts connections after run returned")
 	}
 }
 
@@ -1000,5 +1070,173 @@ func TestServeAgentResetTokenRejectsAllRoutes(t *testing.T) {
 	}
 	if got := power.Calls(); len(got) != 0 {
 		t.Errorf("power calls = %v, want none: rejected requests must not schedule power", got)
+	}
+}
+
+// fakeDiscovery records the calls startDiscovery receives. Its stop func counts
+// withdrawals. It never opens a multicast socket.
+type fakeDiscovery struct {
+	starts []discovery.Options
+	stops  atomic.Int32
+}
+
+// stubDiscovery replaces startDiscovery for the test and restores it afterwards.
+func stubDiscovery(t *testing.T) *fakeDiscovery {
+	t.Helper()
+	fd := &fakeDiscovery{}
+	prev := startDiscovery
+	startDiscovery = func(_ context.Context, opts discovery.Options) func() {
+		fd.starts = append(fd.starts, opts)
+		return func() { fd.stops.Add(1) }
+	}
+	t.Cleanup(func() { startDiscovery = prev })
+	return fd
+}
+
+// readAgentIDFromConfig returns the agentId saved in the config file at path.
+func readAgentIDFromConfig(t *testing.T, path string) string {
+	t.Helper()
+	cfg, err := config.Load(path, config.Default("host", time.Now()))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	return cfg.AgentID
+}
+
+// TestRunOldConfigGetsAgentIDAndDiscoveryUsesIt runs the real "run" command on
+// a config without agentId. EnsureAgentID must create and save one, and the
+// same id must reach GET /status and the discovery Options. Stopping the agent
+// must withdraw the advertisement once.
+func TestRunOldConfigGetsAgentIDAndDiscoveryUsesIt(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	port := freePort(t)
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+	writeRunConfig(t, cfgPath, port, e2eToken)
+	if id := readAgentIDFromConfig(t, cfgPath); id != "" {
+		t.Fatalf("precondition: old config has agentId %q, want empty", id)
+	}
+	stubAcquire(t, func() (instance.Release, error) { return func() {}, nil })
+	fd := stubDiscovery(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var out, errOut bytes.Buffer
+	done := make(chan int, 1)
+	go func() {
+		done <- run(ctx, []string{"run", "--config", cfgPath}, &out, &errOut)
+	}()
+
+	base := "http://127.0.0.1:" + strconv.Itoa(port)
+	var statusID string
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		code, body := tryStatus(base, e2eToken)
+		if code == http.StatusOK {
+			statusID, _ = body["data"].(map[string]any)["agentId"].(string)
+			break
+		}
+		if time.Now().After(deadline) {
+			cancel()
+			t.Fatalf("agent did not answer 200 within 5s (stderr %q)", errOut.String())
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("exit code = %d, want 0 (stderr %q)", code, errOut.String())
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("run did not return within 10s after cancel")
+	}
+
+	saved := readAgentIDFromConfig(t, cfgPath)
+	if !discovery.ValidAgentID(saved) {
+		t.Fatalf("saved agentId %q is not valid", saved)
+	}
+	if statusID != saved {
+		t.Errorf("GET /status agentId = %q, saved = %q", statusID, saved)
+	}
+	if len(fd.starts) != 1 {
+		t.Fatalf("startDiscovery calls = %d, want 1", len(fd.starts))
+	}
+	opts := fd.starts[0]
+	if opts.AgentID != saved {
+		t.Errorf("discovery AgentID = %q, want %q", opts.AgentID, saved)
+	}
+	if !opts.Enabled {
+		t.Error("discovery Enabled = false, want true by default")
+	}
+	if opts.Name != "Laptop-Kamar" || opts.Port != port {
+		t.Errorf("discovery Name/Port = %q/%d, want Laptop-Kamar/%d", opts.Name, opts.Port, port)
+	}
+	if got := fd.stops.Load(); got != 1 {
+		t.Errorf("discovery stop calls = %d, want 1 after cancel", got)
+	}
+	logData, err := os.ReadFile(filepath.Join(dir, "logs", "agent.log"))
+	if err != nil {
+		t.Fatalf("read agent.log: %v", err)
+	}
+	if !strings.Contains(string(logData), `"event":"agent_id_created"`) {
+		t.Errorf("agent.log lacks the agent_id_created event")
+	}
+	if strings.Contains(string(logData), saved) {
+		t.Errorf("agent.log leaks the agent id value")
+	}
+}
+
+// TestRunDiscoveryDisabledIsPassedThrough checks that discovery.enabled=false
+// in the config reaches discovery.Options as Enabled=false.
+func TestRunDiscoveryDisabledIsPassedThrough(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	port := freePort(t)
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	cfg := config.Default("host", time.Now())
+	cfg.LaptopName = "Laptop-Kamar"
+	cfg.BindAddress = "127.0.0.1"
+	cfg.Port = port
+	cfg.Token = e2eToken
+	cfg.TokenCreatedAt = "2026-01-01T00:00:00Z"
+	cfg.Discovery.Enabled = false
+	if err := config.Save(cfgPath, cfg); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+	stubAcquire(t, func() (instance.Release, error) { return func() {}, nil })
+	fd := stubDiscovery(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var out, errOut bytes.Buffer
+	done := make(chan int, 1)
+	go func() {
+		done <- run(ctx, []string{"run", "--config", cfgPath}, &out, &errOut)
+	}()
+	base := "http://127.0.0.1:" + strconv.Itoa(port)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if code, _ := tryStatus(base, e2eToken); code == http.StatusOK {
+			break
+		}
+		if time.Now().After(deadline) {
+			cancel()
+			t.Fatalf("agent did not answer 200 within 5s (stderr %q)", errOut.String())
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	cancel()
+	if code := <-done; code != 0 {
+		t.Fatalf("exit code = %d, want 0 (stderr %q)", code, errOut.String())
+	}
+	if len(fd.starts) != 1 {
+		t.Fatalf("startDiscovery calls = %d, want 1", len(fd.starts))
+	}
+	if fd.starts[0].Enabled {
+		t.Error("discovery Enabled = true, want false from config")
+	}
+	if !discovery.ValidAgentID(fd.starts[0].AgentID) {
+		t.Errorf("discovery AgentID %q is not valid", fd.starts[0].AgentID)
 	}
 }

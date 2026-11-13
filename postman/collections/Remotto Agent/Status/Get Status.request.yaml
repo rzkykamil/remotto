@@ -2,7 +2,7 @@ $kind: http-request
 name: Get Status
 method: GET
 url: "{{baseUrl}}/status"
-description: "Membaca keadaan agent: nama, versi, uptime, volume, dan jadwal daya (pending). Dipakai polling dan tes koneksi. Idempoten. Volume bernilai null bila Core Audio gagal; respons tetap 200."
+description: "Membaca keadaan agent: agentId, nama, versi, uptime, volume, dan jadwal daya (pending). agentId berisi 32 karakter hex huruf kecil, bersifat publik, stabil, dan tidak berubah saat reset-token; field ini tidak ada bila agent belum memuatnya (sebelum M7). Dipakai polling dan tes koneksi. Idempoten. Volume bernilai null bila Core Audio gagal; respons tetap 200."
 order: 1000
 headers:
   Authorization: Bearer {{token}}

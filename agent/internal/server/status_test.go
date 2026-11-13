@@ -374,3 +374,77 @@ func TestUptimeSeconds(t *testing.T) {
 		}
 	}
 }
+
+// testAgentID is a public agent id in the documented 32 lowercase hex form.
+const testAgentID = "a3f1c9e0b72d4e85916f0c2d7b4e13a8"
+
+// newAgentIDTestHandler wires NewAPIHandler with an AgentID in StatusDeps.
+func newAgentIDTestHandler(agentID string) http.Handler {
+	deps := StatusDeps{
+		AgentID:   agentID,
+		Name:      "Laptop-Test",
+		Version:   "1.0.0",
+		StartedAt: time.Now(),
+		Audio:     fake.NewAudio(35, false),
+	}
+	return NewAPIHandler(newTestLogger(&bytes.Buffer{}), staticToken(testTokenA), deps)
+}
+
+// api-spec Status: GET /status carries agentId as the first data field.
+func TestStatusCarriesAgentIDWithToken(t *testing.T) {
+	h := newAgentIDTestHandler(testAgentID)
+	rec := statusRequest(h, lanAddr, bearer(testTokenA))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	data := decodeStatus(t, rec.Body.Bytes())
+	if got := data["agentId"]; got != testAgentID {
+		t.Fatalf("agentId = %v, want %s", got, testAgentID)
+	}
+	if !strings.HasPrefix(rec.Body.String(), `{"data":{"agentId":"`+testAgentID+`"`) {
+		t.Errorf("agentId is not the first field: %s", rec.Body.String())
+	}
+	if len(data) != 6 {
+		t.Errorf("data has %d fields, want 6: %v", len(data), data)
+	}
+}
+
+// Empty AgentID (e.g. before M7) omits the key instead of sending "".
+func TestStatusOmitsAgentIDWhenEmpty(t *testing.T) {
+	h := newAgentIDTestHandler("")
+	rec := statusRequest(h, lanAddr, bearer(testTokenA))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	data := decodeStatus(t, rec.Body.Bytes())
+	if _, ok := data["agentId"]; ok {
+		t.Errorf("agentId present with empty deps: %s", rec.Body.String())
+	}
+	if len(data) != 5 {
+		t.Errorf("data has %d fields, want 5: %v", len(data), data)
+	}
+}
+
+// BR-1: agentId is only served behind the token; 401 never includes it.
+func TestStatusAgentIDNotLeakedWithoutToken(t *testing.T) {
+	h := newAgentIDTestHandler(testAgentID)
+	rec := statusRequest(h, lanAddr, "")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), `"code":"invalid_token"`) {
+		t.Errorf("body = %s, want invalid_token", rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), testAgentID) {
+		t.Errorf("401 body contains agentId: %s", rec.Body.String())
+	}
+}
+
+// The 200 response with agentId must still never contain the token.
+func TestStatusWithAgentIDNeverContainsToken(t *testing.T) {
+	h := newAgentIDTestHandler(testAgentID)
+	rec := statusRequest(h, lanAddr, bearer(testTokenA))
+	if strings.Contains(rec.Body.String(), testTokenA) {
+		t.Fatalf("response contains token: %s", rec.Body.String())
+	}
+}

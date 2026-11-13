@@ -128,6 +128,90 @@ func TestBuildPayloadRejectsInvalidInput(t *testing.T) {
 	}
 }
 
+const testAgentID = "0123456789abcdef0123456789abcdef"
+
+func TestBuildPayloadWithIDWritesIDField(t *testing.T) {
+	t.Parallel()
+
+	got, err := BuildPayloadWithID(testAgentID, "Laptop Kamar", "192.168.1.10", 8765, testToken)
+	if err != nil {
+		t.Fatalf("BuildPayloadWithID() error = %v", err)
+	}
+	want := `{"v":1,"id":"` + testAgentID + `","name":"Laptop Kamar","host":"192.168.1.10","port":8765,"token":"` + testToken + `"}`
+	if got != want {
+		t.Fatalf("payload = %s\nwant    %s", got, want)
+	}
+}
+
+func TestBuildPayloadWithEmptyIDMatchesBuildPayload(t *testing.T) {
+	t.Parallel()
+
+	withID, err := BuildPayloadWithID("", "Laptop Kamar", "192.168.1.10", 8765, testToken)
+	if err != nil {
+		t.Fatalf("BuildPayloadWithID() error = %v", err)
+	}
+	legacy, err := BuildPayload("Laptop Kamar", "192.168.1.10", 8765, testToken)
+	if err != nil {
+		t.Fatalf("BuildPayload() error = %v", err)
+	}
+	if withID != legacy {
+		t.Fatalf("empty id payload = %s\nBuildPayload = %s", withID, legacy)
+	}
+	if strings.Contains(legacy, `"id"`) {
+		t.Errorf("payload without id must omit the id field: %s", legacy)
+	}
+}
+
+func TestBuildPayloadWithIDRejectsInvalidAgentID(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		agentID string
+	}{
+		{name: "uppercase", agentID: strings.ToUpper(testAgentID)},
+		{name: "31 hex", agentID: testAgentID[:31]},
+		{name: "33 hex", agentID: testAgentID + "0"},
+		{name: "non hex", agentID: strings.Repeat("g", 32)},
+		{name: "token as id", agentID: testToken},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := BuildPayloadWithID(tt.agentID, "Laptop", "192.168.1.10", 8765, testToken)
+			if !errors.Is(err, ErrInvalidPayload) {
+				t.Fatalf("err = %v, want ErrInvalidPayload", err)
+			}
+			if got != "" {
+				t.Errorf("payload = %q, want empty on error", got)
+			}
+			if strings.Contains(err.Error(), tt.agentID) {
+				t.Errorf("error leaks agent id: %v", err)
+			}
+			if strings.Contains(err.Error(), testToken) {
+				t.Errorf("error leaks token: %v", err)
+			}
+		})
+	}
+}
+
+func TestBuildPayloadWithIDStaysWithinQRSizeLimit(t *testing.T) {
+	t.Parallel()
+
+	// Largest realistic payload: id, 32-rune name, longest IPv4, max port, token.
+	got, err := BuildPayloadWithID(testAgentID, strings.Repeat("W", 60), "192.168.100.200", 65535, testToken)
+	if err != nil {
+		t.Fatalf("BuildPayloadWithID() error = %v", err)
+	}
+	if len(got) >= 256 {
+		t.Errorf("payload is %d bytes, want < 256", len(got))
+	}
+	if len(got) > 215 {
+		t.Errorf("payload is %d bytes, want <= 215", len(got))
+	}
+}
+
 func TestRenderQRWritesBlockGlyphs(t *testing.T) {
 	t.Parallel()
 

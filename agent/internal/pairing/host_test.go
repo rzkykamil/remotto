@@ -124,6 +124,39 @@ func TestSelectHostNoCandidateSuggestsOverride(t *testing.T) {
 	}
 }
 
+func TestIsLANAddr(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		addr string
+		want bool
+	}{
+		{"10.0.0.1", true},
+		{"10.255.255.254", true},
+		{"172.16.0.1", true},
+		{"172.31.255.254", true},
+		{"192.168.1.10", true},
+		{"172.15.255.254", false},
+		{"172.32.0.1", false},
+		{"100.64.0.1", false},
+		{"100.101.102.103", false},
+		{"8.8.8.8", false},
+		{"169.254.10.20", false},
+		{"127.0.0.1", false},
+		{"fd00::1", false},
+		{"::ffff:192.168.1.10", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.addr, func(t *testing.T) {
+			t.Parallel()
+
+			if got := IsLANAddr(addr(t, tt.addr)); got != tt.want {
+				t.Fatalf("IsLANAddr(%s) = %v, want %v", tt.addr, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestValidateHostOverride(t *testing.T) {
 	t.Parallel()
 

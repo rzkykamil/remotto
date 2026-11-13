@@ -15,6 +15,7 @@ import (
 
 	"remotto/agent/internal/config"
 	"remotto/agent/internal/control"
+	"remotto/agent/internal/discovery"
 	"remotto/agent/internal/instance"
 	"remotto/agent/internal/logging"
 	"remotto/agent/internal/pairing"
@@ -121,6 +122,8 @@ func logEvent(logger *slog.Logger, ev config.Event) {
 		logger.Info("config migrated", slog.String("event", string(ev.Kind)), slog.String("detail", ev.Detail))
 	case config.EventPermFixed:
 		logger.Warn("config permissions tightened", slog.String("event", string(ev.Kind)), slog.String("file", ev.Detail))
+	case config.EventAgentIDCreated:
+		logger.Info("agent id created", slog.String("event", string(ev.Kind)))
 	default:
 		logger.Info("config event", slog.String("event", string(ev.Kind)))
 	}
@@ -174,6 +177,16 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
 		return 1
 	}
+	// A config from before M7 has no agentId. It is created and saved here,
+	// before the status and discovery read it.
+	ev, created, err := config.EnsureAgentID(path, &cfg)
+	if err != nil {
+		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
+		return 1
+	}
+	if created {
+		events = append(events, ev)
+	}
 
 	var console io.Writer = stderr
 	if *background {
@@ -210,6 +223,7 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	defer closeAudio(logger, ctrl.Audio)
 	status := server.StatusDeps{
 		Name:      cfg.LaptopName,
+		AgentID:   cfg.AgentID,
 		Version:   version,
 		StartedAt: time.Now(),
 		Now:       time.Now,
@@ -223,7 +237,37 @@ func cmdRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "remotto-agent: gagal membuka %s: %v\n", addr, err)
 		return 1
 	}
-	if err := serveAgent(ctx, ln, logger, path, cfg, status, ctrl.Media, ctrl.Audio, ctrl.Power); err != nil {
+	// Discovery is best effort: a failed registration is logged inside Run and
+	// does not change the exit code. Run returns at once when disabled.
+	stopDiscovery := startDiscovery(ctx, discovery.Options{
+		Enabled: cfg.Discovery.Enabled,
+		AgentID: cfg.AgentID,
+		Name:    cfg.LaptopName,
+		Port:    cfg.Port,
+		Logger:  logger,
+	})
+	// Shutdown order: when ctx is done, the advertisement is withdrawn first,
+	// and only then is the server's context cancelled, so the HTTP listener
+	// closes after the mDNS record is gone. The watcher also covers a server
+	// that fails early, so the advertisement is withdrawn on every return path.
+	srvCtx, cancelSrv := context.WithCancel(context.Background())
+	defer cancelSrv()
+	finished := make(chan struct{})
+	watched := make(chan struct{})
+	go func() {
+		defer close(watched)
+		select {
+		case <-ctx.Done():
+		case <-finished:
+		}
+		stopDiscovery()
+		cancelSrv()
+	}()
+	defer func() {
+		close(finished)
+		<-watched
+	}()
+	if err := serveAgent(srvCtx, ln, logger, path, cfg, status, ctrl.Media, ctrl.Audio, ctrl.Power); err != nil {
 		logger.Error("server failed", slog.String("error", err.Error()))
 		fmt.Fprintf(stderr, "remotto-agent: server berhenti dengan error: %v\n", err)
 		return 1

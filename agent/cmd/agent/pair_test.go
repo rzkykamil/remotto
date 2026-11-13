@@ -7,7 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"remotto/agent/internal/config"
+	"remotto/agent/internal/discovery"
 	"remotto/agent/internal/pairing"
 )
 
@@ -124,5 +127,92 @@ func TestPairRejectsPositionalArgs(t *testing.T) {
 	code, _, _ := runApp(t, "pair", "extra")
 	if code != 2 {
 		t.Fatalf("exit code = %d, want 2", code)
+	}
+}
+
+// TestPairQRAndIDLineCarryConfigAgentID checks that the QR is the payload
+// built with the config agentId, and that the ID line prints the same id.
+func TestPairQRAndIDLineCarryConfigAgentID(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	code, stdout, stderr := pairOut(t, cfgPath)
+	if code != 0 {
+		t.Fatalf("exit code = %d (stderr %q)", code, stderr)
+	}
+	cfg, err := config.Load(cfgPath, config.Default("host", time.Now()))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if !discovery.ValidAgentID(cfg.AgentID) {
+		t.Fatalf("config agentId %q is not valid", cfg.AgentID)
+	}
+	if !strings.Contains(stdout, "  ID agent: "+cfg.AgentID) {
+		t.Errorf("stdout lacks the ID agent line for %q: %q", cfg.AgentID, stdout)
+	}
+	raw, err := pairing.BuildPayloadWithID(cfg.AgentID, cfg.LaptopName, "192.168.1.10", cfg.Port, cfg.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(raw, `"id":"`+cfg.AgentID+`"`) {
+		t.Fatalf("payload %q lacks the agent id", raw)
+	}
+	var qr bytes.Buffer
+	if err := pairing.RenderQR(&qr, raw); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout, qr.String()) {
+		t.Errorf("stdout QR is not the payload with the config agentId")
+	}
+}
+
+// TestPairOldConfigGetsAgentIDOnceAndStays checks that a config without agentId
+// gets one on the first pair, and that a second pair keeps the same id and
+// leaves the file bytes unchanged.
+func TestPairOldConfigGetsAgentIDOnceAndStays(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.json")
+	cfg := config.Default("host", time.Now())
+	cfg.Token = e2eToken
+	cfg.TokenCreatedAt = "2026-01-01T00:00:00Z"
+	if err := config.Save(cfgPath, cfg); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+	if id, err := config.Load(cfgPath, config.Default("host", time.Now())); err != nil || id.AgentID != "" {
+		t.Fatalf("precondition: old config agentId = %q (err %v), want empty", id.AgentID, err)
+	}
+
+	code, first, stderr := pairOut(t, cfgPath)
+	if code != 0 {
+		t.Fatalf("first pair exit = %d (stderr %q)", code, stderr)
+	}
+	if !strings.Contains(first, "ID agent dibuat.") {
+		t.Errorf("first pair stdout lacks the created event: %q", first)
+	}
+	firstCfg, err := config.Load(cfgPath, config.Default("host", time.Now()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !discovery.ValidAgentID(firstCfg.AgentID) {
+		t.Fatalf("agentId %q after first pair is not valid", firstCfg.AgentID)
+	}
+	before, err := os.ReadFile(cfgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	code, second, stderr := pairOut(t, cfgPath)
+	if code != 0 {
+		t.Fatalf("second pair exit = %d (stderr %q)", code, stderr)
+	}
+	if strings.Contains(second, "ID agent dibuat.") {
+		t.Errorf("second pair created the agent id again: %q", second)
+	}
+	if !strings.Contains(second, "  ID agent: "+firstCfg.AgentID) {
+		t.Errorf("second pair ID line differs from %q", firstCfg.AgentID)
+	}
+	after, err := os.ReadFile(cfgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Errorf("config.json changed by second pair run")
 	}
 }

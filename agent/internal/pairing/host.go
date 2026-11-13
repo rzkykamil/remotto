@@ -75,6 +75,20 @@ func DetectHost() (netip.Addr, error) {
 	return SelectHost(adapters)
 }
 
+// ListAdapters returns the local IPv4 adapters with their state and gateway
+// flag, in the order the OS reports them. It is read-only and is used by the
+// discovery package to pick the interfaces to advertise on.
+func ListAdapters() ([]Adapter, error) {
+	return listAdapters()
+}
+
+// IsLANAddr reports whether addr is an IPv4 address in one of the private
+// LAN ranges (10/8, 172.16/12, 192.168/16). Tailscale and public addresses
+// are not LAN addresses.
+func IsLANAddr(addr netip.Addr) bool {
+	return isLANAddr(addr)
+}
+
 // isLANAddr reports whether addr is an IPv4 address in one of the private
 // LAN ranges.
 func isLANAddr(addr netip.Addr) bool {

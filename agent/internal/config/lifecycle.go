@@ -1,14 +1,30 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
 )
+
+// agentIDSource supplies the random bytes for newAgentID. Tests replace it.
+var agentIDSource io.Reader = rand.Reader
+
+// newAgentID returns 16 random bytes from agentIDSource as 32 lowercase hex
+// characters. A short read fails without returning a partial value.
+func newAgentID() (string, error) {
+	var b [16]byte
+	if _, err := io.ReadFull(agentIDSource, b[:]); err != nil {
+		return "", fmt.Errorf("create agent id: %w", err)
+	}
+	return hex.EncodeToString(b[:]), nil
+}
 
 // EventKind names a lifecycle event reported by LoadOrInit. Events never
 // carry the token value.
@@ -24,6 +40,9 @@ const (
 	EventMigrated EventKind = "migrated"
 	// EventPermFixed means loose permissions were tightened by PermChecker.
 	EventPermFixed EventKind = "perm_fixed"
+	// EventAgentIDCreated means an existing config had no agentId and one was
+	// created and saved by EnsureAgentID.
+	EventAgentIDCreated EventKind = "agent_id_created"
 )
 
 // Event is one lifecycle occurrence for the caller to log.
@@ -186,6 +205,13 @@ func initConfig(path string, defaults Config, newToken func() (string, error), n
 	if c.CreatedAt == "" {
 		c.CreatedAt = now.Format(time.RFC3339)
 	}
+	if c.AgentID == "" {
+		id, err := newAgentID()
+		if err != nil {
+			return Config{}, err
+		}
+		c.AgentID = id
+	}
 	tok, err := newToken()
 	if err != nil {
 		return Config{}, fmt.Errorf("create token: %w", err)
@@ -216,4 +242,27 @@ func replaceCorrupt(path string, defaults Config, newToken func() (string, error
 		return Config{}, nil, err
 	}
 	return c, append(events, Event{Kind: EventCorruptReplaced, Detail: filepath.Base(dst)}), nil
+}
+
+// EnsureAgentID gives an existing config an agentId when it has none. A config
+// that already has one is left alone and returns false. Otherwise a new id is
+// created, saved atomically with the rest of c (token and other fields are kept),
+// and c.AgentID is set only after the save succeeds. The returned Event is
+// EventAgentIDCreated. LoadOrInit does not call this; the caller runs it after
+// LoadOrInit.
+func EnsureAgentID(path string, c *Config) (Event, bool, error) {
+	if c.AgentID != "" {
+		return Event{}, false, nil
+	}
+	id, err := newAgentID()
+	if err != nil {
+		return Event{}, false, err
+	}
+	next := *c
+	next.AgentID = id
+	if err := Save(path, next); err != nil {
+		return Event{}, false, err
+	}
+	*c = next
+	return Event{Kind: EventAgentIDCreated}, true, nil
 }

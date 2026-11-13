@@ -10,6 +10,10 @@ import (
 
 var tokenPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
+// agentIDPattern matches the public agent identifier: 128 bits as 32
+// lowercase hex characters.
+var agentIDPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
+
 var validLogLevels = map[string]bool{
 	"debug": true,
 	"info":  true,
@@ -46,6 +50,9 @@ func Validate(c Config) error {
 	addr, err := netip.ParseAddr(c.BindAddress)
 	if err != nil || !addr.Is4() {
 		return invalid("bindAddress", "must be an IPv4 address")
+	}
+	if c.AgentID != "" && !agentIDPattern.MatchString(c.AgentID) {
+		return invalid("agentId", "must be 32 lowercase hex characters")
 	}
 	if c.Token != "" && !tokenPattern.MatchString(c.Token) {
 		return invalid("token", "must be 64 lowercase hex characters")

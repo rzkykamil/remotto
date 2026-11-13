@@ -4,6 +4,7 @@
   "laptopName": "Laptop-Kamar",
   "port": 8765,
   "bindAddress": "0.0.0.0",
+  "agentId": "",
   "token": "",
   "tokenCreatedAt": "",
   "createdAt": "2026-01-01T00:00:00+07:00",
@@ -12,5 +13,8 @@
     "requestsPerSecond": 20,
     "burst": 40
   },
-  "logLevel": "info"
+  "logLevel": "info",
+  "discovery": {
+    "enabled": true
+  }
 }

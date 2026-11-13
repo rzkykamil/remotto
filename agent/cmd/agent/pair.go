@@ -60,11 +60,21 @@ func cmdPair(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
 		return 1
 	}
+	// A config from before M7 has no agentId. It is created and saved here so
+	// the QR and the ID line below carry the same id the agent advertises.
+	ev, created, err := config.EnsureAgentID(path, &cfg)
+	if err != nil {
+		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
+		return 1
+	}
+	if created {
+		events = append(events, ev)
+	}
 	for _, ev := range events {
 		fmt.Fprintln(stdout, describeEvent(ev))
 	}
 
-	raw, err := pairing.BuildPayload(cfg.LaptopName, host.String(), cfg.Port, cfg.Token)
+	raw, err := pairing.BuildPayloadWithID(cfg.AgentID, cfg.LaptopName, host.String(), cfg.Port, cfg.Token)
 	if err != nil {
 		fmt.Fprintf(stderr, "remotto-agent: %v\n", err)
 		return 1
@@ -81,6 +91,7 @@ func cmdPair(args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintf(stdout, "  Alamat: %s\n", host)
 	fmt.Fprintf(stdout, "  Port:   %d\n", cfg.Port)
 	fmt.Fprintf(stdout, "  Token:  %s\n", cfg.Token)
+	fmt.Fprintf(stdout, "  ID agent: %s\n", cfg.AgentID)
 	fmt.Fprintln(stdout)
 	fmt.Fprintln(stdout, "Token ini rahasia. Jangan dibagikan ke siapa pun.")
 	return 0
@@ -98,6 +109,8 @@ func describeEvent(ev config.Event) string {
 		return fmt.Sprintf("Config dimigrasi (%s).", ev.Detail)
 	case config.EventPermFixed:
 		return fmt.Sprintf("Izin %s diperbaiki.", ev.Detail)
+	case config.EventAgentIDCreated:
+		return "ID agent dibuat."
 	}
 	return string(ev.Kind)
 }

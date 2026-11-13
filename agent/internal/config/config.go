@@ -31,18 +31,25 @@ type RateLimit struct {
 	Burst             int `json:"burst"`
 }
 
+// DiscoveryConfig controls the mDNS advertisement.
+type DiscoveryConfig struct {
+	Enabled bool `json:"enabled"`
+}
+
 // Config is the content of config.json.
 type Config struct {
-	ConfigVersion     int       `json:"configVersion"`
-	LaptopName        string    `json:"laptopName"`
-	Port              int       `json:"port"`
-	BindAddress       string    `json:"bindAddress"`
-	Token             string    `json:"token"`
-	TokenCreatedAt    string    `json:"tokenCreatedAt"`
-	CreatedAt         string    `json:"createdAt"`
-	PowerDelaySeconds int       `json:"powerDelaySeconds"`
-	RateLimit         RateLimit `json:"rateLimit"`
-	LogLevel          string    `json:"logLevel"`
+	ConfigVersion     int             `json:"configVersion"`
+	LaptopName        string          `json:"laptopName"`
+	Port              int             `json:"port"`
+	BindAddress       string          `json:"bindAddress"`
+	AgentID           string          `json:"agentId"`
+	Token             string          `json:"token"`
+	TokenCreatedAt    string          `json:"tokenCreatedAt"`
+	CreatedAt         string          `json:"createdAt"`
+	PowerDelaySeconds int             `json:"powerDelaySeconds"`
+	RateLimit         RateLimit       `json:"rateLimit"`
+	LogLevel          string          `json:"logLevel"`
+	Discovery         DiscoveryConfig `json:"discovery"`
 }
 
 // Dir returns the Remotto data folder, %APPDATA%\Remotto.
@@ -74,6 +81,8 @@ func Default(hostname string, now time.Time) Config {
 		LaptopName:        laptopNameFrom(hostname),
 		Port:              defaultPort,
 		BindAddress:       defaultBindAddress,
+		AgentID:           "",
+		Discovery:         DiscoveryConfig{Enabled: true},
 		Token:             "",
 		TokenCreatedAt:    "",
 		CreatedAt:         now.Format(time.RFC3339),

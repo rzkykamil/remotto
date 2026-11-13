@@ -28,6 +28,7 @@ func runApp(t *testing.T, args ...string) (code int, stdout, stderr string) {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	stubAcquire(t, func() (instance.Release, error) { return func() {}, nil })
+	stubDiscovery(t)
 	var out, errOut bytes.Buffer
 	code = run(context.Background(), args, &out, &errOut)
 	return code, out.String(), errOut.String()
