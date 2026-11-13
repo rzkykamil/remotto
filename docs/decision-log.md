@@ -1175,3 +1175,122 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** Agent: semua rute menolak token lama dengan 401 (`TestServeAgentResetTokenRejectsAllRoutes`). App: 401 per endpoint memicu `tokenRejected`.
 - **Alasan:** Bukti agent saja tidak menunjukkan app pindah ke pairing ulang. Bukti app saja tidak menunjukkan agent menolak token.
 - **Dampak:** Alur nyata di HP (token lama masuk pairing ulang) belum terbukti dan ada di `docs/todo/waiting.md`.
+
+## [Gate M7] mDNS/DNS-SD saja, tanpa UDP broadcast atau sweep subnet
+
+- **Konteks:** Setelah ganti WiFi, IP laptop berubah dan app harus menemukan laptop lagi tanpa scan QR ulang. Pilihan lain: UDP broadcast, sweep subnet, dan mDNS.
+- **Keputusan:** Agent mengiklankan `_remotto._tcp`. App mencari lewat Bonjour (iOS) dan NsdManager (Android). Scan QR dan input manual tetap menjadi cadangan.
+- **Alasan:** UDP broadcast butuh entitlement multicast di iOS. Sweep subnet mengirim token ke tiap host, dan itu ditolak. mDNS memakai API OS dan tidak mengirim token ke sembarang alamat.
+- **Dampak:** Router yang memblokir mDNS membuat discovery tidak jalan, dan app kembali ke scan QR ulang. UDP broadcast fallback masuk backlog.
+
+## [Gate M7] agentId 128 bit sebagai identitas agent
+
+- **Konteks:** App perlu mengenali laptop yang sama setelah IP berubah, tanpa mengandalkan IP atau nama.
+- **Keputusan:** `agentId` 32 hex huruf kecil dari `crypto/rand` (128 bit), regex `^[0-9a-f]{32}$`. Disimpan di config.json dan dibuat saat kosong. `configVersion` tetap 1. `reset-token` tidak mengubahnya. Di QR, field `id` opsional. Di app, key `remotto.agentId` opsional dan tidak ikut aturan "empat key satu kesatuan". Agent memberikannya lewat `GET /status` dan TXT mDNS.
+- **Alasan:** `agentId` memastikan app terhubung ke laptop yang sama, sedangkan token sudah bisa berganti. ID tidak rahasia, jadi aman di TXT dan di `/status`. Field opsional menjaga QR dan config lama tetap valid. Tidak perlu migrasi versi.
+- **Dampak:** Pairing lama tidak punya `agentId`, sehingga discovery nonaktif sampai backfill lewat `/status` yang sudah terautentikasi. Pairing lama tetap berfungsi.
+
+## [Gate M7] Iklan mDNS berisi v, id, dan name, tanpa token
+
+- **Konteks:** Iklan mDNS bisa dibaca siapa pun di LAN. Iklan harus cukup untuk mengenali laptop, tetapi tidak boleh membocorkan kredensial.
+- **Keputusan:** Service `_remotto._tcp`. Nama instance `Remotto-<8 hex pertama agentId>`. Port sama dengan `cfg.Port`. TXT: `v`=`1`, `id`=agentId, `name`=laptopName (maksimal 32 karakter, hanya informasi). Token dan hash token tidak pernah masuk TXT, dan satu test memastikannya. IP diambil dari A record.
+- **Alasan:** Nama instance dan `id` cukup untuk memfilter kandidat. Nama tidak dijadikan identitas karena bisa sama di banyak laptop. Hash token tetap dilarang karena bisa diserang offline.
+- **Dampak:** Nama dan `id` tidak membuktikan laptop itu milik pemilik. Verifikasi `/status` dengan token wajib (lihat keputusan validasi kandidat).
+
+## [Gate M7] Port tetap, hanya IP yang berubah
+
+- **Konteks:** Port bisa berubah bila port default sudah dipakai, tetapi app perlu satu sumber kebenaran untuk alamat.
+- **Keputusan:** Agent bind `0.0.0.0:cfg.Port` (default 8765). App selalu memakai port dari hasil discovery. Tidak ada fallback port acak.
+- **Alasan:** Port acak menyulitkan firewall dan membuat QR tidak bisa dipakai ulang. Perubahan IP sudah ditangani discovery.
+- **Dampak:** Bila port bentrok, agent gagal jelas dan pemilik mengganti port di config. Tidak ada upaya diam-diam.
+
+## [Gate M7] Validasi kandidat discovery: filter TXT, filter alamat, verifikasi /status
+
+- **Konteks:** Hasil mDNS adalah input tidak tepercaya. Kandidat yang salah tidak boleh menimpa endpoint yang valid atau menerima token.
+- **Keputusan:** Kandidat disimpan hanya bila semua ini lolos: (1) TXT `v`=`1`; (2) TXT `id` = agentId tersimpan (bila agentId belum ada, discovery dilewati); (3) IPv4 privat 10/8, 172.16/12, 192.168/16 (BR-12), IPv6 diabaikan, port 1–65535; (4) berbeda dari endpoint tersimpan; (5) `GET /status` dengan token tersimpan mengembalikan 200 dan `data.agentId` sama. `agentId` berbeda dibuang. 401 pada kandidat dengan agentId yang cocok berarti token sudah di-reset: masuk Q12 (BR-9) dan tidak ada yang disimpan. Lolos semua: host dan port diperbarui, token dan nama tidak berubah.
+- **Alasan:** Filter TXT dan alamat membuang sebagian besar kandidat tanpa mengirim token. Verifikasi `/status` memastikan kandidat benar-benar agent yang sama.
+- **Dampak:** Risiko diterima (R-19): `agentId` publik, jadi perangkat jahat di LAN bisa menyalin TXT lalu menerima Bearer saat verifikasi. Ini setara dengan R-6 (HTTP tanpa enkripsi). Penguatan lewat TLS atau challenge-response masuk backlog. BR-1 tidak dilanggar karena tidak ada endpoint publik baru.
+
+## [Gate M7] Rediscover hanya saat layar aktif, dengan pemicu dan batas tetap
+
+- **Konteks:** Discovery memakan waktu dan koneksi. Menjalankannya terus-menerus, termasuk di background, boros baterai dan menambah risiko.
+- **Keputusan:** Rediscover berjalan saat RemoteScreen aktif. Pemicu: (1) poll gagal non-401 dijalankan di belakang layar dan tidak menunda poll (batas S02 2 detik BR-21 tetap); (2) selama offline, paling sering sekali per 15 detik (`RBehavior.discoveryInterval`), satu proses sekali jalan; (3) event connectivity_plus dengan debounce 1 detik (`RBehavior.networkChangeDebounce`), rediscover paksa lalu poll; (4) resume dari background lewat `ConnectionController.resume()`; (5) jaringan selain WiFi dan Ethernet dilewati. Timeout satu sesi 3 detik (`RBehavior.discoveryTimeout`).
+- **Alasan:** Pemicu ini mencakup semua kejadian yang mengubah IP. Batas 15 detik menghindari banjir request saat laptop mati. Background dilewati karena tidak ada layar yang memerlukan hasilnya.
+- **Dampak:** Laptop yang baru berganti IP ditemukan dalam batas tersebut selama layar aktif. Discovery di background masuk backlog.
+
+## [Gate M7] Tampilan memakai state yang ada, tanpa layar atau teks baru
+
+- **Konteks:** Fitur ini tidak mengubah tampilan. Pemilik tidak perlu melihat "mencari laptop" sebagai layar baru.
+- **Keputusan:** Discovery memakai S02, S10, S11, dan S01 yang sudah ada. Tidak ada layar, widget, atau string baru. `core/strings/` tidak berubah. `ConnectionPhase` tidak ditambah.
+- **Alasan:** Desain sudah mencakup offline dan kembali online. Teks dan layar baru harus lebih dulu masuk `design/`, sementara `design/` belum memuatnya.
+- **Dampak:** Pemilik melihat S10 sampai discovery berhasil. Tidak ada indikator khusus bahwa app sedang mencari.
+
+## [Gate M7] Library nsd dan connectivity_plus, multicast_dns ditolak
+
+- **Konteks:** App perlu discovery mDNS dan event perubahan jaringan. Agent Go perlu library mDNS yang bisa dipakai di Windows.
+- **Keputusan:** App memakai `nsd` untuk discovery dan `connectivity_plus` untuk pemicu perubahan jaringan. `multicast_dns` ditolak. Agent memakai `github.com/grandcat/zeroconf` dengan fallback `github.com/libp2p/zeroconf/v2`; pilihan final dicatat di fase Backend.
+- **Alasan:** `multicast_dns` butuh entitlement multicast di iOS, yang menambah syarat build di luar lingkup M7. `nsd` memakai Bonjour dan NsdManager asli. `connectivity_plus` hanya memberi event, tanpa UI.
+- **Dampak:** Dependency bertambah dua di app. Keduanya fungsional dan non-visual, sesuai §11.
+
+## [Gate M7] Izin platform: NSBonjourServices dan izin WiFi multicast Android
+
+- **Konteks:** iOS hanya mengizinkan browse Bonjour untuk service yang didaftarkan di Info.plist. Android memerlukan izin WiFi tertentu untuk multicast.
+- **Keputusan:** iOS Info.plist memakai `NSBonjourServices` = [`_remotto._tcp`]. `NSLocalNetworkUsageDescription` dan `NSAllowsLocalNetworking` tidak diubah. Android menambah `ACCESS_WIFI_STATE` dan `CHANGE_WIFI_MULTICAST_STATE` bila README `nsd` memintanya.
+- **Alasan:** Tanpa `NSBonjourServices`, iOS memblokir discovery diam-diam. Izin Android hanya ditambahkan bila memang diperlukan.
+- **Dampak:** Build iOS tidak bisa diuji di Windows. Pembuktian di iPhone masuk `waiting.md` M7.
+
+## [Gate M7] Agent iklan hanya di interface LAN privat, dengan pemantauan alamat
+
+- **Konteks:** Laptop bisa punya banyak adapter (WSL, Hyper-V, Tailscale). Iklan di adapter yang salah bisa bocor atau tidak ditemukan.
+- **Keputusan:** Iklan hanya di interface Up dan multicast dengan IPv4 privat, memakai logika `agent/internal/pairing/host.go`. WSL, Hyper-V, dan Tailscale dikecualikan. Agent memeriksa alamat tiap 10 detik. Bila himpunan IPv4 privat berubah, registrasi ditutup dan didaftarkan ulang. Kegagalan registrasi hanya menghasilkan warning. Opsi config `discovery.enabled` (default `true`).
+- **Alasan:** Iklan hanya di LAN sesuai BR-12. Pemantauan 10 detik menangani perubahan IP tanpa notifikasi OS. Kegagalan iklan tidak boleh menghentikan agent.
+- **Dampak:** Perubahan IP dikenali dalam 10 detik di sisi agent. Deteksi lewat notifikasi OS masuk backlog.
+
+## [Frontend M7] Risiko iklan palsu diberi nomor R-19, bukan R-8
+
+- **Konteks:** Rencana M7 menulis risiko iklan palsu sebagai R-8, tetapi R-8 di `docs/prd.md` sudah dipakai untuk HTTP cleartext dan akses jaringan lokal.
+- **Keputusan:** Risiko iklan palsu di LAN dicatat sebagai R-19 di `docs/prd.md`. Nomor R yang sudah ada tidak diubah.
+- **Alasan:** Mengubah nomor R yang sudah dirujuk membuat referensi lama salah. Entri baru di akhir daftar lebih aman.
+- **Dampak:** Semua rujukan risiko iklan palsu di M7 memakai R-19, termasuk entri `[Gate M7] Validasi kandidat discovery`.
+
+## [Frontend M7] Cek IP privat discovery tanpa 100.64/10
+
+- **Konteks:** Validasi input manual di app menerima 100.64/10 (Tailscale) sebagai alamat privat. Kandidat discovery adalah input tidak tepercaya dari mDNS.
+- **Keputusan:** `discovery_candidate.dart` memakai cek IPv4 privat sendiri yang hanya 10/8, 172.16/12, dan 192.168/16 (BR-12). Rentang 100.64/10 tidak diterima. Cek ini tidak memakai ulang validator manual.
+- **Alasan:** Tailscale bukan LAN, dan BR-12 hanya mengizinkan LAN. Discovery tidak boleh menyimpan alamat yang tidak lewat LAN hanya karena input manual menerimanya.
+- **Dampak:** Laptop yang hanya terjangkau lewat Tailscale tidak ditemukan otomatis. Pengguna tetap bisa memasukkan alamat itu secara manual. Discovery Tailscale masuk backlog.
+
+## [Frontend M7] selectCandidates membuang duplikat dan IPv4 non-privat
+
+- **Konteks:** Hasil mDNS bisa berisi endpoint yang sama lebih dari sekali, dan bisa berisi alamat di luar IPv4 privat.
+- **Keputusan:** `selectCandidates` membuang endpoint duplikat dan kandidat dengan IPv4 non-privat, selain filter `agentId` dan endpoint yang sama dengan tersimpan.
+- **Alasan:** Verifikasi `/status` memakai token. Tiap kandidat yang tidak perlu adalah pengiriman token yang tidak perlu. Filter di awal membatasi jumlah verifikasi.
+- **Dampak:** Maksimal tiga kandidat diverifikasi per sesi, dan tidak ada kandidat yang sama dicek dua kali.
+
+## [Frontend M7] EndpointResolver sebagai interface class dengan guard re-read pairing
+
+- **Konteks:** `EndpointResolver` perlu di-fake di test controller dan alur layar. Discovery berjalan lama, dan user bisa pairing ulang di tengah proses.
+- **Keputusan:** `EndpointResolver` dibuat `interface class` agar bisa di-fake. Sebelum menyimpan endpoint baru, resolver membaca ulang `pairingProvider` dan membatalkan simpan bila data pairing sudah berubah.
+- **Alasan:** Tanpa guard, hasil discovery lama bisa menimpa pairing baru. Interface memisahkan logika resolver dari plugin nsd di test.
+- **Dampak:** Guard ini belum menutup seluruh celah pada jalur 401 dan read-await-write. Sisanya tercatat di `docs/todo/backlog/integration.md` bagian M7.
+
+## [Frontend M7] flutter_test_config memblokir plugin dan HttpOverrides nyata
+
+- **Konteks:** Test yang tidak sengaja memanggil plugin connectivity_plus atau HTTP nyata akan gagal di luar perangkat, atau diam-diam menyentuh jaringan.
+- **Keputusan:** `app/test/flutter_test_config.dart` mock method channel connectivity_plus dan mencabut `HttpOverrides.global`. Test tidak memakai plugin nyata.
+- **Alasan:** Test harus deterministik di laptop dan CI. Plugin nyata hanya bisa diuji di perangkat, yang dicakup `waiting.md` M7.
+- **Dampak:** Setiap test baru di app ikut konfigurasi ini. Test yang butuh HTTP nyata harus memakai server loopback secara eksplisit.
+
+## [Frontend M7] QR dengan id tidak valid ditolak sebagai Q04
+
+- **Konteks:** Field `id` di QR bersifat opsional, tetapi bisa berisi null atau tipe yang salah.
+- **Keputusan:** QR yang memiliki key `id` tetapi nilainya null, bukan string, atau tidak 32 hex ditolak sebagai Q04. QR tanpa key `id` tetap valid (QR lama).
+- **Alasan:** Null berarti pembuat QR salah atau QR rusak. Menganggapnya legacy bisa mematikan verifikasi `agentId` tanpa diketahui pemilik.
+- **Dampak:** QR dari agent yang salah format tidak bisa dipakai, dan pesan Q04 muncul. QR lama tetap berfungsi.
+
+## [Frontend M7] Izin Android hanya CHANGE_WIFI_MULTICAST_STATE
+
+- **Konteks:** Keputusan `[Gate M7] Izin platform` menyebut `ACCESS_WIFI_STATE` dan `CHANGE_WIFI_MULTICAST_STATE`. Saat pub get, manifest plugin connectivity_plus sudah membawa `ACCESS_NETWORK_STATE`.
+- **Keputusan:** Manifest app hanya menambah `CHANGE_WIFI_MULTICAST_STATE`. `ACCESS_WIFI_STATE` tidak ditambahkan. Keputusan ini mengoreksi `[Gate M7] Izin platform` pada bagian izin Android.
+- **Alasan:** Izin yang tidak dipakai menambah permintaan izin tanpa manfaat. README `nsd` hanya meminta multicast untuk discovery.
+- **Dampak:** Bila suatu saat discovery butuh info WiFi, izin `ACCESS_WIFI_STATE` harus ditambahkan lagi dan dicatat.

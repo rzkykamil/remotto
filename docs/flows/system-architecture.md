@@ -9,15 +9,19 @@ flowchart TB
     RP[Repository HTTP]
     SS[(Secure storage)]
     PF[(Preferences)]
+    DS[Discovery nsd + validasi kandidat]
     UI --> ST
     ST --> RP
     CC --> RP
+    CC --> DS
+    DS --> RP
     ST --> PF
     RP --> SS
   end
 
   subgraph NET[Jaringan]
     LAN[WiFi LAN]
+    MD[mDNS: _remotto._tcp]
     TS[Tailscale, opsional]
   end
 
@@ -29,6 +33,7 @@ flowchart TB
       D[Domain internal/control]
       SC[Scheduler daya]
       FK[Interface OS]
+      DA[Iklan mDNS internal/discovery]
       MW --> H
       H --> D
       D --> SC
@@ -53,6 +58,8 @@ flowchart TB
 
   RP -->|HTTP JSON + Bearer token| LAN
   RP -.->|IP Tailscale| TS
+  DS -.->|cari service| MD
+  DA -.->|iklan, tanpa token| MD
   LAN --> FW
   TS -.-> FW
   FW --> MW
@@ -64,4 +71,5 @@ flowchart TB
 - `internal/control` tidak mengetahui Windows. Implementasi OS hanya di `internal/oswin`.
 - Task Scheduler menjalankan agent di sesi user, karena session 0 tidak bisa mengirim media key.
 - Tailscale opsional dan tanpa perubahan kode. Port agent tidak pernah di-forward ke internet.
+- Discovery hanya mDNS di LAN. Iklan tidak pernah memuat token; alur lengkap ada di `docs/flows/discovery-flow.md`.
 - `pair` dan `reset-token` adalah proses terpisah yang membaca atau menulis `config.json`. Agent yang berjalan mendeteksi perubahan token lewat waktu modifikasi file.

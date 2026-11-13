@@ -81,6 +81,7 @@ Respons 200:
 ```json
 {
   "data": {
+    "agentId": "a3f1c9e0b72d4e85916f0c2d7b4e13a8",
     "name": "Laptop-Kamil",
     "version": "1.0.0",
     "uptimeSeconds": 11520,
@@ -90,6 +91,7 @@ Respons 200:
 }
 ```
 
+- `agentId` berisi 32 karakter hex huruf kecil (`^[0-9a-f]{32}$`). Nilainya publik, stabil, dan tidak berubah saat `reset-token`. Nilai yang sama ada di TXT mDNS (lihat bagian Discovery). Agent yang belum memuat field ini (sebelum M7) tetap valid; app memperlakukannya sebagai tidak ada.
 - `volume` bernilai `null` kalau Core Audio sedang gagal. Status tetap 200 agar koneksi tidak dianggap putus; app mempertahankan nilai terakhir.
 - `pending` berisi objek `Pending` atau `null`.
 
@@ -223,6 +225,27 @@ Error:
 
 - 409 `no_pending_power`, tidak ada jadwal (BR-17). App menganggapnya P08.
 - 409 `power_executing`, sudah terlambat. App menampilkan P14.
+
+---
+
+## Discovery (mDNS)
+
+Agent mengiklankan dirinya di LAN lewat DNS-SD. Ini bukan endpoint HTTP: tidak ada route baru, dan iklan hanya membantu app menemukan alamat IP terbaru. Akses tetap lewat `GET /status` dengan Bearer token.
+
+| Item | Nilai |
+|---|---|
+| Service | `_remotto._tcp` |
+| Nama instance | `Remotto-<8 hex pertama agentId>` |
+| Port | Sama dengan `port` di config |
+| Alamat | IPv4 dari A record, hanya di interface privat yang aktif |
+| TXT `v` | `1` (versi skema iklan) |
+| TXT `id` | `agentId` |
+| TXT `name` | `laptopName`, maksimal 32 karakter, hanya untuk informasi |
+
+- **TXT tidak pernah berisi token atau hash token.** Ada test yang memastikan ini.
+- Iklan dimatikan saat `discovery.enabled` bernilai `false` di config.
+- Iklan hanya dikirim di interface yang aktif, multicast, dan memakai IPv4 privat. WSL, Hyper-V, dan Tailscale dikecualikan.
+- Hasil discovery adalah kandidat. App hanya menyimpannya setelah `GET /status` dengan token tersimpan mengembalikan 200 dan `agentId` yang sama. Aturannya ada di `docs/prd.md` (BR-22) dan `docs/flows/discovery-flow.md`.
 
 ---
 

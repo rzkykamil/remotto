@@ -13,7 +13,7 @@ Data Remotto hanya satu set konfigurasi, satu token, dan preferensi tampilan. Ti
 | Config agent, termasuk token | `%APPDATA%\Remotto\config.json` | Permanen | Ya |
 | Log agent | `%APPDATA%\Remotto\logs\agent.log` + hasil rotasi | Dirotasi berdasarkan ukuran | Rendah, tanpa token |
 | Jadwal daya aktif, cache volume | Memori agent | Selama proses hidup | Tidak |
-| Host, port, token, nama laptop | Secure storage HP | Sampai pairing diganti | Ya |
+| Host, port, token, nama laptop, agentId | Secure storage HP | Sampai pairing diganti | Ya |
 | Tema, haptic | Preferences HP | Permanen | Tidak |
 | Perintah daya terakhir (`lastPowerCommand`) | Preferences HP | Sampai laptop tersambung lagi | Tidak |
 | State layar, nilai volume terakhir | Memori app | Selama app hidup | Tidak |
@@ -30,6 +30,7 @@ Data Remotto hanya satu set konfigurasi, satu token, dan preferensi tampilan. Ti
 | `laptopName` | string | hostname Windows | 1–64 karakter, tampil di app |
 | `port` | int | `8765` | 1024–65535 |
 | `bindAddress` | string | `0.0.0.0` | Alasan di `docs/technical-spec.md` bagian 11 |
+| `agentId` | string | dibuat saat first run atau saat kosong | 32 karakter hex huruf kecil (128 bit), dari `crypto/rand`; publik, lihat `docs/api-spec.md` |
 | `token` | string | dibuat saat first run | 64 karakter hex huruf kecil (256 bit) |
 | `tokenCreatedAt` | string | waktu pembuatan | RFC 3339 |
 | `createdAt` | string | waktu first run | RFC 3339 |
@@ -37,8 +38,17 @@ Data Remotto hanya satu set konfigurasi, satu token, dan preferensi tampilan. Ti
 | `rateLimit.requestsPerSecond` | int | `20` | Per IP; harus di atas laju slider (10 per detik) |
 | `rateLimit.burst` | int | `40` | Toleransi lonjakan |
 | `logLevel` | string | `info` | `debug`, `info`, `warn`, `error` |
+| `discovery.enabled` | bool | `true` | Mengatur iklan mDNS. `false` berarti agent tidak mengiklankan diri, dan app harus memakai scan QR ulang |
 
 Desain hitung mundur mengasumsikan 5 detik, termasuk 5 segmen di mode reduced motion. Nilai `powerDelaySeconds` selain 5 boleh untuk agent, tapi tidak dijamin rapi di app.
+
+### `agentId` dan discovery
+
+- `agentId` adalah identitas agent, bukan rahasia. Nilainya ada di TXT mDNS dan di respons `GET /status`.
+- Dibuat saat first run. Kalau field ini kosong atau hilang (config dari versi sebelum M7), agent membuatnya lalu menyimpannya secara atomik.
+- `reset-token` **tidak** mengubah `agentId`. Dengan begitu app tahu laptop yang sama, sedangkan tokennya sudah basi.
+- `configVersion` tetap `1`. Field yang hilang diisi default: `agentId` kosong, `discovery.enabled` `true`.
+- Iklan mDNS tidak pernah berisi token atau hash token. Detail iklan ada di `docs/api-spec.md` bagian Discovery.
 
 ### Kenapa token disimpan apa adanya, bukan hash
 
@@ -111,16 +121,17 @@ Payload berupa JSON satu baris. Format ini mengikuti brief dan menggantikan asum
 | `host` | string | IPv4 |
 | `port` | int | 1–65535 |
 | `token` | string | Cocok dengan `^[0-9a-f]{64}$` |
+| `id` | string | Opsional. Bila ada, cocok dengan `^[0-9a-f]{32}$` (`agentId`). QR tanpa `id` (sebelum M7) tetap valid |
 
-Contoh bentuk (token diganti teks contoh):
+Contoh bentuk (token dan id diganti teks contoh):
 
 ```json
-{"v":1,"name":"Laptop Kamar","host":"192.168.1.10","port":8765,"token":"<64-hex>"}
+{"v":1,"id":"<32-hex>","name":"Laptop Kamar","host":"192.168.1.10","port":8765,"token":"<64-hex>"}
 ```
 
-**Ukuran:** sekitar 150 byte, paling banyak sekitar 170 byte. Ukuran ini muat di QR kecil dan tetap bisa dipindai dari terminal.
+**Ukuran:** sekitar 180 byte, paling banyak sekitar 210 byte (dengan `id` dan nama 32 karakter). Ukuran ini di bawah batas 256 byte validasi app dan tetap bisa dipindai dari terminal.
 
-**Pemilihan host saat `pair`:** adapter aktif dengan default gateway dan IPv4 privat, sehingga adapter virtual seperti WSL atau Hyper-V terlewati. Opsi `--host` tersedia untuk override, misalnya untuk IP Tailscale. Host memakai IP, bukan nama, karena mDNS ada di backlog.
+**Pemilihan host saat `pair`:** adapter aktif dengan default gateway dan IPv4 privat, sehingga adapter virtual seperti WSL atau Hyper-V terlewati. Opsi `--host` tersedia untuk override, misalnya untuk IP Tailscale. Host tetap IP. Saat IP berubah karena ganti WiFi, app menemukan alamat baru lewat discovery mDNS tanpa scan QR ulang. Scan QR ulang hanya dibutuhkan untuk pairing awal atau kalau discovery tidak menemukan laptop.
 
 ### Validasi di app
 
@@ -130,9 +141,10 @@ Isi QR diperlakukan sebagai input tidak tepercaya. Ketentuan berikut berlaku jug
 2. `v` harus `1`.
 3. Semua field wajib ada dengan tipe dan format yang benar. Field tak dikenal diabaikan.
 4. `host` harus IPv4 di rentang privat (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) atau rentang Tailscale (`100.64.0.0/10`) sesuai BR-12.
-5. Gagal validasi → Q04 untuk QR, Q07 untuk input manual. Isi QR tidak dicatat ke log app.
+5. `id` opsional. Bila ada tetapi tidak cocok `^[0-9a-f]{32}$`, QR ditolak dengan Q04. Input manual tidak punya `id`, sehingga agentId diambil dari `/status` saat tes koneksi.
+6. Gagal validasi → Q04 untuk QR, Q07 untuk input manual. Isi QR tidak dicatat ke log app.
 
-Data baru disimpan hanya setelah tes `GET /status` berhasil, dan `name` di penyimpanan diperbarui dari respons `/status`.
+Data baru disimpan hanya setelah tes `GET /status` berhasil, dan `name` di penyimpanan diperbarui dari respons `/status`. Bila QR membawa `id` dan `agentId` dari `/status` berbeda, pairing ditolak lewat jalur Q10 yang sudah ada dan tidak ada yang disimpan. `agentId` dari `/status` disimpan bersama host, port, dan token.
 
 ## 6. Penyimpanan app
 
@@ -144,8 +156,11 @@ Data baru disimpan hanya setelah tes `GET /status` berhasil, dan `name` di penyi
 | `remotto.port` | Port |
 | `remotto.token` | Token |
 | `remotto.laptopName` | Nama laptop |
+| `remotto.agentId` | `agentId` laptop, opsional |
 
-Keempat key dibaca sebagai satu kesatuan. Kalau salah satu hilang, semuanya dianggap tidak ada dan app ke Q01.
+Keempat key wajib dibaca sebagai satu kesatuan. Kalau salah satu hilang, semuanya dianggap tidak ada dan app ke Q01.
+
+`remotto.agentId` tidak ikut aturan itu. Key ini bersifat opsional: kalau hilang, pairing tetap dianggap ada (legacy, sebelum M7), tapi discovery nonaktif sampai `agentId` terisi lewat backfill.
 
 ### Preferences (`shared_preferences`)
 
@@ -163,6 +178,7 @@ Keempat key dibaca sebagai satu kesatuan. Kalau salah satu hilang, semuanya dian
 | Secure storage gagal dibaca | Diperlakukan sebagai kosong → Q01, tidak crash |
 | Preferences hilang | Kembali ke default; tanpa `lastPowerCommand`, offline tampil sebagai S10 biasa |
 | App di-install ulang di iOS, Keychain masih ada | Sambungan lama terbaca; kalau token sudah basi, 401 → Q12 |
+| `agentId` hilang (pairing sebelum M7) | Sambungan tetap dipakai. Discovery nonaktif. `agentId` diisi saat `GET /status` berikutnya berhasil dengan token tersimpan (backfill) |
 | 401 dari agent | Data dipertahankan sampai pairing baru berhasil (BR-9) |
 | Pairing ulang dari Pengaturan | Keempat key dihapus setelah konfirmasi R04 |
 

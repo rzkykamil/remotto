@@ -56,6 +56,7 @@ Urutan sudah mengikuti dependency.
 | M4 Daya | Sleep, restart, shutdown dengan jeda 5 detik, cancel, status jadwal; konfirmasi, hitung mundur, hasil | sedang | M1 |
 | M5 Pengaturan & Tema | Info laptop, pairing ulang, tema, haptic, versi; perintah `reset-token` | kecil | M1 |
 | M6 Ketahanan & Startup | Task Scheduler, rate limit, graceful shutdown, rotasi log; auto-reconnect, kembali dari background, timeout konsisten | sedang | M1–M5 |
+| M7 Auto-Discovery Jaringan | mDNS: agent mengiklankan diri, app menemukan IP baru saat ganti WiFi tanpa scan QR ulang; `agentId`; validasi kandidat | sedang | M1, M6 |
 
 ## 6. Out of scope
 
@@ -123,6 +124,9 @@ Selama hitung mundur, kontrol media dan volume di agent tetap diizinkan. Di app,
 - US-6.2: App tersambung lagi sendiri setelah WiFi putus atau app kembali dari background.
 - US-6.3: Satu perintah yang gagal tidak mematikan agent.
 
+**M7 Auto-Discovery Jaringan**
+- US-7.1: Saya ganti WiFi, dan app menemukan laptop lagi sendiri tanpa scan QR ulang.
+
 M0 tidak punya user story karena isinya fondasi teknis.
 
 ## 9. Business rules
@@ -150,6 +154,7 @@ M0 tidak punya user story karena isinya fondasi teknis.
 | BR-19 | Saat jadwal daya bersisa kurang dari 1 detik atau sedang dieksekusi, app tidak menawarkan Batal (P14). |
 | BR-20 | Sisa hitung mundur selalu dihitung dari `remainingMs` agent, tidak pernah dari selisih jam laptop dan HP. |
 | BR-21 | Selama status belum jelas saat app dibuka atau kembali dari background, kontrol tidak bisa ditekan (S02). |
+| BR-22 | Discovery hanya menyimpan kandidat yang TXT `id`-nya cocok dengan `agentId` tersimpan dan yang terverifikasi lewat `GET /status` dengan token tersimpan (200 dan `agentId` sama). Token tidak pernah ditulis ke iklan mDNS. |
 
 ## 10. Functional requirements
 
@@ -222,6 +227,14 @@ M0 tidak punya user story karena isinya fondasi teknis.
 - FR-6.6: App melakukan polling segera saat dibuka atau kembali dari background, menampilkan S02 sambil menunggu (BR-21), dan berhenti polling saat di background.
 - FR-6.7: Semua request memakai timeout yang konsisten: 3 detik untuk perintah.
 
+### M7 Auto-Discovery Jaringan
+- FR-7.1: Agent mengiklankan `_remotto._tcp` dengan TXT `v`, `id`, dan `name`, dan port tetap. Iklan hanya di interface privat yang aktif, dan bisa dimatikan lewat `discovery.enabled` (`docs/api-spec.md` bagian Discovery).
+- FR-7.2: `agentId` 32 hex dibuat saat first run, bersifat publik, dan tidak berubah saat `reset-token`. Respons `GET /status` dan QR memuat `agentId`.
+- FR-7.3: App menemukan laptop lewat mDNS saat poll gagal non-401, saat jaringan WiFi atau Ethernet berubah, dan saat resume (`docs/flows/discovery-flow.md`).
+- FR-7.4: Kandidat disimpan hanya bila TXT `v` bernilai `1`, TXT `id` cocok dengan `agentId` tersimpan, alamat IPv4 privat, port valid, dan `GET /status` dengan token tersimpan mengembalikan 200 dengan `agentId` yang sama (BR-22).
+- FR-7.5: Saat endpoint baru tersimpan, token dan nama laptop tidak berubah. Sambungan pulih tanpa tindakan pemilik (S10 ke S11 ke S01).
+- FR-7.6: Pairing tanpa `agentId` tidak memakai discovery sampai backfill berhasil. Kegagalan discovery tidak mengubah fase koneksi, dan scan QR ulang tetap tersedia.
+
 ## 11. Non-functional requirements
 
 - **Responsif:** agent memproses perintah media/volume < 100 ms di luar latensi jaringan. Perintah daya dibalas segera lalu dieksekusi setelah jeda.
@@ -249,7 +262,7 @@ M0 tidak punya user story karena isinya fondasi teknis.
 | ID | Risiko | Dampak | Mitigasi |
 |---|---|---|---|
 | R-1 | Media key mengenai aplikasi yang tidak diharapkan | Lagu yang salah berhenti | Didokumentasikan sebagai batasan; dicek manual dengan Brave dan Spotify |
-| R-2 | IP laptop berubah karena DHCP | App offline padahal laptop nyala | Scan QR ulang; saran DHCP reservation; mDNS di backlog |
+| R-2 | IP laptop berubah karena DHCP | App offline padahal laptop nyala | mDNS discovery (M7); cadangan scan QR ulang; saran DHCP reservation |
 | R-3 | Windows Firewall memblokir | Laptop tidak ditemukan | Panduan aturan firewall profil Private di `docs/release.md`; tips di Q10 |
 | R-4 | COM audio gagal init | Volume gagal, media tetap jalan | Goroutine pekerja audio; error dibalas aman tanpa menjatuhkan agent |
 | R-5 | Sleep menjadi hibernate di laptop S3 | Bangun lebih lambat dari harapan | Didokumentasikan: `powercfg -h off`, khusus laptop S3 |
@@ -266,6 +279,7 @@ M0 tidak punya user story karena isinya fondasi teknis.
 | R-16 | Media key tidak terkirim saat layar laptop terkunci | Play/pause gagal, padahal volume tetap jalan | Error `media_failed` + toast; API sesi media Windows jadi kandidat backlog |
 | R-17 | **Laptop hanya punya Modern Standby (S0), tanpa S3** | Sleep tidak langsung: layar mati dulu, lagu bisa tetap jalan, dan agent bisa tetap terjangkau | Agent memilih jalur saat runtime; perilaku nyata wajib dicek lewat `waiting.md` |
 | R-18 | Respons penjadwalan daya hilang di jaringan | Laptop mati padahal app kira gagal | Timeout ambigu tidak pernah menampilkan P10, lihat `docs/technical-spec.md` bagian 6 |
+| R-19 | Iklan mDNS palsu di LAN: perangkat lain meniru TXT `id` lalu menerima Bearer saat verifikasi `/status` | Token terkirim ke perangkat yang salah, dan pihak itu bisa mengendalikan laptop | Diterima untuk LAN rumah, setara R-6. Token tidak pernah di TXT; kandidat harus lolos filter TXT dan verifikasi `agentId` di `/status`. Penguatan (TLS atau challenge-response) masuk backlog |
 
 ## 13. Rekonsiliasi dengan desain
 

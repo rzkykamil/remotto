@@ -33,6 +33,7 @@ agent/
   internal/pairing/   token, pemilihan host, payload dan render QR
   internal/logging/   slog + rotasi file
   internal/startup/   Task Scheduler (install, uninstall)
+  internal/discovery/ iklan mDNS, filter interface LAN (M7)
 ```
 
 Subcommand: `run`, `pair`, `reset-token`, `install-startup`, `uninstall-startup`, `version`.
@@ -54,6 +55,7 @@ app/lib/
     network/   klien HTTP, tipe error, envelope respons
     storage/   secure storage dan preferences
     connection/  controller polling dan state koneksi
+    discovery/   pencarian mDNS dan validasi kandidat (M7)
     strings/   semua teks UI
     haptics/   pembungkus haptic yang patuh preferensi
   features/
@@ -79,6 +81,8 @@ app/test/      unit, widget, golden
 | Preferensi | `shared_preferences` | Sesuai brief | BSD-3 |
 | Layar tetap nyala | `wakelock_plus` | Kebutuhan C13 | BSD-3 |
 | Versi app | `package_info_plus` | Baris Versi di SCR-020 | BSD-3 |
+| Discovery agent | `nsd` | Resolve `_remotto._tcp` lewat Bonjour (iOS) dan NsdManager (Android), D1/D8 | MIT |
+| Pemicu jaringan | `connectivity_plus` | Event perubahan WiFi/Ethernet untuk rediscover, D6 | BSD-3 |
 
 Semuanya fungsional dan non-visual, sehingga sesuai §11. Haptic memakai `HapticFeedback` bawaan Flutter.
 
@@ -116,6 +120,7 @@ Aturan:
 - Paling banyak satu polling berjalan. Tick berikutnya dilewati kalau yang sebelumnya belum selesai.
 - Polling berhenti saat app di background. Saat dibuka atau resume, polling langsung jalan dengan timeout 2 detik dan layar S02 (BR-21).
 - Timeout polling biasa 3 detik.
+- Rediscover (M7) dipicu saat poll gagal non-401, saat jaringan WiFi/Ethernet berubah (debounce 1 detik), dan saat resume. Selama offline, paling sering sekali per 15 detik. Timeout satu sesi discovery 3 detik. Aturan lengkapnya ada di `docs/flows/discovery-flow.md`. Tidak ada fase koneksi baru.
 - Setelah restart terkirim, interval menjadi 2 detik sampai tersambung lagi.
 - Setiap respons `/status` memperbarui volume, kecuali saat slider ditarik (FR-3.7).
 - `pending` terdeteksi saat app dibuka atau resume memicu P13 atau P14 (FR-4.9, FR-4.10). `pending` yang muncul saat app sudah di Remote, misalnya dari HP lain, diperlakukan sama.
@@ -272,16 +277,18 @@ flowchart LR
 ## 11. Jaringan
 
 - **Bind:** `0.0.0.0` (final). Mengikat ke satu IP LAN akan rusak saat DHCP mengganti IP, dan menyulitkan Tailscale. Pembatasnya adalah firewall profil Private, filter jaringan, dan token.
-- **Firewall:** aturan masuk hanya untuk profil Private, TCP port agent.
-- **IP berubah:** scan QR ulang. Saran DHCP reservation. mDNS di backlog.
-- **Tailscale:** pairing memakai IP Tailscale lewat `pair --host`. Tanpa perubahan kode.
+- **Firewall:** aturan masuk untuk profil Private: TCP port agent, dan UDP 5353 (mDNS) untuk program agent. Tanpa aturan UDP 5353, discovery tidak jalan dan app kembali ke scan QR ulang. Panduan ada di `docs/release.md`.
+- **IP berubah:** app me-resolve ulang laptop lewat mDNS (`_remotto._tcp`), sehingga tidak perlu scan QR ulang. Detail alur ada di `docs/flows/discovery-flow.md`. Scan QR tetap cadangan bila discovery gagal. Saran DHCP reservation tetap berlaku.
+- **Discovery di agent:** library `github.com/grandcat/zeroconf` (fallback `github.com/libp2p/zeroconf/v2`). Iklan hanya di interface privat yang aktif, dengan daftar ulang saat alamat berubah. Port tidak pernah berubah, hanya IP.
+- **Discovery di app:** library `nsd` (Bonjour dan NsdManager) dan `connectivity_plus` untuk pemicu perubahan jaringan. Hasil discovery hanya disimpan setelah verifikasi `GET /status` (aturan D5 di `docs/prd.md`, BR-22).
+- **Tailscale:** pairing memakai IP Tailscale lewat `pair --host`. Tanpa perubahan kode. Discovery tidak mengiklankan alamat Tailscale.
 
 ### Konfigurasi platform app
 
 | Platform | Konfigurasi |
 |---|---|
-| Android | `INTERNET` + `CAMERA`; cleartext diizinkan lewat network security config karena tidak bisa dibatasi per rentang IP, jadi BR-12 ditegakkan oleh validasi app; `allowBackup=false` |
-| iOS | `NSCameraUsageDescription`, `NSLocalNetworkUsageDescription`, `NSAllowsLocalNetworking`; dicek saat build di Mac |
+| Android | `INTERNET` + `CAMERA`; cleartext diizinkan lewat network security config karena tidak bisa dibatasi per rentang IP, jadi BR-12 ditegakkan oleh validasi app; `allowBackup=false`; `CHANGE_WIFI_MULTICAST_STATE` (diminta README `nsd`); `ACCESS_NETWORK_STATE` datang dari manifest plugin `connectivity_plus` |
+| iOS | `NSCameraUsageDescription`, `NSLocalNetworkUsageDescription`, `NSAllowsLocalNetworking`; `NSBonjourServices` berisi `_remotto._tcp`; dicek saat build di Mac |
 
 ## 12. Strategi testing
 
@@ -320,6 +327,8 @@ Development lokal native dengan Go dan Flutter SDK. Tidak ada staging, productio
 - [ ] Input divalidasi: level, ukuran body, field JSON
 - [ ] DACL config diperiksa saat start
 - [ ] Payload QR dan input manual divalidasi sebagai input tidak tepercaya
+- [ ] Hasil discovery mDNS hanya disimpan bila `agentId` cocok dan `GET /status` dengan token tersimpan mengembalikan 200 (BR-22)
+- [ ] TXT mDNS tidak pernah berisi token atau hash token
 - [ ] App menyimpan token hanya di secure storage; backup Android mati
 - [ ] `govulncheck` jalan di CI
 - [ ] Tidak ada port-forward; akses luar hanya lewat Tailscale

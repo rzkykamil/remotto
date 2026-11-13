@@ -25,8 +25,9 @@ sequenceDiagram
   else Payload valid
     A->>G: GET /status + Bearer token
     alt 200
-      G-->>A: Nama, versi, volume, pending
-      A->>S: Simpan host, port, token, nama
+      G-->>A: Nama, versi, volume, pending, agentId
+      Note over A: Bila QR membawa id dan berbeda dari agentId, tolak lewat Q10 dan jangan simpan
+      A->>S: Simpan host, port, token, nama, agentId
       A-->>U: Q09 berhasil
     else 401
       G-->>A: invalid_token
@@ -89,7 +90,7 @@ sequenceDiagram
   participant B as HP yang masih dipakai
 
   U->>T: Jalankan reset-token
-  T->>C: Tulis token baru secara atomik
+  T->>C: Tulis token baru secara atomik, agentId tidak diubah
   T-->>U: Token lama tidak berlaku
   A->>G: Request token lama
   G->>C: Waktu modifikasi berubah, muat ulang
@@ -101,3 +102,32 @@ sequenceDiagram
   B->>G: GET /status + token baru
   G-->>B: 200
 ```
+
+## Backfill agentId (pairing sebelum M7)
+
+Pairing lama tidak punya `agentId`, sehingga discovery nonaktif. Backfill mengisinya dari respons `/status` yang sudah terautentikasi token. Tidak perlu pairing ulang.
+
+```mermaid
+sequenceDiagram
+  participant A as App
+  participant G as Agent
+  participant S as Secure storage
+
+  Note over A: Pairing lama, remotto.agentId belum ada
+  A->>G: GET /status + token tersimpan
+  alt 200 dan respons memuat agentId
+    G-->>A: status + agentId
+    A->>S: Simpan agentId, token dan endpoint tetap
+    Note over A: Discovery aktif mulai polling berikutnya
+  else 200 tanpa agentId (agent lama)
+    G-->>A: status
+    Note over A: Tidak menyimpan apa pun, discovery tetap nonaktif
+  else 401
+    G-->>A: invalid_token
+    A-->>A: Q12
+  end
+```
+
+Backfill hanya terjadi bila `agentId` di app masih kosong. Nilai yang sudah tersimpan tidak pernah ditimpa, dan backfill tidak mengubah fase koneksi.
+
+Untuk alur pencarian laptop yang IP-nya berubah, lihat `docs/flows/discovery-flow.md`.
