@@ -604,3 +604,23 @@ Catatan: item yang butuh laptop mengiklankan (hampir semua) baru bisa dites sete
   Buka: stopwatch di HP atau laptop, dan layar Remote di HP.
   Lakukan: ganti WiFi laptop tiga kali, catat detik dari WiFi berganti sampai layar berubah ke S01 setiap kali.
   Harusnya: angka tercatat di bagian M7 `docs/todo/modules/M7-auto-discovery-jaringan.md`. Tidak ada batas lulus; angka dipakai untuk menilai 15 sampai 20 detik.
+
+- [ ] M7 (QA): WiFi laptop dinyalakan dan dimatikan cepat tiga kali, lalu app pulih sendiri.
+  Buka: app Remotto di HP (layar Remote, status "Nyambung"), dan laptop yang sudah dipairing dengan agent jalan.
+  Lakukan: matikan WiFi laptop, tunggu 1 sampai 2 detik, nyalakan lagi. Ulangi sampai tiga kali. Lalu diamkan sekitar 30 detik tanpa menyentuh app.
+  Harusnya: app tidak tertutup sendiri, dan setelah beberapa detik kembali "Nyambung" tanpa scan QR ulang.
+
+- [ ] M7 (QA): HP hanya memakai data seluler sebentar, lalu WiFi menyala lagi di jaringan yang sama dengan laptop.
+  Buka: app Remotto di HP (layar Remote), dan laptop yang agent-nya jalan. Pastikan laptop tetap menyala.
+  Lakukan: matikan WiFi HP dan pakai data seluler saja sekitar 1 menit. Lalu nyalakan WiFi HP lagi di jaringan yang sama dengan laptop, dan tunggu.
+  Harusnya: selama data seluler saja, app menampilkan offline, tidak crash, dan tidak menyambung ke laptop. Setelah WiFi menyala di jaringan yang sama, app kembali "Nyambung" tanpa scan QR ulang.
+
+- [ ] M7 (QA): HP dengan VPN atau Tailscale aktif saat WiFi laptop diganti.
+  Buka: HP dengan VPN atau Tailscale aktif, app Remotto di layar Remote, dan pengaturan WiFi laptop.
+  Lakukan: pastikan status "Nyambung". Ganti WiFi laptop ke jaringan lain yang juga dipakai HP, lalu tunggu sekitar 30 detik. Catat apakah app menemukan laptop atau tetap offline.
+  Harusnya: bila laptop masih bisa dijangkau lewat jaringan lokal, app menemukan laptop dan kembali "Nyambung". Bila tidak, app tetap offline dengan tombol "Pairing ulang" dan tidak crash. Catat hasilnya di bagian QA M7 di `docs/todo/modules/M7-auto-discovery-jaringan.md`.
+
+- [ ] M7 (Fixing, opsional): pencarian laptop yang telat pulih, tidak macet, di HP nyata.
+  Buka: app Remotto di HP (layar Remote, status "Nyambung"), dan pengaturan WiFi HP serta laptop.
+  Lakukan: buka layar Remote, lalu ganti WiFi laptop ke jaringan lain yang juga dipakai HP. Ulangi beberapa kali dan catat detik sampai layar berubah ke "Nyambung" lagi. Catat juga kalau app sempat berhenti mencoba lebih dari 20 detik.
+  Harusnya: app menemukan laptop lagi dalam sekitar 20 detik. Tidak ada kasus app macet tanpa pernah menemukan laptop. Bila sering gagal di HP yang lambat (misalnya HP yang sedang mode hemat baterai), catat tipe HP dan jamnya di bagian Fixing M7 `docs/todo/modules/M7-auto-discovery-jaringan.md`. Ini terkait margin 1 dtk di `docs/todo/backlog/qa.md` M7.

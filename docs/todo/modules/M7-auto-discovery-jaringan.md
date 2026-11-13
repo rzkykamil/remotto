@@ -22,3 +22,24 @@
 - Gerbang lolos: `flutter test` 1162 hijau, analyze, format, `flutter build apk --debug`; agent gofmt, vet (termasuk tag `manual`), dan `go test ./...` hijau.
 - Keputusan `[Integrasi M7]` di `docs/decision-log.md`. Saran di `docs/todo/backlog/integration.md` bagian M7.
 - Pembuktian mDNS nyata, WiFi, iOS, dan HP ada di `docs/todo/waiting.md` bagian M7. Fase aktif pindah ke QA karena DoD Integrasi terpenuhi.
+
+## QA
+
+- Selesai dengan Reviewer LOLOS DENGAN SARAN, tanpa temuan WAJIB. Gerbang: `flutter analyze` dan `dart format` bersih, `flutter test` 1180 lulus dengan 1 merah, agent `gofmt`, `go vet`, dan `go test ./...` hijau.
+- Dicentang dan dibuktikan: BR-22, LAN only, dua laptop tak tertukar, dan 12 edge case `[O]` (lihat `docs/todo/qa.md` M7).
+- Bug open: `find` yang tak pernah selesai memblokir rediscover (test `a find that never completes must not block rediscover forever`, sengaja merah). Dicatat di `docs/todo/qa.md` §Bugs Ditemukan. Fase aktif pindah ke Fixing.
+- Pembuktian manual WiFi cepat, data seluler, dan VPN/Tailscale ada di `docs/todo/waiting.md` bagian M7 (QA). SARAN yang tak dikerjakan ada di `docs/todo/backlog/qa.md` bagian M7.
+
+## Fixing
+
+- Selesai dengan Reviewer LOLOS DENGAN SARAN, tanpa temuan WAJIB. Bug `find` yang menggantung (`docs/todo/qa.md` §Bugs Ditemukan) berstatus fixed.
+- Perbaikan: `RBehavior.discoveryGuardMargin` (1 dtk) dan `discoveryHardLimit` (4 dtk). `EndpointResolver._execute` memakai `.find(timeout).timeout(hardLimit)`, `NsdAgentDiscovery` membatasi start dan stop. `decodeTxt` dipisah jadi fungsi murni. Keputusan `[Fixing M7]` di `docs/decision-log.md`.
+- Bukti: test (e) hijau, 3 test baru, 7 test `decodeTxt`. Reviewer membuktikan ketiga test baru gagal saat `.timeout` dihapus, lalu mutasi dikembalikan.
+- Gerbang: `flutter analyze` dan `dart format` bersih, `flutter test` 1191 lulus. Agent `gofmt`, `go vet`, dan `go test ./...` hijau.
+- Pembuktian di HP: `docs/todo/waiting.md` bagian M7 (Fixing). SARAN margin 1 dtk ada di `docs/todo/backlog/qa.md` M7.
+
+## Penutup
+
+- Checklist penutup siklus modul dicek dan lunas. Fase aktif: Selesai.
+- Sisa yang menunggu pemilik ada di `docs/todo/waiting.md` bagian M7. Pembuktian itu tidak menahan Selesai.
+- Tidak ada fase yang tidak relevan. Semua fase M7 (Frontend, Backend, Integrasi, QA, Fixing) dijalankan.

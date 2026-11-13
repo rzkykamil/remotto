@@ -1364,3 +1364,14 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
 - **Keputusan:** `run_e2e_test.go` mengganti token lewat config, bukan lewat perintah CLI.
 - **Alasan:** Efek yang diuji (token diganti, agentId tidak berubah) sama dengan yang dilakukan pemilik lewat config. Perintah CLI tidak perlu dibuat untuk tes ini.
 - **Dampak:** Jalur `reset-token` nyata belum dites end-to-end. Masuk backlog `docs/todo/backlog/backend.md` M5.
+
+## [Fixing M7] Batas keras find di resolver
+
+- **Konteks:** QA menemukan `EndpointResolver._execute` memanggil `find` tanpa timeout, dan `_inFlight` hanya dibersihkan lewat `whenComplete`. `find` yang menggantung membuat semua rediscover, termasuk `force`, mengembalikan future macet yang sama. `NsdAgentDiscovery.find` juga menunggu `startDiscovery` tanpa batas. Test (e) sengaja merah.
+- **Keputusan:**
+  - D1: `RBehavior.discoveryHardLimit` = `discoveryTimeout` + `discoveryGuardMargin` (1 dtk), jadi 4 dtk. Konstanta ini `static final` karena `Duration` tidak bisa `const` saat dijumlahkan.
+  - D2: `EndpointResolver._execute` memakai `.find(timeout: discoveryTimeout).timeout(discoveryHardLimit)`. Hasil `none`, hasil yang telat diabaikan, `_inFlight` dibersihkan, dan tidak ada yang disimpan ke pairing.
+  - D3: `NsdAgentDiscovery.find` membatasi `startDiscovery` dan `stopDiscovery` dengan `.timeout(timeout)`. Sesi start yang telat di-stop lewat unawaited.
+  - D4: `_decodeTxt` diekstrak jadi fungsi publik murni `decodeTxt` di `discovery_candidate.dart`, supaya bisa dites tanpa plugin.
+- **Alasan:** Spec menuntut resolver tidak macet selamanya. Batas di dua lapis (find dan resolver) menjaga jalur yang macet di dalam plugin. Fungsi murni menutup SARAN dekode TXT tanpa mengubah perilaku.
+- **Dampak:** Rediscover yang macet berakhir sebagai `none` dalam 4 detik. Risiko: margin 1 dtk bisa membuang hasil normal di perangkat lambat yang butuh lebih dari sekitar 1 dtk untuk start atau stop NSD. Akibatnya satu putaran rediscover tertunda 15 dtk. Hanya terbukti di perangkat nyata; opsi perbaikan ada di `docs/todo/backlog/qa.md` M7. Test waktu nyata (3 test baru) menambah ±8 dtk ke suite, karena `fake_async` hanya dependensi transitif.

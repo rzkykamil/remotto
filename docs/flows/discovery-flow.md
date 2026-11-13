@@ -57,7 +57,7 @@ sequenceDiagram
   else Belum lewat 15 detik sejak sesi terakhir, bukan force
     R-->>C: none
   else Lanjut
-    R->>D: find, timeout 3 detik
+    R->>D: find, timeout 3 detik, dipotong keras di 4 detik
     D-->>R: daftar TXT dan alamat
     R->>R: Saring: v=1, id=agentId, IPv4 privat, port 1-65535, beda dari tersimpan
     loop Maks 3 kandidat
@@ -95,6 +95,8 @@ Akibat tiap hasil:
 **401.** Pada kandidat dengan `agentId` yang cocok, 401 berarti token sudah di-reset (`reset-token`). Ini sama dengan 401 dari endpoint biasa: app masuk Q12. Tidak ada yang disimpan.
 
 **Tidak ketemu.** Discovery kosong, alamat privat tidak ada, atau mDNS diblokir router atau firewall (UDP 5353 tidak diizinkan). Ini bukan error. State offline tetap tampil sebagai S10. Pemilik bisa memakai scan QR ulang lewat alur pairing (Q01).
+
+**Pencarian menggantung.** `find` dibatasi `discoveryTimeout` (3 detik) dan dipotong keras di `discoveryTimeout` + margin 1 detik (4 detik). Bila keduanya lewat, hasilnya `none`, sesi dilepas, dan hasil yang terlambat diabaikan. Tidak ada yang disimpan. Rediscover berikutnya berjalan normal: non-force setelah 15 detik sejak sesi terakhir, force langsung. Dengan begitu discovery yang macet tidak memblokir rediscover selamanya.
 
 **Hanya seluler.** Jaringan aktif bukan WiFi atau Ethernet. Rediscover dilewati, karena laptop tidak mungkin satu LAN.
 
