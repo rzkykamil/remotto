@@ -50,4 +50,5 @@
 - Detail dan langkah perbaikan di `docs/todo/blockers.md`. Status fase tetap Selesai.
 - Perbaikan (`[Fixing M7] Pin toolchain CI` di `docs/decision-log.md`): Flutter dipin ke 3.47.5 di job `app-test` dan `build`; `agent/go.mod` naik ke `go 1.27.4`.
 - Verifikasi lokal: `flutter analyze` tanpa isu, `dart format` bersih, `flutter test` 1191 lulus; `gofmt`, `go vet`, dan `go test` agent lulus; `govulncheck` menulis `No vulnerabilities found.`.
-- Hasil run CI setelah perbaikan menyusul setelah push.
+- Run CI `44802501786` pada `team/m7-ci-toolchain` hijau: `agent-test` success, `app-test` success, `build` skipped (aturan `team/*`).
+- Blocker CI merah sudah ditutup (lihat `docs/todo/blockers.md`).
