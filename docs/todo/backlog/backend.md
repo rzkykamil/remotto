@@ -71,6 +71,10 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 - `Lister.List()` tidak membaca ctx, sehingga stop discovery bisa menunggu maks 2 dtk (catatan, `agent/internal/discovery`).
 - Pantau `govulncheck` dan dependensi `grandcat/zeroconf` yang tidak dirawat, dengan `miekg/dns` v1.1.27. Fallback libp2p tetap tercatat di `[Backend M7] Library mDNS agent` (`agent/go.mod`).
 
+## M7 Auto-Discovery Jaringan (usulan, perlu keputusan pemilik)
+
+- [ ] Jalankan `govulncheck` di gerbang lokal tim (sebelum commit atau push), tidak hanya di CI. Usulan dari `[Fixing M7] Pin toolchain CI` di `docs/decision-log.md`; govulncheck memakai `@latest`, jadi temuan baru bisa memerahkan CI tanpa perubahan kode.
+
 ## Stretch
 
 Hanya dikerjakan kalau pemilik menyebutnya.

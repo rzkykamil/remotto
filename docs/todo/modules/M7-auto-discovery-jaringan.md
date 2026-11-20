@@ -48,3 +48,6 @@
 
 - Run CI `43381256379` merah di `agent-test` (langkah govulncheck) dan `app-test` (langkah analyze, info `deprecated_member_use`). Job `build` skipped. Dugaan penyebab drift toolchain, belum diverifikasi sebagai bukan akibat M7.
 - Detail dan langkah perbaikan di `docs/todo/blockers.md`. Status fase tetap Selesai.
+- Perbaikan (`[Fixing M7] Pin toolchain CI` di `docs/decision-log.md`): Flutter dipin ke 3.47.5 di job `app-test` dan `build`; `agent/go.mod` naik ke `go 1.27.4`.
+- Verifikasi lokal: `flutter analyze` tanpa isu, `dart format` bersih, `flutter test` 1191 lulus; `gofmt`, `go vet`, dan `go test` agent lulus; `govulncheck` menulis `No vulnerabilities found.`.
+- Hasil run CI setelah perbaikan menyusul setelah push.

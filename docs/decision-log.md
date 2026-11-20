@@ -1375,3 +1375,13 @@ Keputusan dicatat per gate atau fase, tanpa tanggal.
   - D4: `_decodeTxt` diekstrak jadi fungsi publik murni `decodeTxt` di `discovery_candidate.dart`, supaya bisa dites tanpa plugin.
 - **Alasan:** Spec menuntut resolver tidak macet selamanya. Batas di dua lapis (find dan resolver) menjaga jalur yang macet di dalam plugin. Fungsi murni menutup SARAN dekode TXT tanpa mengubah perilaku.
 - **Dampak:** Rediscover yang macet berakhir sebagai `none` dalam 4 detik. Risiko: margin 1 dtk bisa membuang hasil normal di perangkat lambat yang butuh lebih dari sekitar 1 dtk untuk start atau stop NSD. Akibatnya satu putaran rediscover tertunda 15 dtk. Hanya terbukti di perangkat nyata; opsi perbaikan ada di `docs/todo/backlog/qa.md` M7. Test waktu nyata (3 test baru) menambah ±8 dtk ke suite, karena `fake_async` hanya dependensi transitif.
+
+## [Fixing M7] Pin toolchain CI
+
+- **Konteks:** Run CI `43381256379` merah di dua job. `app-test` gagal di langkah Analyze karena CI memakai Flutter stable 3.50.0, sedangkan lokal 3.47.5; ada 86 info `deprecated_member_use`. `agent-test` gagal di govulncheck karena temuan di stdlib Go. Job `build` skipped.
+- **Keputusan:**
+  - Flutter dipin ke `3.47.5` di job `app-test` dan `build` pada `.github/workflows/ci.yml`.
+  - `agent/go.mod` naik dari `go 1.27.3` ke `go 1.27.4`. `setup-go` mengikuti lewat `go-version-file`.
+  - Migrasi API deprecated dan pengecualian govulncheck tidak dipilih.
+- **Alasan:** Pin menyamakan CI dengan toolchain lokal dan `docs/technical-spec.md`. Patch Go 1.27.4 berada dalam seri 1.27 tanpa perubahan API. Dari 86 info, sebagian besar ada di file yang tidak disentuh M7; penanganannya dipisah dari perbaikan CI ini.
+- **Dampak:** Versi Flutter dan Go harus dinaikkan dengan sengaja saat rilis baru. govulncheck memakai `@latest`, jadi temuan baru bisa memerahkan CI tanpa perubahan kode. Migrasi 86 info dicatat di `docs/todo/backlog/frontend.md`.

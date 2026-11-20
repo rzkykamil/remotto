@@ -90,6 +90,10 @@ Satu baris per temuan, dengan referensi inline. Heading modul tidak boleh dihapu
 
 Belum ada temuan.
 
+## M7 Auto-Discovery Jaringan
+
+- [ ] Migrasi 86 info `deprecated_member_use` di `flutter analyze` untuk Flutter 3.50+. Saat ini CI dipin ke 3.47.5; file yang tidak disentuh M7 ditangani terpisah. Lihat `[Fixing M7] Pin toolchain CI` di `docs/decision-log.md`.
+
 ## Stretch
 
 Hanya dikerjakan kalau pemilik menyebutnya.
